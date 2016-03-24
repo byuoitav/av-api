@@ -17,6 +17,7 @@ func getRoomByName(c web.C, w http.ResponseWriter, r *http.Request) {
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms?search="+c.URLParams["name"], nil)
 	check(err)
+
 	req.Header.Add("Content-Type", "application/json")
 	resp, err := client.Do(req)
 	check(err)
