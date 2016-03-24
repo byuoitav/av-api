@@ -19,9 +19,9 @@
 - Room configuration
 
 ## Possible Endpoints
-`/rooms` View all rooms  
-`/configuration/{building}/{room}` Get the configuration of a room  
-`/manage/{building}/{room}/{system}` Get status and manage attributes/signals of specific system  
+`GET /rooms` View all rooms  
+`[GET, POST, etc.] /configuration/{building}/{room}` Get and manage the configuration of a room  
+`[GET, POST, etc.] /manage/{building}/{room}/{system}` Get status and manage attributes/signals of specific system  
 
 ## Notes
 - Updates should post to ServiceNow CMDB
