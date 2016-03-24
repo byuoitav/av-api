@@ -20,16 +20,16 @@ paths:
         - Rooms
       responses:
         200:
-          description: An array of products
+          description: An array of systems
           schema:
             type: array
             items:
-              $ref: '#/definitions/Product'
+              $ref: '#/definitions/System'
         default:
           description: Unexpected error
           schema:
             $ref: '#/definitions/Error'
-  /check/{building}/{room}/{system}:
+  /manage/{building}/{room}/{system}:
     get:
       summary: All Rooms
       description: |
@@ -39,19 +39,18 @@ paths:
       parameters:
         - name: building
           in: path
-          description: BYU building shortname (JKB)
+          description: BYU building shortname.
           required: true
           type: string
           format: double
         - name: room
           in: path
-          description: Latitude component of location.
+          description: Room number.
           required: true
-          type: number
-          format: double
+          type: string
         - name: system
           in: path
-          description: Latitude component of location.
+          description: System name/identifier.
           required: true
           type: number
           format: double
@@ -59,34 +58,34 @@ paths:
         - Rooms
       responses:
         200:
-          description: An array of products
+          description: An array of systems
           schema:
             type: array
             items:
-              $ref: '#/definitions/Product'
+              $ref: '#/definitions/System'
         default:
           description: Unexpected error
           schema:
             $ref: '#/definitions/Error'
 definitions:
-  Product:
+  System:
     type: object
     properties:
-      product_id:
+      system_id:
         type: string
-        description: Unique identifier representing a specific product for a given latitude & longitude. For example, uberX in San Francisco will have a different product_id than uberX in Los Angeles.
+        description: Unique identifier representing a specific system. For example, a DMPS in the MARB will have a different system_id than a DMPS in the JKB.
       description:
         type: string
-        description: Description of product.
+        description: Description of system.
       display_name:
         type: string
-        description: Display name of product.
+        description: Display name of system.
       capacity:
         type: string
-        description: Capacity of product. For example, 4 people.
+        description: Capacity of system. For example, 4 people.
       image:
         type: string
-        description: Image URL representing the product.
+        description: Image URL representing the system.
   Error:
     type: object
     properties:
