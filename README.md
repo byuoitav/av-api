@@ -19,7 +19,7 @@
 - Room configuration
 
 ## Possible Endpoints
-`GET /rooms` View all rooms  
+`[GET, POST, etc.] /rooms` View all rooms  
 `[GET, POST, etc.] /configuration/{building}/{room}` Get and manage the configuration of a room  
 `[GET, POST, etc.] /manage/{building}/{room}/{system}` Get status and manage attributes/signals of specific system  
 
