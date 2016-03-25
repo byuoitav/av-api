@@ -1,6 +1,6 @@
 # General API "Documentation"
 
-These are meant to be general notes for getting thoughts down on paper. Actual API documentation is done in Swagger and is visible [here](https://byuoitav.github.io/av-api/).
+This file is meant to be general notes for getting thoughts down on paper. Actual API documentation is done in Swagger and is visible [here](https://byuoitav.github.io/av-api/).
 
 ## Requirements
 - Updates should post to ServiceNow CMDB
@@ -21,29 +21,59 @@ These are meant to be general notes for getting thoughts down on paper. Actual A
   - Cameras
 
 **Status**  
-- Aggregate of EMS/GetSignal of DMPS Online
+- Availability of rooms from EMS/GetSignal of DMPS
 - Room configuration
 
 ## Endpoints
 `[GET, POST, etc.] /room` View and manage all rooms  
 `[GET, POST, etc.] /configuration/{building}/{room}` Get and manage the configuration of a room  
-`[GET, POST, etc.] /manage/{building}/{room}/{system}` Get status and manage attributes/signals of specific system  
+`[GET, POST, etc.] /manage/{building}/{room}/{symbol}` Get status and manage attributes/signals of specific symbol  
 
 ## Response Models
 ```
 links: [{
   rel: "self",
   href: "http://[root]"
+}, {
+  rel: "next",
+  href: "http://[root]?page=2"
 }]
 ```
 ```
 room: {
-  guid: 123
+  name: "Test",
+  ID: 123-456-789,
+  description: "This room rocks",
+  available: true
 }
 ```
 ```
-system: {
-  guid: 123
+asset: {
+  name: "Test",
+  ID: 123-456-789,
+  make: "Crestron",
+  model: "TSS-123",
+  serial: "123456789"
+}
+```
+```
+processor: {
+  name: "Main",
+  ID: 123-456-789,
+  roomID: "123A",
+  address: "10.6.25.415",
+  modified: 2012-04-23T18:25:43.511Z,
+  symbols: [symbol, symbol]
+}
+```
+```
+symbol: {
+  name: "Apple TV",
+  ID: 123-456-789,
+  signalID: 987-654-321,
+  roomID: 159-753-852,
+  type: 2,
+  modified: 2012-04-23T18:25:43.511Z
 }
 ```
 
@@ -56,7 +86,7 @@ system: {
 `503` The server is overloaded or under maintenance  
 
 ## References
-[http://martinfowler.com/articles/richardsonMaturityModel.html](http://martinfowler.com/articles/richardsonMaturityModel.html)  
 [http://timelessrepo.com/haters-gonna-hateoas](http://timelessrepo.com/haters-gonna-hateoas)  
+[http://martinfowler.com/articles/richardsonMaturityModel.html](http://martinfowler.com/articles/richardsonMaturityModel.html)  
 [https://en.wikipedia.org/wiki/Representational_state_transfer#Architectural_constraints](https://en.wikipedia.org/wiki/Representational_state_transfer#Architectural_constraints)  
 [http://www.ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm](http://www.ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm)  
