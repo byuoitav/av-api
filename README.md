@@ -25,9 +25,9 @@ This file is meant to be general notes for getting thoughts down on paper. Actua
 
 ## Endpoints
 `[GET, POST] /room` View and manage all rooms  
-`[GET, POST, etc.] /room/{room}` View and manage a single rooms  
-`[GET, POST, etc.] /configuration/{building}/{room}` Get and manage the configuration of a room  
-`[GET, POST, etc.] /manage/{building}/{room}/{symbol}` Get status and manage attributes/signals of specific symbol  
+`[GET, PUT, DELETE] /room/{room}` View and manage a single room  
+`[GET, POST] /manage/{building}/{room}` View and manage all signals  
+`[GET, PUT, DELETE] /manage/{building}/{room}/{signal}` View and manage a single signal  
 
 ## Response Models
 ```
@@ -81,7 +81,7 @@ signal: {
 `401` Unauthorized (You are unauthorized to perform the requested action or view the requested data)  
 `404` Not Found (The service couldn't find what you requested)  
 `500` Internal Server Error (There was a problem with the server on our end)  
-`503` Service Unavailable (The server is overloaded, is under maintenance or is otherwise unavailable)  
+`503` Service Unavailable (The server is overloaded, is under maintenance, or is otherwise unavailable)  
 
 ## References
 [http://timelessrepo.com/haters-gonna-hateoas](http://timelessrepo.com/haters-gonna-hateoas)  

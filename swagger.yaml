@@ -1,11 +1,12 @@
-swagger: '2.0'
+swagger: "2.0"
 info:
   title: Brigham Young University Audiovisual API
   description: Manage various AV systems across BYU campus with the BYU AV API
-  version: "0.0.1"
+  version: "0.1"
 host: api.byu.edu
 schemes:
   - https
+basePath: /v1
 produces:
   - application/json
 paths:
@@ -24,11 +25,23 @@ paths:
           schema:
             type: array
             items:
-              $ref: '#/definitions/Room'
+              $ref: "#/definitions/Room"
+        401:
+          description: You are unauthorized to make that request
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: There was a problem with the server on our end
+          schema:
+            $ref: "#/definitions/Error"
+        503:
+          description: The server is overloaded, is under maintenance, or is otherwise unavailable
+          schema:
+            $ref: "#/definitions/Error"
         default:
           description: Unexpected error
           schema:
-            $ref: '#/definitions/Error'
+            $ref: "#/definitions/Error"
     post:
       summary: Make a Room
       description: |
@@ -39,11 +52,11 @@ paths:
         201:
           description: All went well
           schema:
-            $ref: '#/definitions/Room'
+            $ref: "#/definitions/Room"
         default:
           description: Unexpected error
           schema:
-            $ref: '#/definitions/Error'
+            $ref: "#/definitions/Error"
   /room/{room}:
     get:
       summary: All Rooms
@@ -54,7 +67,7 @@ paths:
       parameters:
         - name: room
           in: path
-          description: Room GUID.
+          description: Room GUID
           required: true
           type: string
       tags:
@@ -65,11 +78,11 @@ paths:
           schema:
             type: array
             items:
-              $ref: '#/definitions/Room'
+              $ref: "#/definitions/Room"
         default:
           description: Unexpected error
           schema:
-            $ref: '#/definitions/Error'
+            $ref: "#/definitions/Error"
     put:
       summary: Update a Room
       description: |
@@ -78,7 +91,7 @@ paths:
       parameters:
         - name: room
           in: path
-          description: Room GUID.
+          description: Room GUID
           required: true
           type: string
       tags:
@@ -87,11 +100,11 @@ paths:
         200:
           description: All went well
           schema:
-            $ref: '#/definitions/Room'
+            $ref: "#/definitions/Room"
         default:
           description: Unexpected error
           schema:
-            $ref: '#/definitions/Error'
+            $ref: "#/definitions/Error"
     delete:
       summary: Update a Room
       description: |
@@ -100,7 +113,7 @@ paths:
       parameters:
         - name: room
           in: path
-          description: Room GUID.
+          description: Room GUID
           required: true
           type: string
       tags:
@@ -109,12 +122,12 @@ paths:
         200:
           description: All went well
           schema:
-            $ref: '#/definitions/Room'
+            $ref: "#/definitions/Room"
         default:
           description: Unexpected error
           schema:
-            $ref: '#/definitions/Error'
-  /configuration/{building}/{room}:
+            $ref: "#/definitions/Error"
+  /manage/{building}/{room}:
     get:
       summary: All Rooms
       description: |
@@ -124,28 +137,68 @@ paths:
       parameters:
         - name: building
           in: path
-          description: BYU building shortname.
+          description: BYU building shortname
           required: true
           type: string
           format: double
         - name: room
           in: path
-          description: Room number.
+          description: Room number
           required: true
           type: string
       tags:
         - Rooms
+        - Configuration
       responses:
         200:
           description: An array of systems
           schema:
             type: array
             items:
-              $ref: '#/definitions/Processor'
+              $ref: "#/definitions/Processor"
         default:
           description: Unexpected error
           schema:
-            $ref: '#/definitions/Error'
+            $ref: "#/definitions/Error"
+  /manage/{building}/{room}/{signal}:
+    get:
+      summary: All Rooms
+      description: |
+        The Rooms endpoint returns information about the various AV products
+        offered across campus. The response includes the display name
+        and other details about each product.
+      parameters:
+        - name: building
+          in: path
+          description: BYU building shortname
+          required: true
+          type: string
+          format: double
+        - name: room
+          in: path
+          description: Room number
+          required: true
+          type: string
+        - name: signal
+          in: path
+          description: Signal GUID
+          required: true
+          type: string
+      tags:
+        - Rooms
+        - Signals
+        - Configuration
+      responses:
+        200:
+          description: An array of systems
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Processor"
+        default:
+          description: Unexpected error
+          schema:
+            $ref: "#/definitions/Error"
 definitions:
   HATEOAS:
     type: object
@@ -159,6 +212,10 @@ definitions:
   Room:
     type: object
     properties:
+      links:
+        type: array
+        items:
+          $ref: "#/definitions/HATEOAS"
       name:
         type: string
         description: The human-readable name of the room
@@ -173,10 +230,14 @@ definitions:
         description: A human-readable description of the room
       available:
         type: boolean
-        description: Whether or not the room is currently available (calculated based on campus room scheduling and whether or not the room's processor reports as in-use)
+        description: Whether or not the room is currently available (calculated based on campus room scheduling and whether or not the room"s processor reports as in-use)
   Processor:
     type: object
     properties:
+      links:
+        type: array
+        items:
+          $ref: "#/definitions/HATEOAS"
       name:
         type: string
         description: The human-readable name of the processor
@@ -193,10 +254,14 @@ definitions:
         type: array
         description: The available signals attached to this processor
         items:
-          $ref: '#/definitions/Signal'
+          $ref: "#/definitions/Signal"
   Signal:
     type: object
     properties:
+      links:
+        type: array
+        items:
+          $ref: "#/definitions/HATEOAS"
       name:
         type: string
         description: The human-readable name of the signal
