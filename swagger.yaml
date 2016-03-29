@@ -9,27 +9,112 @@ schemes:
 produces:
   - application/json
 paths:
-  /rooms:
+  /room:
     get:
       summary: All Rooms
       description: |
-        The Rooms endpoint returns information about the various AV products
+        The Room endpoint returns information about the various AV products
         offered across campus. The response includes the display name
         and other details about each product.
       tags:
         - Rooms
       responses:
         200:
-          description: An array of systems
+          description: An array of rooms
           schema:
             type: array
             items:
-              $ref: '#/definitions/System'
+              $ref: '#/definitions/Room'
         default:
           description: Unexpected error
           schema:
             $ref: '#/definitions/Error'
-  /manage/{building}/{room}/{system}:
+    post:
+      summary: Make a Room
+      description: |
+        Make a new room and add it to the database.
+      tags:
+        - Rooms
+      responses:
+        201:
+          description: All went well
+          schema:
+            $ref: '#/definitions/Room'
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+  /room/{room}:
+    get:
+      summary: All Rooms
+      description: |
+        The Room endpoint returns information about the various AV products
+        offered across campus. The response includes the display name
+        and other details about each product.
+      parameters:
+        - name: room
+          in: path
+          description: Room GUID.
+          required: true
+          type: string
+      tags:
+        - Rooms
+      responses:
+        200:
+          description: An array of rooms
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Room'
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+    put:
+      summary: Update a Room
+      description: |
+        Update information about a room and propegate the new data through the
+        database.
+      parameters:
+        - name: room
+          in: path
+          description: Room GUID.
+          required: true
+          type: string
+      tags:
+        - Rooms
+      responses:
+        200:
+          description: All went well
+          schema:
+            $ref: '#/definitions/Room'
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+    delete:
+      summary: Update a Room
+      description: |
+        Update information about a room and propegate the new data through the
+        database.
+      parameters:
+        - name: room
+          in: path
+          description: Room GUID.
+          required: true
+          type: string
+      tags:
+        - Rooms
+      responses:
+        200:
+          description: All went well
+          schema:
+            $ref: '#/definitions/Room'
+        default:
+          description: Unexpected error
+          schema:
+            $ref: '#/definitions/Error'
+  /configuration/{building}/{room}:
     get:
       summary: All Rooms
       description: |
@@ -48,12 +133,6 @@ paths:
           description: Room number.
           required: true
           type: string
-        - name: system
-          in: path
-          description: System name/identifier.
-          required: true
-          type: number
-          format: double
       tags:
         - Rooms
       responses:
@@ -62,30 +141,74 @@ paths:
           schema:
             type: array
             items:
-              $ref: '#/definitions/System'
+              $ref: '#/definitions/Processor'
         default:
           description: Unexpected error
           schema:
             $ref: '#/definitions/Error'
 definitions:
-  System:
+  HATEOAS:
     type: object
     properties:
-      system_id:
+      rel:
         type: string
-        description: Unique identifier representing a specific system. For example, a DMPS in the MARB will have a different system_id than a DMPS in the JKB.
+        description: A human-readable name for what the link represents
+      href:
+        type: string
+        description: The link to the endpoint
+  Room:
+    type: object
+    properties:
+      name:
+        type: string
+        description: The human-readable name of the room
+      ID:
+        type: string
+        description: The GUID of the room
+      roomID:
+        type: string
+        description: The room number
       description:
         type: string
-        description: Description of system.
-      display_name:
+        description: A human-readable description of the room
+      available:
+        type: boolean
+        description: Whether or not the room is currently available (calculated based on campus room scheduling and whether or not the room's processor reports as in-use)
+  Processor:
+    type: object
+    properties:
+      name:
         type: string
-        description: Display name of system.
-      capacity:
+        description: The human-readable name of the processor
+      ID:
         type: string
-        description: Capacity of system. For example, 4 people.
-      image:
+        description: The GUID of the processor
+      address:
         type: string
-        description: Image URL representing the system.
+        description: The IP address of the processor
+      modified:
+        type: string
+        description: The date this processor was last modified
+      signals:
+        type: array
+        description: The available signals attached to this processor
+        items:
+          $ref: '#/definitions/Signal'
+  Signal:
+    type: object
+    properties:
+      name:
+        type: string
+        description: The human-readable name of the signal
+      ID:
+        type: string
+        description: The GUID of the signal
+      type:
+        type: integer
+        description: Crestron-defined signal type
+      modified:
+        type: string
+        description: The date this signal was last modified
   Error:
     type: object
     properties:

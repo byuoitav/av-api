@@ -12,7 +12,6 @@ This file is meant to be general notes for getting thoughts down on paper. Actua
 ## Resources
 **Physical Systems**  
 - Control Processors
-  - Any attribute, GET, PUT
 - Touchpanels
 - Projectors
 - Flatscreens
@@ -25,7 +24,8 @@ This file is meant to be general notes for getting thoughts down on paper. Actua
 - Room configuration
 
 ## Endpoints
-`[GET, POST, etc.] /room` View and manage all rooms  
+`[GET, POST] /room` View and manage all rooms  
+`[GET, POST, etc.] /room/{room}` View and manage a single rooms  
 `[GET, POST, etc.] /configuration/{building}/{room}` Get and manage the configuration of a room  
 `[GET, POST, etc.] /manage/{building}/{room}/{symbol}` Get status and manage attributes/signals of specific symbol  
 
@@ -43,6 +43,7 @@ links: [{
 room: {
   name: "Test",
   ID: 123-456-789,
+  roomID: "123A",
   description: "This room rocks",
   available: true
 }
@@ -60,33 +61,31 @@ asset: {
 processor: {
   name: "Main",
   ID: 123-456-789,
-  roomID: "123A",
   address: "10.6.25.415",
   modified: 2012-04-23T18:25:43.511Z,
-  symbols: [symbol, symbol]
+  signals: [signal, signal]
 }
 ```
 ```
-symbol: {
+signal: {
   name: "Apple TV",
-  ID: 123-456-789,
-  signalID: 987-654-321,
-  roomID: 159-753-852,
+  ID: 987-654-321,
   type: 2,
   modified: 2012-04-23T18:25:43.511Z
 }
 ```
 
-## Response Codes
-`200` Everything went well  
-`400` The HTTP request that was sent to the server has invalid syntax  
-`401` You are unauthorized to perform that action or view that data  
-`404` Resource not found  
-`500` There was a problem with the server on our end  
-`503` The server is overloaded or under maintenance  
+## HTTP Response Codes
+`200` OK (Everything went well)  
+`400` Bad Request (The HTTP request that was sent to the server has invalid syntax)  
+`401` Unauthorized (You are unauthorized to perform the requested action or view the requested data)  
+`404` Not Found (The service couldn't find what you requested)  
+`500` Internal Server Error (There was a problem with the server on our end)  
+`503` Service Unavailable (The server is overloaded, is under maintenance or is otherwise unavailable)  
 
 ## References
 [http://timelessrepo.com/haters-gonna-hateoas](http://timelessrepo.com/haters-gonna-hateoas)  
 [http://martinfowler.com/articles/richardsonMaturityModel.html](http://martinfowler.com/articles/richardsonMaturityModel.html)  
 [https://en.wikipedia.org/wiki/Representational_state_transfer#Architectural_constraints](https://en.wikipedia.org/wiki/Representational_state_transfer#Architectural_constraints)  
-[http://www.ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm](http://www.ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm)  
+[http://www.ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm](http://www.ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm)
+[http://www.restapitutorial.com/httpstatuscodes.html](http://www.restapitutorial.com/httpstatuscodes.html)
