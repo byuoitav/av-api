@@ -2,7 +2,7 @@ swagger: "2.0"
 info:
   title: Brigham Young University Audiovisual API
   description: Manage various AV systems across BYU campus with the BYU AV API
-  version: "0.1"
+  version: "1.0"
 host: api.byu.edu
 schemes:
   - https
@@ -25,9 +25,9 @@ paths:
           schema:
             type: array
             items:
-              $ref: "#/definitions/Room"
+              $ref: "#/definitions/RoomResponse"
         401:
-          description: You are unauthorized to make that request
+          description: You are not authorized to make that request
           schema:
             $ref: "#/definitions/Error"
         500:
@@ -46,13 +46,32 @@ paths:
       summary: Make a Room
       description: |
         Make a new room and add it to the database.
+      parameters:
+        - name: body
+          description: The new room to create
+          in: body
+          required: true
+          schema:
+            $ref: "#/definitions/RoomRequest"
       tags:
         - Rooms
       responses:
         201:
           description: All went well
           schema:
-            $ref: "#/definitions/Room"
+            $ref: "#/definitions/RoomResponse"
+        401:
+          description: You are not authorized to make that request
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: There was a problem with the server on our end
+          schema:
+            $ref: "#/definitions/Error"
+        503:
+          description: The server is overloaded, is under maintenance, or is otherwise unavailable
+          schema:
+            $ref: "#/definitions/Error"
         default:
           description: Unexpected error
           schema:
@@ -74,11 +93,21 @@ paths:
         - Rooms
       responses:
         200:
-          description: An array of rooms
+          description: A room object
           schema:
-            type: array
-            items:
-              $ref: "#/definitions/Room"
+            $ref: "#/definitions/RoomResponse"
+        401:
+          description: You are not authorized to make that request
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: There was a problem with the server on our end
+          schema:
+            $ref: "#/definitions/Error"
+        503:
+          description: The server is overloaded, is under maintenance, or is otherwise unavailable
+          schema:
+            $ref: "#/definitions/Error"
         default:
           description: Unexpected error
           schema:
@@ -100,7 +129,19 @@ paths:
         200:
           description: All went well
           schema:
-            $ref: "#/definitions/Room"
+            $ref: "#/definitions/RoomResponse"
+        401:
+          description: You are not authorized to make that request
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: There was a problem with the server on our end
+          schema:
+            $ref: "#/definitions/Error"
+        503:
+          description: The server is overloaded, is under maintenance, or is otherwise unavailable
+          schema:
+            $ref: "#/definitions/Error"
         default:
           description: Unexpected error
           schema:
@@ -122,7 +163,19 @@ paths:
         200:
           description: All went well
           schema:
-            $ref: "#/definitions/Room"
+            $ref: "#/definitions/RoomResponse"
+        401:
+          description: You are not authorized to make that request
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: There was a problem with the server on our end
+          schema:
+            $ref: "#/definitions/Error"
+        503:
+          description: The server is overloaded, is under maintenance, or is otherwise unavailable
+          schema:
+            $ref: "#/definitions/Error"
         default:
           description: Unexpected error
           schema:
@@ -148,21 +201,77 @@ paths:
           type: string
       tags:
         - Rooms
-        - Configuration
+        - Buildings
       responses:
         200:
-          description: An array of systems
+          description: An array of signals
           schema:
             type: array
             items:
-              $ref: "#/definitions/Processor"
+              $ref: "#/definitions/ProcessorResponse"
+        401:
+          description: You are not authorized to make that request
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: There was a problem with the server on our end
+          schema:
+            $ref: "#/definitions/Error"
+        503:
+          description: The server is overloaded, is under maintenance, or is otherwise unavailable
+          schema:
+            $ref: "#/definitions/Error"
+        default:
+          description: Unexpected error
+          schema:
+            $ref: "#/definitions/Error"
+    post:
+      summary: Make a Signal
+      description: |
+        Make a new signal and add it to the database.
+      parameters:
+        - name: building
+          in: path
+          description: BYU building shortname
+          required: true
+          type: string
+          format: double
+        - name: room
+          in: path
+          description: Room number
+          required: true
+          type: string
+        - name: body
+          description: The new room to create
+          in: body
+          schema:
+            $ref: "#/definitions/SignalRequest"
+      tags:
+        - Rooms
+      responses:
+        201:
+          description: All went well
+          schema:
+            $ref: "#/definitions/RoomResponse"
+        401:
+          description: You are not authorized to make that request
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: There was a problem with the server on our end
+          schema:
+            $ref: "#/definitions/Error"
+        503:
+          description: The server is overloaded, is under maintenance, or is otherwise unavailable
+          schema:
+            $ref: "#/definitions/Error"
         default:
           description: Unexpected error
           schema:
             $ref: "#/definitions/Error"
   /manage/{building}/{room}/{signal}:
     get:
-      summary: All Rooms
+      summary: All Signals
       description: |
         The Rooms endpoint returns information about the various AV products
         offered across campus. The response includes the display name
@@ -187,14 +296,121 @@ paths:
       tags:
         - Rooms
         - Signals
-        - Configuration
+        - Buildings
       responses:
         200:
-          description: An array of systems
+          description: An array of signals
           schema:
-            type: array
-            items:
-              $ref: "#/definitions/Processor"
+            $ref: "#/definitions/ProcessorResponse"
+        401:
+          description: You are not authorized to make that request
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: There was a problem with the server on our end
+          schema:
+            $ref: "#/definitions/Error"
+        503:
+          description: The server is overloaded, is under maintenance, or is otherwise unavailable
+          schema:
+            $ref: "#/definitions/Error"
+        default:
+          description: Unexpected error
+          schema:
+            $ref: "#/definitions/Error"
+    put:
+      summary: Modify a Signal
+      description: |
+        Modify an existing signal and add the changes to the database.
+      parameters:
+        - name: building
+          in: path
+          description: BYU building shortname
+          required: true
+          type: string
+          format: double
+        - name: room
+          in: path
+          description: Room number
+          required: true
+          type: string
+        - name: signal
+          in: path
+          description: Signal GUID
+          required: true
+          type: string
+        - name: body
+          description: The signal to update
+          in: body
+          schema:
+            $ref: "#/definitions/SignalRequest"
+      tags:
+        - Rooms
+      responses:
+        200:
+          description: All went well
+          schema:
+            $ref: "#/definitions/RoomResponse"
+        401:
+          description: You are not authorized to make that request
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: There was a problem with the server on our end
+          schema:
+            $ref: "#/definitions/Error"
+        503:
+          description: The server is overloaded, is under maintenance, or is otherwise unavailable
+          schema:
+            $ref: "#/definitions/Error"
+        default:
+          description: Unexpected error
+          schema:
+            $ref: "#/definitions/Error"
+    delete:
+      summary: Delete Signal
+      description: |
+        The Rooms endpoint returns information about the various AV products
+        offered across campus. The response includes the display name
+        and other details about each product.
+      parameters:
+        - name: building
+          in: path
+          description: BYU building shortname
+          required: true
+          type: string
+          format: double
+        - name: room
+          in: path
+          description: Room number
+          required: true
+          type: string
+        - name: signal
+          in: path
+          description: Signal GUID
+          required: true
+          type: string
+      tags:
+        - Rooms
+        - Signals
+        - Buildings
+      responses:
+        200:
+          description: An array of signals
+          schema:
+            $ref: "#/definitions/ProcessorResponse"
+        401:
+          description: You are not authorized to make that request
+          schema:
+            $ref: "#/definitions/Error"
+        500:
+          description: There was a problem with the server on our end
+          schema:
+            $ref: "#/definitions/Error"
+        503:
+          description: The server is overloaded, is under maintenance, or is otherwise unavailable
+          schema:
+            $ref: "#/definitions/Error"
         default:
           description: Unexpected error
           schema:
@@ -209,7 +425,7 @@ definitions:
       href:
         type: string
         description: The link to the endpoint
-  Room:
+  RoomResponse:
     type: object
     properties:
       links:
@@ -231,7 +447,19 @@ definitions:
       available:
         type: boolean
         description: Whether or not the room is currently available (calculated based on campus room scheduling and whether or not the room"s processor reports as in-use)
-  Processor:
+  RoomRequest:
+    type: object
+    properties:
+      name:
+        type: string
+        description: The human-readable name of the room
+      roomID:
+        type: string
+        description: The room number
+      description:
+        type: string
+        description: A human-readable description of the room
+  ProcessorResponse:
     type: object
     properties:
       links:
@@ -254,8 +482,22 @@ definitions:
         type: array
         description: The available signals attached to this processor
         items:
-          $ref: "#/definitions/Signal"
-  Signal:
+          $ref: "#/definitions/SignalResponse"
+  ProcessorRequest:
+    type: object
+    properties:
+      name:
+        type: string
+        description: The human-readable name of the processor
+      address:
+        type: string
+        description: The IP address of the processor
+      signals:
+        type: array
+        description: The available signals attached to this processor
+        items:
+          $ref: "#/definitions/SignalRequest"
+  SignalResponse:
     type: object
     properties:
       links:
@@ -274,6 +516,15 @@ definitions:
       modified:
         type: string
         description: The date this signal was last modified
+  SignalRequest:
+    type: object
+    properties:
+      name:
+        type: string
+        description: The human-readable name of the signal
+      type:
+        type: integer
+        description: Crestron-defined signal type
   Error:
     type: object
     properties:
