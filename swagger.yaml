@@ -122,11 +122,7 @@ paths:
       description: |
         Delete a room from the Crestron Fusion database.
       parameters:
-        - name: room
-          in: path
-          description: Room hostname
-          required: true
-          type: string
+        - $ref: "#/parameters/room"
       tags:
         - Rooms
       responses:
@@ -189,7 +185,7 @@ paths:
           $ref: "#/responses/503"
         default:
           $ref: "#/responses/default"
-  /buildings/{building}/rooms:
+  /buildings/{building}:
     get:
       summary: All Rooms
       description: |
@@ -215,18 +211,17 @@ paths:
           $ref: "#/responses/503"
         default:
           $ref: "#/responses/default"
-    post:
-      summary: Make a Room in Building
+    put:
+      summary: Update a Building
       description: |
-        Make a new room and add it to the Crestron Fusion database categorized
-        under the given building.
+        Update a building and add it to the Crestron Fusion database.
       parameters:
         - $ref: "#/parameters/building"
         - name: body
-          description: The new room to create
+          description: The updated building information
           in: body
           schema:
-            $ref: "#/definitions/RoomRequest"
+            $ref: "#/definitions/BuildingRequest"
       tags:
         - Rooms
         - Buildings
@@ -235,6 +230,25 @@ paths:
           description: All went well
           schema:
             $ref: "#/definitions/RoomResponse"
+        401:
+          $ref: "#/responses/401"
+        500:
+          $ref: "#/responses/500"
+        503:
+          $ref: "#/responses/503"
+        default:
+          $ref: "#/responses/default"
+    delete:
+      summary: Delete a Building
+      description: |
+        Delete a building from the Crestron Fusion database.
+      parameters:
+        - $ref: "#/parameters/building"
+      tags:
+        - Buildings
+      responses:
+        200:
+          description: All went well
         401:
           $ref: "#/responses/401"
         500:
@@ -288,6 +302,27 @@ paths:
           description: All went well
           schema:
             $ref: "#/definitions/RoomResponse"
+        401:
+          $ref: "#/responses/401"
+        500:
+          $ref: "#/responses/500"
+        503:
+          $ref: "#/responses/503"
+        default:
+          $ref: "#/responses/default"
+    delete:
+      summary: Delete a Room
+      description: |
+        Delete a room from the Crestron Fusion database.
+      parameters:
+        - $ref: "#/parameters/building"
+        - $ref: "#/parameters/room"
+      tags:
+        - Buildings
+        - Rooms
+      responses:
+        200:
+          description: All went well
         401:
           $ref: "#/responses/401"
         500:
@@ -357,9 +392,8 @@ paths:
     get:
       summary: All Rooms
       description: |
-        The Rooms endpoint returns information about the various AV products
-        offered across campus. The response includes the display name
-        and other details about each product.
+        Return information about a specified signal in a specific room and
+        building.
       parameters:
         - $ref: "#/parameters/building"
         - $ref: "#/parameters/room"
