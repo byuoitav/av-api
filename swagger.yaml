@@ -482,7 +482,7 @@ definitions:
       href:
         type: string
         description: The link to the endpoint
-  RoomResponse:
+  Room:
     type: object
     properties:
       links:
@@ -512,6 +512,17 @@ definitions:
       available:
         type: boolean
         description: Whether or not the room is currently available (calculated based on campus room scheduling and whether or not the room"s processor reports as in-use)
+  RoomResponse:
+    type: object
+    properties:
+      links:
+        type: array
+        items:
+          $ref: "#/definitions/HATEOAS"
+      rooms:
+        type: array
+        items:
+          $ref: "#/definitions/Room"
   RoomRequest:
     type: object
     properties:
@@ -524,7 +535,7 @@ definitions:
       description:
         type: string
         description: A human-readable description of the room
-  BuildingResponse:
+  Building:
     type: object
     properties:
       links:
@@ -546,6 +557,17 @@ definitions:
       available:
         type: boolean
         description: Whether or not the room is currently available (calculated based on campus room scheduling and whether or not the room"s processor reports as in-use)
+  BuildingResponse:
+    type: object
+    properties:
+      links:
+        type: array
+        items:
+          $ref: "#/definitions/HATEOAS"
+      buildings:
+        type: array
+        items:
+          $ref: "#/definitions/Building"
   BuildingRequest:
     type: object
     properties:
@@ -558,13 +580,9 @@ definitions:
       description:
         type: string
         description: A human-readable description of the room
-  SignalResponse:
+  Signal:
     type: object
     properties:
-      links:
-        type: array
-        items:
-          $ref: "#/definitions/HATEOAS"
       name:
         type: string
         description: The human-readable name of the signal
@@ -577,6 +595,17 @@ definitions:
       modified:
         type: string
         description: The date this signal was last modified
+  SignalResponse:
+    type: object
+    properties:
+      links:
+        type: array
+        items:
+          $ref: "#/definitions/HATEOAS"
+      signals:
+        type: array
+        items:
+          $ref: "#/definitions/Signal"
   SignalRequest:
     type: object
     properties:
