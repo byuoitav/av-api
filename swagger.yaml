@@ -367,13 +367,14 @@ paths:
       tags:
         - Rooms
         - Buildings
+        - Signals
       responses:
         200:
           description: An array of signals
           schema:
             type: array
             items:
-              $ref: "#/definitions/ProcessorResponse"
+              $ref: "#/definitions/SignalResponse"
         401:
           $ref: "#/responses/401"
         500:
@@ -398,6 +399,8 @@ paths:
             $ref: "#/definitions/SignalRequest"
       tags:
         - Rooms
+        - Buildings
+        - Signals
       responses:
         201:
           description: All went well
@@ -421,6 +424,8 @@ paths:
         - $ref: "#/parameters/signal"
       tags:
         - Rooms
+        - Buildings
+        - Signals
       responses:
         200:
           description: All went well
@@ -462,6 +467,14 @@ definitions:
       description:
         type: string
         description: A human-readable description of the room
+      address:
+        type: string
+        description: The IP address of the processor
+      signals:
+        type: array
+        description: The available signals attached to this processor
+        items:
+          $ref: "#/definitions/SignalRequest"
       available:
         type: boolean
         description: Whether or not the room is currently available (calculated based on campus room scheduling and whether or not the room"s processor reports as in-use)
@@ -477,7 +490,7 @@ definitions:
       description:
         type: string
         description: A human-readable description of the room
-  ProcessorResponse:
+  BuildingResponse:
     type: object
     properties:
       links:
@@ -486,35 +499,31 @@ definitions:
           $ref: "#/definitions/HATEOAS"
       name:
         type: string
-        description: The human-readable name of the processor
+        description: The human-readable name of the room
       ID:
         type: string
-        description: The GUID of the processor
-      address:
+        description: The GUID of the room
+      roomID:
         type: string
-        description: The IP address of the processor
-      modified:
+        description: The room number
+      description:
         type: string
-        description: The date this processor was last modified
-      signals:
-        type: array
-        description: The available signals attached to this processor
-        items:
-          $ref: "#/definitions/SignalResponse"
-  ProcessorRequest:
+        description: A human-readable description of the room
+      available:
+        type: boolean
+        description: Whether or not the room is currently available (calculated based on campus room scheduling and whether or not the room"s processor reports as in-use)
+  BuildingRequest:
     type: object
     properties:
       name:
         type: string
-        description: The human-readable name of the processor
-      address:
+        description: The human-readable name of the room
+      roomID:
         type: string
-        description: The IP address of the processor
-      signals:
-        type: array
-        description: The available signals attached to this processor
-        items:
-          $ref: "#/definitions/SignalRequest"
+        description: The room number
+      description:
+        type: string
+        description: A human-readable description of the room
   SignalResponse:
     type: object
     properties:
