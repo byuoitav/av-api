@@ -6,7 +6,7 @@ info:
 host: api.byu.edu
 schemes:
   - https
-basePath: /v0.1
+basePath: "/v0.1"
 produces:
   - application/json
 paths:
@@ -14,9 +14,7 @@ paths:
     get:
       summary: All Rooms
       description: |
-        The Room endpoint returns information about the various AV products
-        offered across campus. The response includes the display name
-        and other details about each product.
+        Returns information about all the TEC rooms across campus.
       tags:
         - Rooms
       responses:
@@ -33,16 +31,14 @@ paths:
         503:
           $ref: "#/responses/503"
         default:
-          description: Unexpected error
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/default"
     post:
       summary: Make a Room
       description: |
-        Make a new room and add it to the database.
+        Make a new room and add it to the Crestron Fusion database.
       parameters:
         - name: body
-          description: The new room to create
+          description: The new room to created
           in: body
           required: true
           schema:
@@ -55,21 +51,13 @@ paths:
           schema:
             $ref: "#/definitions/RoomResponse"
         401:
-          description: You are not authorized to make that request
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/401"
         500:
-          description: There was a problem with the server on our end
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/500"
         503:
-          description: The server is overloaded, is under maintenance, or is otherwise unavailable
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/503"
         default:
-          description: Unexpected error
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/default"
   /rooms/{room}:
     get:
       summary: All Rooms
@@ -80,7 +68,7 @@ paths:
       parameters:
         - name: room
           in: path
-          description: Room GUID
+          description: Room hostname
           required: true
           type: string
       tags:
@@ -91,32 +79,29 @@ paths:
           schema:
             $ref: "#/definitions/RoomResponse"
         401:
-          description: You are not authorized to make that request
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/401"
         500:
-          description: There was a problem with the server on our end
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/500"
         503:
-          description: The server is overloaded, is under maintenance, or is otherwise unavailable
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/503"
         default:
-          description: Unexpected error
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/default"
     put:
       summary: Update a Room
       description: |
-        Update information about a room and propegate the new data through the
-        database.
+        Update information about a room in the Crestron Fusion database.
       parameters:
         - name: room
           in: path
-          description: Room GUID
+          description: Room hostname
           required: true
           type: string
+        - name: body
+          description: The updated room information
+          in: body
+          required: true
+          schema:
+            $ref: "#/definitions/RoomRequest"
       tags:
         - Rooms
       responses:
@@ -125,30 +110,21 @@ paths:
           schema:
             $ref: "#/definitions/RoomResponse"
         401:
-          description: You are not authorized to make that request
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/401"
         500:
-          description: There was a problem with the server on our end
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/500"
         503:
-          description: The server is overloaded, is under maintenance, or is otherwise unavailable
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/503"
         default:
-          description: Unexpected error
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/default"
     delete:
-      summary: Update a Room
+      summary: Delete a Room
       description: |
-        Update information about a room and propegate the new data through the
-        database.
+        Delete a room from the Crestron Fusion database.
       parameters:
         - name: room
           in: path
-          description: Room GUID
+          description: Room hostname
           required: true
           type: string
       tags:
@@ -156,33 +132,74 @@ paths:
       responses:
         200:
           description: All went well
-          schema:
-            $ref: "#/definitions/RoomResponse"
         401:
-          description: You are not authorized to make that request
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/401"
         500:
-          description: There was a problem with the server on our end
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/500"
         503:
-          description: The server is overloaded, is under maintenance, or is otherwise unavailable
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/503"
         default:
-          description: Unexpected error
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/default"
   /buildings:
     get:
       summary: All Rooms
       description: |
-        The Room endpoint returns information about the various AV products
-        offered across campus. The response includes the display name
-        and other details about each product.
+        Returns information about all the buildings with TEC capability
+        across campus.
+      tags:
+        - Buildings
+      responses:
+        200:
+          description: An array of buildings
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/BuildingResponse"
+        401:
+          $ref: "#/responses/401"
+        500:
+          $ref: "#/responses/500"
+        503:
+          $ref: "#/responses/503"
+        default:
+          $ref: "#/responses/default"
+    post:
+      summary: Make a Building
+      description: |
+        Make a new building and add it to the database.
+      parameters:
+        - name: body
+          description: The new building to create
+          in: body
+          required: true
+          schema:
+            $ref: "#/definitions/BuildingRequest"
+      tags:
+        - Buildings
+      responses:
+        201:
+          description: All went well
+          schema:
+            $ref: "#/definitions/BuildingResponse"
+        401:
+          $ref: "#/responses/401"
+        500:
+          $ref: "#/responses/500"
+        503:
+          $ref: "#/responses/503"
+        default:
+          $ref: "#/responses/default"
+  /buildings/{building}/rooms:
+    get:
+      summary: All Rooms
+      description: |
+        Returns information about rooms with TEC capability in the given
+        building.
+      parameters:
+        - $ref: "#/parameters/building"
       tags:
         - Rooms
+        - Buildings
       responses:
         200:
           description: An array of rooms
@@ -191,322 +208,151 @@ paths:
             items:
               $ref: "#/definitions/RoomResponse"
         401:
-          description: You are not authorized to make that request
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/401"
         500:
-          description: There was a problem with the server on our end
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/500"
         503:
-          description: The server is overloaded, is under maintenance, or is otherwise unavailable
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/503"
         default:
-          description: Unexpected error
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/default"
     post:
-      summary: Make a Room
+      summary: Make a Room in Building
       description: |
-        Make a new room and add it to the database.
+        Make a new room and add it to the Crestron Fusion database categorized
+        under the given building.
       parameters:
+        - $ref: "#/parameters/building"
         - name: body
           description: The new room to create
           in: body
-          required: true
           schema:
             $ref: "#/definitions/RoomRequest"
       tags:
         - Rooms
-      responses:
-        201:
-          description: All went well
-          schema:
-            $ref: "#/definitions/RoomResponse"
-        401:
-          description: You are not authorized to make that request
-          schema:
-            $ref: "#/definitions/Error"
-        500:
-          description: There was a problem with the server on our end
-          schema:
-            $ref: "#/definitions/Error"
-        503:
-          description: The server is overloaded, is under maintenance, or is otherwise unavailable
-          schema:
-            $ref: "#/definitions/Error"
-        default:
-          description: Unexpected error
-          schema:
-            $ref: "#/definitions/Error"
-  /buildings/{building}/rooms:
-    get:
-      summary: All Rooms
-      description: |
-        The Rooms endpoint returns information about the various AV products
-        offered across campus. The response includes the display name
-        and other details about each product.
-      parameters:
-        - name: building
-          in: path
-          description: BYU building shortname
-          required: true
-          type: string
-          format: double
-        - name: room
-          in: path
-          description: Room number
-          required: true
-          type: string
-      tags:
-        - Rooms
         - Buildings
       responses:
-        200:
-          description: An array of signals
-          schema:
-            type: array
-            items:
-              $ref: "#/definitions/ProcessorResponse"
-        401:
-          description: You are not authorized to make that request
-          schema:
-            $ref: "#/definitions/Error"
-        500:
-          description: There was a problem with the server on our end
-          schema:
-            $ref: "#/definitions/Error"
-        503:
-          description: The server is overloaded, is under maintenance, or is otherwise unavailable
-          schema:
-            $ref: "#/definitions/Error"
-        default:
-          description: Unexpected error
-          schema:
-            $ref: "#/definitions/Error"
-    post:
-      summary: Make a Signal
-      description: |
-        Make a new signal and add it to the database.
-      parameters:
-        - name: building
-          in: path
-          description: BYU building shortname
-          required: true
-          type: string
-          format: double
-        - name: room
-          in: path
-          description: Room number
-          required: true
-          type: string
-        - name: body
-          description: The new room to create
-          in: body
-          schema:
-            $ref: "#/definitions/SignalRequest"
-      tags:
-        - Rooms
-      responses:
         201:
           description: All went well
           schema:
             $ref: "#/definitions/RoomResponse"
         401:
-          description: You are not authorized to make that request
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/401"
         500:
-          description: There was a problem with the server on our end
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/500"
         503:
-          description: The server is overloaded, is under maintenance, or is otherwise unavailable
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/503"
         default:
-          description: Unexpected error
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/default"
   /buildings/{building}/rooms/{room}:
     get:
-      summary: All Rooms
+      summary: Get a Specific Room
       description: |
-        The Rooms endpoint returns information about the various AV products
-        offered across campus. The response includes the display name
-        and other details about each product.
+        Returns information about a specific TEC room in a specified buliding.
       parameters:
-        - name: building
-          in: path
-          description: BYU building shortname
-          required: true
-          type: string
-          format: double
-        - name: room
-          in: path
-          description: Room number
-          required: true
-          type: string
+        - $ref: "#/parameters/building"
+        - $ref: "#/parameters/room"
       tags:
         - Rooms
         - Buildings
       responses:
         200:
-          description: An array of signals
+          description: A room object
           schema:
-            type: array
-            items:
-              $ref: "#/definitions/ProcessorResponse"
+            $ref: "#/definitions/RoomResponse"
         401:
-          description: You are not authorized to make that request
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/401"
         500:
-          description: There was a problem with the server on our end
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/500"
         503:
-          description: The server is overloaded, is under maintenance, or is otherwise unavailable
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/503"
         default:
-          description: Unexpected error
-          schema:
-            $ref: "#/definitions/Error"
-    post:
+          $ref: "#/responses/default"
+    put:
       summary: Make a Signal
       description: |
-        Make a new signal and add it to the database.
+        Update information about a room for a specific building and add it to
+        the Crestron Fusion database.
       parameters:
-        - name: building
-          in: path
-          description: BYU building shortname
-          required: true
-          type: string
-          format: double
-        - name: room
-          in: path
-          description: Room number
-          required: true
-          type: string
+        - $ref: "#/parameters/building"
+        - $ref: "#/parameters/room"
         - name: body
-          description: The new room to create
+          description: The updated room information
           in: body
           schema:
-            $ref: "#/definitions/SignalRequest"
+            $ref: "#/definitions/RoomRequest"
       tags:
         - Rooms
+        - Buildings
       responses:
         201:
           description: All went well
           schema:
             $ref: "#/definitions/RoomResponse"
         401:
-          description: You are not authorized to make that request
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/401"
         500:
-          description: There was a problem with the server on our end
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/500"
         503:
-          description: The server is overloaded, is under maintenance, or is otherwise unavailable
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/503"
         default:
-          description: Unexpected error
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/default"
   /buildings/{building}/rooms/{room}/signals:
     get:
-      summary: All Rooms
+      summary: All Room Signals
       description: |
-        The Rooms endpoint returns information about the various AV products
-        offered across campus. The response includes the display name
-        and other details about each product.
+        Return information about all signals available in a specific TEC room.
       parameters:
-        - name: building
-          in: path
-          description: BYU building shortname
-          required: true
-          type: string
-          format: double
-        - name: room
-          in: path
-          description: Room number
-          required: true
-          type: string
+        - $ref: "#/parameters/building"
+        - $ref: "#/parameters/room"
       tags:
         - Rooms
         - Buildings
+        - Signals
       responses:
         200:
           description: An array of signals
           schema:
             type: array
             items:
-              $ref: "#/definitions/ProcessorResponse"
+              $ref: "#/definitions/SignalResponse"
         401:
-          description: You are not authorized to make that request
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/401"
         500:
-          description: There was a problem with the server on our end
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/500"
         503:
-          description: The server is overloaded, is under maintenance, or is otherwise unavailable
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/503"
         default:
-          description: Unexpected error
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/default"
     post:
       summary: Make a Signal
       description: |
-        Make a new signal and add it to the database.
+        Make a new signal and add it to the Crestron Fusion database for the
+        specified building and room.
       parameters:
-        - name: building
-          in: path
-          description: BYU building shortname
-          required: true
-          type: string
-          format: double
-        - name: room
-          in: path
-          description: Room number
-          required: true
-          type: string
+        - $ref: "#/parameters/building"
+        - $ref: "#/parameters/room"
         - name: body
-          description: The new room to create
+          description: The new signal to create
           in: body
           schema:
             $ref: "#/definitions/SignalRequest"
       tags:
         - Rooms
+        - Buildings
+        - Signals
       responses:
         201:
           description: All went well
           schema:
-            $ref: "#/definitions/RoomResponse"
+            $ref: "#/definitions/SignalResponse"
         401:
-          description: You are not authorized to make that request
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/401"
         500:
-          description: There was a problem with the server on our end
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/500"
         503:
-          description: The server is overloaded, is under maintenance, or is otherwise unavailable
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/503"
         default:
-          description: Unexpected error
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/default"
   /buildings/{building}/rooms/{room}/signals/{signal}:
     get:
       summary: All Rooms
@@ -515,17 +361,9 @@ paths:
         offered across campus. The response includes the display name
         and other details about each product.
       parameters:
-        - name: building
-          in: path
-          description: BYU building shortname
-          required: true
-          type: string
-          format: double
-        - name: room
-          in: path
-          description: Room number
-          required: true
-          type: string
+        - $ref: "#/parameters/building"
+        - $ref: "#/parameters/room"
+        - $ref: "#/parameters/signal"
       tags:
         - Rooms
         - Buildings
@@ -537,39 +375,24 @@ paths:
             items:
               $ref: "#/definitions/ProcessorResponse"
         401:
-          description: You are not authorized to make that request
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/401"
         500:
-          description: There was a problem with the server on our end
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/500"
         503:
-          description: The server is overloaded, is under maintenance, or is otherwise unavailable
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/503"
         default:
-          description: Unexpected error
-          schema:
-            $ref: "#/definitions/Error"
-    post:
-      summary: Make a Signal
+          $ref: "#/responses/default"
+    put:
+      summary: Update a Signal
       description: |
-        Make a new signal and add it to the database.
+        Update information about a signal and add the changes to the Creston
+        Fusion database.
       parameters:
-        - name: building
-          in: path
-          description: BYU building shortname
-          required: true
-          type: string
-          format: double
-        - name: room
-          in: path
-          description: Room number
-          required: true
-          type: string
+        - $ref: "#/parameters/building"
+        - $ref: "#/parameters/room"
+        - $ref: "#/parameters/signal"
         - name: body
-          description: The new room to create
+          description: The updated signal information
           in: body
           schema:
             $ref: "#/definitions/SignalRequest"
@@ -581,21 +404,35 @@ paths:
           schema:
             $ref: "#/definitions/RoomResponse"
         401:
-          description: You are not authorized to make that request
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/401"
         500:
-          description: There was a problem with the server on our end
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/500"
         503:
-          description: The server is overloaded, is under maintenance, or is otherwise unavailable
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/503"
         default:
-          description: Unexpected error
-          schema:
-            $ref: "#/definitions/Error"
+          $ref: "#/responses/default"
+    delete:
+      summary: Delete a Signal
+      description: |
+        Delete a specific signal from the Crestron Fusion database.
+      parameters:
+        - $ref: "#/parameters/building"
+        - $ref: "#/parameters/room"
+        - $ref: "#/parameters/signal"
+      tags:
+        - Rooms
+      responses:
+        200:
+          description: All went well
+        401:
+          $ref: "#/responses/401"
+        500:
+          $ref: "#/responses/500"
+        503:
+          $ref: "#/responses/503"
+        default:
+          $ref: "#/responses/default"
+
 definitions:
   HATEOAS:
     type: object
@@ -716,6 +553,25 @@ definitions:
         type: string
       fields:
         type: string
+parameters:
+  building:
+    name: building
+    in: path
+    description: Building shortname
+    required: true
+    type: string
+  room:
+    name: room
+    in: path
+    description: Room hostname
+    required: true
+    type: string
+  signal:
+    name: signal
+    in: path
+    description: Signal ID
+    required: true
+    type: string
 responses:
   401:
     description: You are not authorized to make that request
@@ -727,5 +583,9 @@ responses:
       $ref: "#/definitions/Error"
   503:
     description: The server is overloaded, is under maintenance, or is otherwise unavailable
+    schema:
+      $ref: "#/definitions/Error"
+  default:
+    description: Unexpected error
     schema:
       $ref: "#/definitions/Error"
