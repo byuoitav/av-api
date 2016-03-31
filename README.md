@@ -1,5 +1,7 @@
 # General API "Documentation"
 
+[![Run in Postman](https://run.pstmn.io/button.svg)](https://app.getpostman.com/run-collection/535e1aa2df75f17c63f0)
+
 This file is meant to be general notes for getting thoughts down on paper. Actual API documentation is done in Swagger and is visible [here](https://byuoitav.github.io/av-api/).
 
 ## Requirements
