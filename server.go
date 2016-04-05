@@ -46,10 +46,6 @@ func telnetDial(c web.C, w http.ResponseWriter, r *http.Request) {
 	// t.SetUnixWriteMode(true)
 
 	sendCommand(t, command)
-	// sendCommand(t, "^]")
-
-	_, err = t.ReadString('>')
-	checkErr(err)
 
 	data, err := t.ReadString('>')
 	checkErr(err)
