@@ -10,8 +10,8 @@ import (
 	"github.com/ziutek/telnet"
 )
 
-func hello(c web.C, w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello, %s!", c.URLParams["name"])
+func health(c web.C, w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Uh, we had a slight weapons malfunction, but uh... everything's perfectly all right now. We're fine. We're all fine here now, thank you. How are you?")
 }
 
 func getRoomByName(c web.C, w http.ResponseWriter, r *http.Request) {
@@ -31,6 +31,7 @@ func getRoomByName(c web.C, w http.ResponseWriter, r *http.Request) {
 }
 
 func sendCommand(t *telnet.Conn, command string) {
+	command = command + "\nhostname" // Send two commands so we get a second prompt to use as a delimiter
 	buf := make([]byte, len(command)+1)
 	copy(buf, command)
 	buf[len(command)] = '\n'
@@ -38,32 +39,27 @@ func sendCommand(t *telnet.Conn, command string) {
 	checkErr(err)
 }
 
-func telnetDial(c web.C, w http.ResponseWriter, r *http.Request) {
+func getTelnetOutput(c web.C, w http.ResponseWriter, r *http.Request) {
 	command := c.URLParams["command"]
+	address := c.URLParams["address"]
+	port := c.URLParams["port"]
 
-	t, err := telnet.Dial("tcp", "10.6.36.53:23")
+	t, err := telnet.Dial("tcp", address+":"+port)
 	checkErr(err)
 
-	t.SetUnixWriteMode(true)
+	t.SetUnixWriteMode(true) // Convert any '\n' (LF) to '\r\n' (CR LF)
 
-	command = command + "\nhostname"
 	sendCommand(t, command)
-	//sendCommand(t, "hostname")
-	t.SkipUntil(">")
-	var stringy []byte
-	stringy, err = t.ReadUntil("TSW-750>")
+	t.SkipUntil("TSW-750>") // Skip to the first prompt delimiter
+	var output []byte
+	output, err = t.ReadUntil("TSW-750>") // Read until the second prompt delimiter (provided by sending two commands in sendCommand)
 	checkErr(err)
-	fmt.Printf("%s\n", stringy)
-
-	//checkErr(err)
-	fmt.Printf("doneskyes")
 
 	t.Close() // Close the telnet session
-	fmt.Fprintf(w, "%s", err)
-}
 
-func log(message string) {
-	fmt.Printf("%s\n", message)
+	output = output[:len(output)-10] // Ghetto trim the prompt off the response
+
+	fmt.Fprintf(w, "%s", output)
 }
 
 func checkErr(err error) {
@@ -73,8 +69,8 @@ func checkErr(err error) {
 }
 
 func main() {
-	goji.Get("/hello/:name", hello)
+	goji.Get("/health", health)
 	goji.Get("/room/:name", getRoomByName)
-	goji.Get("/telnet/:command", telnetDial)
+	goji.Get("/telnet/address/:address/port/:port/command/:command", getTelnetOutput)
 	goji.Serve()
 }
