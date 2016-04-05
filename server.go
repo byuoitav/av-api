@@ -40,18 +40,26 @@ func sendCommand(t *telnet.Conn, command string) {
 
 func telnetDial(c web.C, w http.ResponseWriter, r *http.Request) {
 	command := c.URLParams["command"]
+
 	t, err := telnet.Dial("tcp", "10.6.36.53:23")
 	checkErr(err)
 
-	// t.SetUnixWriteMode(true)
+	t.SetUnixWriteMode(true)
 
+	command = command + "\nhostname"
 	sendCommand(t, command)
-
-	data, err := t.ReadString('>')
+	//sendCommand(t, "hostname")
+	t.SkipUntil(">")
+	var stringy []byte
+	stringy, err = t.ReadUntil("TSW-750>")
 	checkErr(err)
+	fmt.Printf("%s\n", stringy)
+
+	//checkErr(err)
+	fmt.Printf("doneskyes")
 
 	t.Close() // Close the telnet session
-	fmt.Fprintf(w, "%s", data)
+	fmt.Fprintf(w, "%s", err)
 }
 
 func log(message string) {
