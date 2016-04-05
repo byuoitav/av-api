@@ -390,7 +390,7 @@ paths:
           $ref: "#/responses/default"
   /buildings/{building}/rooms/{room}/signals/{signal}:
     get:
-      summary: All Rooms
+      summary: All Signals
       description: |
         Return information about a specified signal in a specific room and
         building.
