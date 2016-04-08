@@ -1,14 +1,35 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 
-	"github.com/zenazn/goji"
-	"github.com/zenazn/goji/web"
+	"github.com/labstack/echo"
+	"github.com/labstack/echo/engine/fasthttp"
 	"github.com/ziutek/telnet"
 )
+
+type fusionResponse struct {
+  // Page   int      `json:"page"`
+	API_Rooms []fusionRoom
+}
+
+type fusionRoom struct {
+	RoomID   string
+	RoomName string
+	Symbols  []fusionSymbol
+}
+
+type fusionSymbol struct {
+	ConnectInfo string
+}
+
+type room struct {
+	Hostname string
+	Address  string
+}
 
 func checkErr(err error) {
 	if err != nil {
@@ -16,15 +37,11 @@ func checkErr(err error) {
 	}
 }
 
-func health(c web.C, w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Uh, we had a slight weapons malfunction, but uh... everything's perfectly all right now. We're fine. We're all fine here now, thank you. How are you?")
+func health(c echo.Context) error {
+	return c.String(http.StatusOK, "Uh, we had a slight weapons malfunction, but uh... everything's perfectly all right now. We're fine. We're all fine here now, thank you. How are you?")
 }
 
-func getTelnetOutput(c web.C, w http.ResponseWriter, r *http.Request) {
-	command := c.URLParams["command"]
-	address := c.URLParams["address"]
-	port := c.URLParams["port"]
-
+func getTelnetOutput(address string, port string, command string) string {
 	t, err := telnet.Dial("tcp", address+":"+port)
 	checkErr(err)
 
@@ -46,10 +63,10 @@ func getTelnetOutput(c web.C, w http.ResponseWriter, r *http.Request) {
 
 	output = output[:len(output)-10] // Ghetto trim the prompt off the response
 
-	fmt.Fprintf(w, "%s", output)
+	return string(output)
 }
 
-func fusionRequest(requestType string, url string) string {
+func fusionRequest(requestType string, url string) []byte {
 	client := &http.Client{}
 	req, err := http.NewRequest(requestType, url, nil)
 	checkErr(err)
@@ -58,49 +75,74 @@ func fusionRequest(requestType string, url string) string {
 	resp, err := client.Do(req)
 	checkErr(err)
 
-	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	checkErr(err)
 
-	return string(body) // Convert the bytes to a string before returning
+	return body
 }
 
-func getRooms(c web.C, w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "%s", fusionRequest("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms"))
+func getRooms(c echo.Context) error {
+	response := fusionRequest("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/")
+	return c.String(http.StatusOK, string(response)) // MAKE SURE YOU HAVE THE TRAILING SLASH
 }
 
-func getRoomByName(c web.C, w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "%s", fusionRequest("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms?search="+c.URLParams["room"]))
+func getRoomByName(c echo.Context) error {
+	// Get the room's ID from its name
+	response := fusionRequest("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/?search="+c.Param("room"))
+	rooms := fusionResponse{}
+	err := json.Unmarshal(response, &rooms)
+	checkErr(err)
+
+	// Get info about the room using its ID
+	response = fusionRequest("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/"+rooms.API_Rooms[0].RoomID)
+	rooms = fusionResponse{}
+	err = json.Unmarshal(response, &rooms)
+	checkErr(err)
+
+  address := rooms.API_Rooms[0].Symbols[0].ConnectInfo
+
+  room := room{
+    Hostname: getTelnetOutput(address, "23", "hostname"),
+    Address: address
+  }
+
+	jsonResponse, _ := json.Marshal(room)
+	return c.String(http.StatusOK, string(jsonResponse))
 }
 
 func main() {
-	// Endpoints for debugging
-	goji.Get("/telnet/address/:address/port/:port/command/:command", getTelnetOutput)
+	port := ":8000"
+	e := echo.New()
 
-	// Production endpoints
-	goji.Get("/health", health)
+	// Echo doesn't like doing things "magically" which means it won't auto-redirect endpoints without a trailing slash to one with a trailing slash (and vice versa) which is why endpoints are duplicated
+	e.Get("/health", health)
+	e.Get("/health/", health)
 
-	goji.Get("/rooms", getRooms)
-	goji.Get("/rooms/:room", getRoomByName)
-	// goji.Get("/buildings", ...)
-	// goji.Get("/buildings/:building", ...)
-	// goji.Get("/buildings/:building/rooms/:room", ...)
-	// goji.Get("/buildings/:building/rooms/:room/signals", ...)
-	// goji.Get("/buildings/:building/rooms/:room/signals/:signal", ...)
+	e.Get("/rooms", getRooms)
+	e.Get("/rooms/", getRooms)
+	e.Get("/rooms/:room", getRoomByName)
+	e.Get("/rooms/:room/", getRoomByName)
+	// e.Get("/buildings", ...)
+	// e.Get("/buildings/:building", ...)
+	// e.Get("/buildings/:building/room", ...)
+	// e.Get("/buildings/:building/rooms/:room", ...)
+	// e.Get("/buildings/:building/rooms/:room/signals", ...)
+	// e.Get("/buildings/:building/rooms/:room/signals/:signal", ...)
 	//
-	// goji.Post("/rooms", ...)
-	// goji.Post("/buildings", ...)
-	// goji.Post("/buildings/:building/rooms/:room/signals", ...)
+	// e.Post("/rooms", ...)
+	// e.Post("/buildings", ...)
+	// e.Post("/buildings/:building/rooms/:room/signals", ...)
 	//
-	// goji.Put("/rooms/:room", ...)
-	// goji.Put("/buildings/:building", ...)
-	// goji.Put("/buildings/:building/rooms/:room", ...)
-	// goji.Put("/buildings/:building/rooms/:room/signals/:signal", ...)
+	// e.Put("/rooms/:room", ...)
+	// e.Put("/buildings/:building", ...)
+	// e.Put("/buildings/:building/rooms/:room", ...)
+	// e.Put("/buildings/:building/rooms/:room/signals/:signal", ...)
 	//
-	// goji.Delete("/rooms/:room", ...)
-	// goji.Delete("/buildings/:building", ...)
-	// goji.Delete("/buildings/:building/rooms/:room", ...)
-	// goji.Delete("/buildings/:building/rooms/:room/signals/:signal", ...)
+	// e.Delete("/rooms/:room", ...)
+	// e.Delete("/buildings/:building", ...)
+	// e.Delete("/buildings/:building/rooms/:room", ...)
+	// e.Delete("/buildings/:building/rooms/:room/signals/:signal", ...)
 
-	goji.Serve() // Serve that puppy
+	fmt.Printf("AV API is listening on %s\n", port)
+	e.Run(fasthttp.New(port))
 }
