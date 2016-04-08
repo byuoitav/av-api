@@ -10,24 +10,14 @@ import (
 	"github.com/ziutek/telnet"
 )
 
-func health(c web.C, w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Uh, we had a slight weapons malfunction, but uh... everything's perfectly all right now. We're fine. We're all fine here now, thank you. How are you?")
+func checkErr(err error) {
+	if err != nil {
+		panic(err)
+	}
 }
 
-func getRoomByName(c web.C, w http.ResponseWriter, r *http.Request) {
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms?search="+c.URLParams["name"], nil)
-	checkErr(err)
-
-	req.Header.Add("Content-Type", "application/json")
-	resp, err := client.Do(req)
-	checkErr(err)
-
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	checkErr(err)
-
-	fmt.Fprintf(w, "%s", body)
+func health(c web.C, w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Uh, we had a slight weapons malfunction, but uh... everything's perfectly all right now. We're fine. We're all fine here now, thank you. How are you?")
 }
 
 func sendCommand(t *telnet.Conn, command string) {
@@ -62,15 +52,63 @@ func getTelnetOutput(c web.C, w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s", output)
 }
 
-func checkErr(err error) {
-	if err != nil {
-		panic(err)
-	}
+func getRooms(c web.C, w http.ResponseWriter, r *http.Request) {
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms", nil)
+	checkErr(err)
+
+	req.Header.Add("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	checkErr(err)
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	checkErr(err)
+
+	fmt.Fprintf(w, "%s", body)
+}
+
+func getRoomByName(c web.C, w http.ResponseWriter, r *http.Request) {
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms?search="+c.URLParams["room"], nil)
+	checkErr(err)
+
+	req.Header.Add("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	checkErr(err)
+
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	checkErr(err)
+
+	fmt.Fprintf(w, "%s", body)
 }
 
 func main() {
 	goji.Get("/health", health)
-	goji.Get("/room/:name", getRoomByName)
+
+	goji.Get("/rooms", getRooms)
+	goji.Get("/rooms/:room", getRoomByName)
+	// goji.Get("/buildings", ...)
+	// goji.Get("/buildings/:building", ...)
+	// goji.Get("/buildings/:building/rooms/:room", ...)
+	// goji.Get("/buildings/:building/rooms/:room/signals", ...)
+	// goji.Get("/buildings/:building/rooms/:room/signals/:signal", ...)
+	//
+	// goji.Post("/rooms", ...)
+	// goji.Post("/buildings", ...)
+	// goji.Post("/buildings/:building/rooms/:room/signals", ...)
+	//
+	// goji.Put("/rooms/:room", ...)
+	// goji.Put("/buildings/:building", ...)
+	// goji.Put("/buildings/:building/rooms/:room", ...)
+	// goji.Put("/buildings/:building/rooms/:room/signals/:signal", ...)
+	//
+	// goji.Delete("/rooms/:room", ...)
+	// goji.Delete("/buildings/:building", ...)
+	// goji.Delete("/buildings/:building/rooms/:room", ...)
+	// goji.Delete("/buildings/:building/rooms/:room/signals/:signal", ...)
+
 	goji.Get("/telnet/address/:address/port/:port/command/:command", getTelnetOutput)
 	goji.Serve()
 }
