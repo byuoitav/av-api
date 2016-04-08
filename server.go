@@ -12,21 +12,12 @@ import (
 
 func checkErr(err error) {
 	if err != nil {
-		panic(err)
+		panic(err) // Don't forget your towel
 	}
 }
 
 func health(c web.C, w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Uh, we had a slight weapons malfunction, but uh... everything's perfectly all right now. We're fine. We're all fine here now, thank you. How are you?")
-}
-
-func sendCommand(t *telnet.Conn, command string) {
-	command = command + "\nhostname" // Send two commands so we get a second prompt to use as a delimiter
-	buf := make([]byte, len(command)+1)
-	copy(buf, command)
-	buf[len(command)] = '\n'
-	_, err := t.Write(buf)
-	checkErr(err)
 }
 
 func getTelnetOutput(c web.C, w http.ResponseWriter, r *http.Request) {
@@ -39,7 +30,13 @@ func getTelnetOutput(c web.C, w http.ResponseWriter, r *http.Request) {
 
 	t.SetUnixWriteMode(true) // Convert any '\n' (LF) to '\r\n' (CR LF)
 
-	sendCommand(t, command)
+	command = command + "\nhostname" // Send two commands so we get a second prompt to use as a delimiter
+	buf := make([]byte, len(command)+1)
+	copy(buf, command)
+	buf[len(command)] = '\n'
+	_, err = t.Write(buf)
+	checkErr(err)
+
 	t.SkipUntil("TSW-750>") // Skip to the first prompt delimiter
 	var output []byte
 	output, err = t.ReadUntil("TSW-750>") // Read until the second prompt delimiter (provided by sending two commands in sendCommand)
@@ -52,9 +49,9 @@ func getTelnetOutput(c web.C, w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "%s", output)
 }
 
-func getRooms(c web.C, w http.ResponseWriter, r *http.Request) {
+func fusionRequest(requestType string, url string) string {
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms", nil)
+	req, err := http.NewRequest(requestType, url, nil)
 	checkErr(err)
 
 	req.Header.Add("Content-Type", "application/json")
@@ -65,26 +62,22 @@ func getRooms(c web.C, w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(resp.Body)
 	checkErr(err)
 
-	fmt.Fprintf(w, "%s", body)
+	return string(body) // Convert the bytes to a string before returning
+}
+
+func getRooms(c web.C, w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "%s", fusionRequest("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms"))
 }
 
 func getRoomByName(c web.C, w http.ResponseWriter, r *http.Request) {
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms?search="+c.URLParams["room"], nil)
-	checkErr(err)
-
-	req.Header.Add("Content-Type", "application/json")
-	resp, err := client.Do(req)
-	checkErr(err)
-
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	checkErr(err)
-
-	fmt.Fprintf(w, "%s", body)
+	fmt.Fprintf(w, "%s", fusionRequest("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms?search="+c.URLParams["room"]))
 }
 
 func main() {
+	// Endpoints for debugging
+	goji.Get("/telnet/address/:address/port/:port/command/:command", getTelnetOutput)
+
+	// Production endpoints
 	goji.Get("/health", health)
 
 	goji.Get("/rooms", getRooms)
@@ -109,6 +102,5 @@ func main() {
 	// goji.Delete("/buildings/:building/rooms/:room", ...)
 	// goji.Delete("/buildings/:building/rooms/:room/signals/:signal", ...)
 
-	goji.Get("/telnet/address/:address/port/:port/command/:command", getTelnetOutput)
-	goji.Serve()
+	goji.Serve() // Serve that puppy
 }
