@@ -2,9 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/engine/fasthttp"
@@ -12,8 +14,7 @@ import (
 )
 
 type fusionResponse struct {
-	// Page   int      `json:"page"`
-	API_Rooms []fusionRoom
+	APIRooms []fusionRoom `json:"API_Rooms"`
 }
 
 type fusionRoom struct {
@@ -27,9 +28,31 @@ type fusionSymbol struct {
 	ConnectInfo   string
 }
 
+type SoapEnvelope struct {
+	XMLName struct{} `xml:"http://schemas.xmlsoap.org/soap/envelope/ Envelope"`
+	Body    SoapBody
+}
+
+type SoapBody struct {
+	XMLName  struct{} `xml:"http://schemas.xmlsoap.org/soap/envelope/ Body"`
+	Contents []byte   `xml:",innerxml"`
+}
+
+type EMSBuildingsRequest struct {
+	XMLName  struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetBuildings"`
+	Username string
+	Password string
+}
+
+type EMSBuildingsResponse struct {
+	XMLName struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetBuildingsResponse"`
+	Result  string   `xml:"GetBuildingsResult"`
+}
+
 type room struct {
-	Hostname string
-	Address  string
+	Hostname  string
+	Address   string
+	Available bool
 }
 
 func checkErr(err error) {
@@ -40,6 +63,25 @@ func checkErr(err error) {
 
 func health(c echo.Context) error {
 	return c.String(http.StatusOK, "Uh, we had a slight weapons malfunction, but uh... everything's perfectly all right now. We're fine. We're all fine here now, thank you. How are you?")
+}
+
+func soapEncode(contents interface{}) ([]byte, error) {
+	data, err := xml.MarshalIndent(contents, "    ", "  ")
+	if err != nil {
+		return nil, err
+	}
+	data = append([]byte("\n"), data...)
+	env := SoapEnvelope{Body: SoapBody{Contents: data}}
+	return xml.MarshalIndent(&env, "", "  ")
+}
+
+func soapDecode(data []byte, contents interface{}) error 
+	env := SoapEnvelope{Body: SoapBody{}}
+	err := xml.Unmarshal(data, &env)
+	if err != nil {
+		return err
+	}
+	return xml.Unmarshal(env.Body.Contents, contents)
 }
 
 func getTelnetOutput(address string, port string, command string) string {
@@ -95,15 +137,27 @@ func getRoomByName(c echo.Context) error {
 	checkErr(err)
 
 	// Get info about the room using its ID
-	response = fusionRequest("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/"+rooms.API_Rooms[0].RoomID)
+	response = fusionRequest("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/"+rooms.APIRooms[0].RoomID)
 	rooms = fusionResponse{}
 	err = json.Unmarshal(response, &rooms)
 	checkErr(err)
 
-	hostname := rooms.API_Rooms[0].Symbols[0].ProcessorName
-	address := rooms.API_Rooms[0].Symbols[0].ConnectInfo
+	hostname := rooms.APIRooms[0].Symbols[0].ProcessorName
+	address := rooms.APIRooms[0].Symbols[0].ConnectInfo
 
-	roomResponse := room{Hostname: hostname, Address: address}
+	// Check room availability
+	req := &EMSBuildingsRequest{Username: os.Getenv("EMS_API_USERNAME"), Password: os.Getenv("EMS_API_PASSWORD")}
+	data, err := soapEncode(&req)
+	checkErr(err)
+	fmt.Println("Request:")
+	fmt.Println(xml.Header + string(data))
+	var resp EMSBuildingsResponse
+	err = soapDecode([]byte(response), &resp)
+	checkErr(err)
+	fmt.Println("Response:")
+	fmt.Println(resp.Result)
+
+	roomResponse := room{Hostname: hostname, Address: address, Available: true} // Temporary debugging
 
 	jsonResponse, _ := json.Marshal(roomResponse)
 	return c.String(http.StatusOK, string(jsonResponse))
