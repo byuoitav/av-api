@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/engine/fasthttp"
@@ -39,18 +40,30 @@ type soapBody struct {
 	Contents []byte   `xml:",innerxml"`
 }
 
-type schedulingBuildingsRequest struct {
+type schedulingAllBuildingsRequest struct {
 	XMLName  struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetBuildings"`
 	Username string   `xml:"UserName"`
 	Password string
 }
 
-type schedulingBuildingsResponse struct {
+type schedulingAllBuildingsResponse struct {
 	XMLName struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetBuildingsResponse"`
 	Result  string   `xml:"GetBuildingsResult"`
 }
 
+type schedulingBuildingsWrapper struct {
+	Buildings []schedulingBuilding `xml:"Data"`
+}
+
+type schedulingBuilding struct {
+	Building    string `xml:"BuildingCode"`
+	ID          int    `xml:"ID"`
+	Description string `xml:"Description"`
+}
+
 type room struct {
+	Building  string
+	Room      string
 	Hostname  string
 	Address   string
 	Available bool
@@ -111,7 +124,7 @@ func getTelnetOutput(address string, port string, command string) string {
 	return string(output)
 }
 
-func fusionRequest(requestType string, url string) []byte {
+func httpGet(requestType string, url string) []byte {
 	client := &http.Client{}
 	req, err := http.NewRequest(requestType, url, nil)
 	checkErr(err)
@@ -126,7 +139,7 @@ func fusionRequest(requestType string, url string) []byte {
 	return body
 }
 
-func schedulingRequest(url string, payload []byte) []byte {
+func soapRequest(url string, payload []byte) []byte {
 	resp, err := http.Post(url, "text/xml", bytes.NewBuffer(payload))
 	checkErr(err)
 
@@ -137,40 +150,44 @@ func schedulingRequest(url string, payload []byte) []byte {
 }
 
 func getRooms(c echo.Context) error {
-	response := fusionRequest("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/")
+	response := httpGet("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/")
 	return c.String(http.StatusOK, string(response)) // MAKE SURE YOU HAVE THE TRAILING SLASH
 }
 
 func getRoomByName(c echo.Context) error {
 	// Get the room's ID from its name
-	response := fusionRequest("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/?search="+c.Param("room"))
+	response := httpGet("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/?search="+c.Param("room"))
 	rooms := fusionResponse{}
 	err := json.Unmarshal(response, &rooms)
 	checkErr(err)
 
 	// Get info about the room using its ID
-	response = fusionRequest("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/"+rooms.APIRooms[0].RoomID)
+	response = httpGet("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/"+rooms.APIRooms[0].RoomID)
 	rooms = fusionResponse{}
 	err = json.Unmarshal(response, &rooms)
 	checkErr(err)
 
 	hostname := rooms.APIRooms[0].Symbols[0].ProcessorName
 	address := rooms.APIRooms[0].Symbols[0].ConnectInfo
+	building := strings.Split(c.Param("room"), "+")
+	roomName := strings.Split(c.Param("room"), "+")
 
-	// Check room availability
-	req := &schedulingBuildingsRequest{Username: os.Getenv("EMS_API_USERNAME"), Password: os.Getenv("EMS_API_PASSWORD")}
+	req := &schedulingAllBuildingsRequest{Username: os.Getenv("EMS_API_USERNAME"), Password: os.Getenv("EMS_API_PASSWORD")}
 	data, err := soapEncode(&req)
 	checkErr(err)
-	fmt.Println("Request:")
-	fmt.Println(xml.Header + string(data))
-	response = schedulingRequest("https://emsweb-dev.byu.edu/EMSAPI/Service.asmx", data)
-	buildings := schedulingBuildingsResponse{}
+	response = soapRequest("https://emsweb-dev.byu.edu/EMSAPI/Service.asmx", data)
+	buildings := schedulingAllBuildingsResponse{}
 	err = soapDecode([]byte(response), &buildings)
 	checkErr(err)
-	fmt.Println("Response:")
-	fmt.Println(buildings.Result)
 
-	roomResponse := room{Hostname: hostname, Address: address, Available: true} // Temporary debugging
+	var custs schedulingBuildingsWrapper
+	err = xml.Unmarshal([]byte(buildings.Result), &custs)
+	checkErr(err)
+
+	fmt.Println("Response:")
+	fmt.Printf("%v", custs)
+
+	roomResponse := room{Building: building[0], Room: roomName[1], Hostname: hostname, Address: address, Available: true} // Temporary debugging
 
 	jsonResponse, _ := json.Marshal(roomResponse)
 	return c.String(http.StatusOK, string(jsonResponse))
