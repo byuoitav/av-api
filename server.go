@@ -22,7 +22,7 @@ type fusionRoom struct {
 	Symbols  []fusionSymbol
 }
 
-type fusionSymbol struct 
+type fusionSymbol struct {
 	ProcessorName string
 	ConnectInfo   string
 }
