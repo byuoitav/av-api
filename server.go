@@ -28,24 +28,24 @@ type fusionSymbol struct {
 	ConnectInfo   string
 }
 
-type SoapEnvelope struct {
+type soapEnvelope struct {
 	XMLName struct{} `xml:"http://schemas.xmlsoap.org/soap/envelope/ Envelope"`
-	Body    SoapBody
+	Body    soapBody
 }
 
-type SoapBody struct {
+type soapBody struct {
 	XMLName  struct{} `xml:"http://schemas.xmlsoap.org/soap/envelope/ Body"`
 	Contents []byte   `xml:",innerxml"`
 }
 
-type EMSBuildingsRequest struct {
+type schedulingBuildingsRequest struct {
 	XMLName  struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetBuildings"`
 	Username string
 	Password string
 }
 
-type EMSBuildingsResponse struct {
-	XMLName struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetBuildingsResponse"`
+type schedulingBuildingsResponse struct {
+	XMLName struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetBuildings"`
 	Result  string   `xml:"GetBuildingsResult"`
 }
 
@@ -71,12 +71,12 @@ func soapEncode(contents interface{}) ([]byte, error) {
 		return nil, err
 	}
 	data = append([]byte("\n"), data...)
-	env := SoapEnvelope{Body: SoapBody{Contents: data}}
+	env := soapEnvelope{Body: soapBody{Contents: data}}
 	return xml.MarshalIndent(&env, "", "  ")
 }
 
-func soapDecode(data []byte, contents interface{}) error 
-	env := SoapEnvelope{Body: SoapBody{}}
+func soapDecode(data []byte, contents interface{}) error {
+	env := soapEnvelope{Body: soapBody{}}
 	err := xml.Unmarshal(data, &env)
 	if err != nil {
 		return err
@@ -146,12 +146,12 @@ func getRoomByName(c echo.Context) error {
 	address := rooms.APIRooms[0].Symbols[0].ConnectInfo
 
 	// Check room availability
-	req := &EMSBuildingsRequest{Username: os.Getenv("EMS_API_USERNAME"), Password: os.Getenv("EMS_API_PASSWORD")}
+	req := &schedulingBuildingsRequest{Username: os.Getenv("EMS_API_USERNAME"), Password: os.Getenv("EMS_API_PASSWORD")}
 	data, err := soapEncode(&req)
 	checkErr(err)
 	fmt.Println("Request:")
 	fmt.Println(xml.Header + string(data))
-	var resp EMSBuildingsResponse
+	var resp schedulingBuildingsResponse
 	err = soapDecode([]byte(response), &resp)
 	checkErr(err)
 	fmt.Println("Response:")
