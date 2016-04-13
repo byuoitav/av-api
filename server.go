@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
@@ -34,18 +35,18 @@ type soapEnvelope struct {
 }
 
 type soapBody struct {
-	XMLName  struct{} `xml:"http://schemas.xmlsoap.org/soap/envelope/ Body"`
+	XMLName  struct{} `xml:"Body"`
 	Contents []byte   `xml:",innerxml"`
 }
 
 type schedulingBuildingsRequest struct {
 	XMLName  struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetBuildings"`
-	Username string
+	Username string   `xml:"UserName"`
 	Password string
 }
 
 type schedulingBuildingsResponse struct {
-	XMLName struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetBuildings"`
+	XMLName struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetBuildingsResponse"`
 	Result  string   `xml:"GetBuildingsResult"`
 }
 
@@ -70,6 +71,7 @@ func soapEncode(contents interface{}) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	data = append([]byte("\n"), data...)
 	env := soapEnvelope{Body: soapBody{Contents: data}}
 	return xml.MarshalIndent(&env, "", "  ")
@@ -124,6 +126,16 @@ func fusionRequest(requestType string, url string) []byte {
 	return body
 }
 
+func schedulingRequest(url string, payload []byte) []byte {
+	resp, err := http.Post(url, "text/xml", bytes.NewBuffer(payload))
+	checkErr(err)
+
+	body, err := ioutil.ReadAll(resp.Body)
+	checkErr(err)
+
+	return body
+}
+
 func getRooms(c echo.Context) error {
 	response := fusionRequest("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/")
 	return c.String(http.StatusOK, string(response)) // MAKE SURE YOU HAVE THE TRAILING SLASH
@@ -151,11 +163,12 @@ func getRoomByName(c echo.Context) error {
 	checkErr(err)
 	fmt.Println("Request:")
 	fmt.Println(xml.Header + string(data))
-	var resp schedulingBuildingsResponse
-	err = soapDecode([]byte(response), &resp)
+	response = schedulingRequest("https://emsweb-dev.byu.edu/EMSAPI/Service.asmx", data)
+	buildings := schedulingBuildingsResponse{}
+	err = soapDecode([]byte(response), &buildings)
 	checkErr(err)
 	fmt.Println("Response:")
-	fmt.Println(resp.Result)
+	fmt.Println(buildings.Result)
 
 	roomResponse := room{Hostname: hostname, Address: address, Available: true} // Temporary debugging
 
