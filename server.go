@@ -51,7 +51,18 @@ type schedulingAllBuildingsResponse struct {
 	Result  string   `xml:"GetBuildingsResult"`
 }
 
-type schedulingBuildingsWrapper struct {
+type schedulingOneBuildingsRequest struct {
+	XMLName  struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetBuildings"`
+	Username string   `xml:"UserName"`
+	Password string
+}
+
+type schedulingOneBuildingsResponse struct {
+	XMLName struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetBuildingsResponse"`
+	Result  string   `xml:"GetBuildingsResult"`
+}
+
+type schedulingAllBuildings struct {
 	Buildings []schedulingBuilding `xml:"Data"`
 }
 
@@ -149,6 +160,40 @@ func soapRequest(url string, payload []byte) []byte {
 	return body
 }
 
+func checkAvailability() bool {
+	telnet := checkTelnetAvailability()
+	scheduling := checkSchedulingAvailability()
+
+	if telnet && scheduling {
+		return true
+	}
+
+	return false
+}
+
+func checkTelnetAvailability() bool {
+	return true
+}
+
+func checkSchedulingAvailability() bool {
+	request := &schedulingAllBuildingsRequest{Username: os.Getenv("EMS_API_USERNAME"), Password: os.Getenv("EMS_API_PASSWORD")}
+	encodedRequest, err := soapEncode(&request)
+	checkErr(err)
+
+	response := soapRequest("https://emsweb-dev.byu.edu/EMSAPI/Service.asmx", encodedRequest)
+	allBuildings := schedulingAllBuildingsResponse{}
+	err = soapDecode([]byte(response), &allBuildings)
+	checkErr(err)
+
+	buildings := schedulingAllBuildings{}
+	err = xml.Unmarshal([]byte(allBuildings.Result), &buildings)
+	checkErr(err)
+
+	fmt.Printf("%v", buildings)
+
+	return true
+}
+
 func getRooms(c echo.Context) error {
 	response := httpGet("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/")
 	return c.String(http.StatusOK, string(response)) // MAKE SURE YOU HAVE THE TRAILING SLASH
@@ -172,22 +217,7 @@ func getRoomByName(c echo.Context) error {
 	building := strings.Split(c.Param("room"), "+")
 	roomName := strings.Split(c.Param("room"), "+")
 
-	req := &schedulingAllBuildingsRequest{Username: os.Getenv("EMS_API_USERNAME"), Password: os.Getenv("EMS_API_PASSWORD")}
-	data, err := soapEncode(&req)
-	checkErr(err)
-	response = soapRequest("https://emsweb-dev.byu.edu/EMSAPI/Service.asmx", data)
-	buildings := schedulingAllBuildingsResponse{}
-	err = soapDecode([]byte(response), &buildings)
-	checkErr(err)
-
-	var custs schedulingBuildingsWrapper
-	err = xml.Unmarshal([]byte(buildings.Result), &custs)
-	checkErr(err)
-
-	fmt.Println("Response:")
-	fmt.Printf("%v", custs)
-
-	roomResponse := room{Building: building[0], Room: roomName[1], Hostname: hostname, Address: address, Available: true} // Temporary debugging
+	roomResponse := room{Building: building[0], Room: roomName[1], Hostname: hostname, Address: address, Available: checkAvailability()}
 
 	jsonResponse, _ := json.Marshal(roomResponse)
 	return c.String(http.StatusOK, string(jsonResponse))
