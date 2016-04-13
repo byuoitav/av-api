@@ -12,7 +12,7 @@ import (
 )
 
 type fusionResponse struct {
-  // Page   int      `json:"page"`
+	// Page   int      `json:"page"`
 	API_Rooms []fusionRoom
 }
 
@@ -23,7 +23,8 @@ type fusionRoom struct {
 }
 
 type fusionSymbol struct {
-	ConnectInfo string
+	ProcessorName string
+	ConnectInfo   string
 }
 
 type room struct {
@@ -99,14 +100,12 @@ func getRoomByName(c echo.Context) error {
 	err = json.Unmarshal(response, &rooms)
 	checkErr(err)
 
-  address := rooms.API_Rooms[0].Symbols[0].ConnectInfo
+	hostname := rooms.API_Rooms[0].Symbols[0].ProcessorName
+	address := rooms.API_Rooms[0].Symbols[0].ConnectInfo
 
-  room := room{
-    Hostname: getTelnetOutput(address, "23", "hostname"),
-    Address: address
-  }
+	roomResponse := room{Hostname: hostname, Address: address}
 
-	jsonResponse, _ := json.Marshal(room)
+	jsonResponse, _ := json.Marshal(roomResponse)
 	return c.String(http.StatusOK, string(jsonResponse))
 }
 
