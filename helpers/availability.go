@@ -6,9 +6,10 @@ import (
 	"os"
 )
 
+// CheckAvailability checks room availability by consulting with the EMS API and trying to ping the room via telnet
 func CheckAvailability() bool {
 	telnet := CheckTelnetAvailability()
-	scheduling := CheckSchedulingAvailability()
+	scheduling := CheckEMSAvailability()
 
 	if telnet && scheduling {
 		return true
@@ -17,11 +18,13 @@ func CheckAvailability() bool {
 	return false
 }
 
+// CheckTelnetAvailability pings the room via telnet to see if the room is currently in use
 func CheckTelnetAvailability() bool {
-	return true
+	return true // Temporary for debugging and placeholding
 }
 
-func CheckSchedulingAvailability() bool {
+// CheckEMSAvailability consults the EMS API to see if the room in question is scheduled to be in use currently
+func CheckEMSAvailability() bool {
 	request := &AllBuildingsRequest{Username: os.Getenv("EMS_API_USERNAME"), Password: os.Getenv("EMS_API_PASSWORD")}
 	encodedRequest, err := SoapEncode(&request)
 	CheckErr(err)
