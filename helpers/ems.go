@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"time"
 )
 
 type AllBuildingsRequest struct {
@@ -44,21 +43,6 @@ type BuildingResponse struct {
 	Result  string   `xml:"GetBuildingsResult"`
 }
 
-type RoomAvailabilityRequest struct {
-	XMLName     struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetRoomAvailability"`
-	Username    string   `xml:"UserName"`
-	Password    string
-	RoomID      int
-	BookingDate time.Time
-	StartTime   time.Time
-	EndTime     time.Time
-}
-
-type RoomAvailabilityResponse struct {
-	XMLName struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetRoomAvailabilityResponse"`
-	Result  string   `xml:"GetRoomAvailabilityResult"`
-}
-
 // AllBuildings is a clean struct representing all buildings returned by the EMS API
 type AllBuildings struct {
 	Buildings []Building `xml:"Data"`
@@ -81,6 +65,7 @@ type Room struct {
 	Room        string
 	ID          int    `xml:"ID"`
 	Description string `xml:"Description"`
+	Available   bool
 }
 
 // GetAllBuildings retrieves a list of all buildings listed by the EMS API
@@ -153,7 +138,7 @@ func GetRoomID(building string, room string) (int, error) {
 
 	// fmt.Printf("Rooms: %v\n", rooms)
 
-	// Some of the room names in the EMS API have asterisks following them for unknown reasons so we have to use a REGEX to ignore them
+	// Some of the room names in the EMS API have asterisks following them for unknown reasons so we have to use a RegEx to ignore them
 	re := regexp.MustCompile(`(` + building + " " + room + `)\w*`)
 
 	for index := range rooms.Rooms {
