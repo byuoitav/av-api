@@ -26,5 +26,7 @@ func CheckEMSAvailability(building string, room string) bool {
 
 	fmt.Printf("%v", availability)
 
+	// TODO Check to availability after obtaining room ID
+
 	return true
 }
