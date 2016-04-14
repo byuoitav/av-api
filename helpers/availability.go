@@ -67,5 +67,5 @@ func CheckEMSAvailability(building string, room string) bool {
 
 	fmt.Printf("%v", roomAvailability.Available)
 
-	return true
+	return roomAvailability.Available
 }
