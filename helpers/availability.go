@@ -1,15 +1,11 @@
 package helpers
 
-import (
-	"encoding/xml"
-	"fmt"
-	"os"
-)
+import "fmt"
 
 // CheckAvailability checks room availability by consulting with the EMS API and trying to ping the room via telnet
-func CheckAvailability() bool {
+func CheckAvailability(building string, room string) bool {
 	telnet := CheckTelnetAvailability()
-	scheduling := CheckEMSAvailability()
+	scheduling := CheckEMSAvailability(building, room)
 
 	if telnet && scheduling {
 		return true
@@ -24,21 +20,11 @@ func CheckTelnetAvailability() bool {
 }
 
 // CheckEMSAvailability consults the EMS API to see if the room in question is scheduled to be in use currently
-func CheckEMSAvailability() bool {
-	request := &AllBuildingsRequest{Username: os.Getenv("EMS_API_USERNAME"), Password: os.Getenv("EMS_API_PASSWORD")}
-	encodedRequest, err := SoapEncode(&request)
+func CheckEMSAvailability(building string, room string) bool {
+	availability, err := GetRoomID(building, room)
 	CheckErr(err)
 
-	response := SoapRequest("https://emsweb-dev.byu.edu/EMSAPI/Service.asmx", encodedRequest)
-	allBuildings := AllBuildingsResponse{}
-	err = SoapDecode([]byte(response), &allBuildings)
-	CheckErr(err)
-
-	buildings := AllBuildings{}
-	err = xml.Unmarshal([]byte(allBuildings.Result), &buildings)
-	CheckErr(err)
-
-	fmt.Printf("%v", buildings)
+	fmt.Printf("%v", availability)
 
 	return true
 }

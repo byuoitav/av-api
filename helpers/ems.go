@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"encoding/xml"
+	"fmt"
 	"os"
 	"time"
 )
@@ -18,15 +19,15 @@ type AllBuildingsResponse struct {
 }
 
 type AllRoomsRequest struct {
-	XMLName   struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetBuildings"`
+	XMLName   struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetRooms"`
 	Username  string   `xml:"UserName"`
 	Password  string
 	Buildings []int
 }
 
 type AllRoomsResponse struct {
-	XMLName struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetBuildingsResponse"`
-	Result  string   `xml:"GetBuildingsResult"`
+	XMLName struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetRoomsResponse"`
+	Result  string   `xml:"GetRoomsResult"`
 }
 
 // BuildingRequest represents an EMS API request for one building (by building ID)
@@ -43,7 +44,7 @@ type BuildingResponse struct {
 }
 
 type RoomAvailabilityRequest struct {
-	XMLName     struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetBuildings"`
+	XMLName     struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetRoomAvailability"`
 	Username    string   `xml:"UserName"`
 	Password    string
 	RoomID      int
@@ -53,8 +54,8 @@ type RoomAvailabilityRequest struct {
 }
 
 type RoomAvailabilityResponse struct {
-	XMLName struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetBuildingsResponse"`
-	Result  string   `xml:"GetBuildingsResult"`
+	XMLName struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetRoomAvailabilityResponse"`
+	Result  string   `xml:"GetRoomAvailabilityResult"`
 }
 
 // AllBuildings is a clean struct representing all buildings returned by the EMS API
@@ -100,22 +101,22 @@ func GetAllBuildings() AllBuildings {
 }
 
 // GetBuildingID returns the ID of a building from its building code
-func GetBuildingID(buildingCode string) int {
+func GetBuildingID(buildingCode string) (int, error) {
 	buildings := GetAllBuildings()
 
 	for index := range buildings.Buildings {
 		if buildings.Buildings[index].BuildingCode == buildingCode {
-			return buildings.Buildings[index].ID
+			return buildings.Buildings[index].ID, nil
 		}
 	}
 
-	return -1
+	return -1, fmt.Errorf("Couldn't find a record of the supplied %s building", buildingCode)
 }
 
 // GetAllRooms retrieves a list of all rooms listed by the EMS API as belonging to the specified building
 func GetAllRooms(buildingID int) AllRooms {
 	var buildings []int
-	buildings[0] = buildingID
+	buildings = append(buildings, buildingID)
 	request := &AllRoomsRequest{Username: os.Getenv("EMS_API_USERNAME"), Password: os.Getenv("EMS_API_PASSWORD"), Buildings: buildings}
 	encodedRequest, err := SoapEncode(&request)
 	CheckErr(err)
@@ -125,6 +126,8 @@ func GetAllRooms(buildingID int) AllRooms {
 	err = SoapDecode([]byte(response), &allRooms)
 	CheckErr(err)
 
+	fmt.Printf("%v", allRooms)
+
 	rooms := AllRooms{}
 	err = xml.Unmarshal([]byte(allRooms.Result), &rooms)
 	CheckErr(err)
@@ -133,14 +136,19 @@ func GetAllRooms(buildingID int) AllRooms {
 }
 
 // GetRoomID returns the ID of a building from its building code
-func GetRoomID(building string, room string) int {
-	rooms := GetAllRooms(GetBuildingID(building))
+func GetRoomID(building string, room string) (int, error) {
+	buildingID, err := GetBuildingID(building)
+	CheckErr(err)
+
+	rooms := GetAllRooms(buildingID)
+
+	fmt.Printf("%v", rooms)
 
 	for index := range rooms.Rooms {
 		if rooms.Rooms[index].BuildingCode == room {
-			return rooms.Rooms[index].ID
+			return rooms.Rooms[index].ID, nil
 		}
 	}
 
-	return -1
+	return -1, fmt.Errorf("Couldn't find a record of the supplied %s room in the %s building", room, building)
 }

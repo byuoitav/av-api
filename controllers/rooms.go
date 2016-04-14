@@ -25,6 +25,13 @@ type fusionSymbol struct {
 }
 
 type room struct {
+	Building string
+	Room     string
+	Hostname string
+	Address  string
+}
+
+type roomWithAvailability struct {
 	Building  string
 	Room      string
 	Hostname  string
@@ -32,9 +39,10 @@ type room struct {
 	Available bool
 }
 
+// GetRooms returns a list of all rooms Crestron Fusion knows about
 func GetRooms(c echo.Context) error {
-	response := helpers.GetHTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/")
-	return c.String(http.StatusOK, string(response)) // MAKE SURE YOU HAVE THE TRAILING SLASH
+	response := helpers.GetHTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/") // MAKE SURE YOU HAVE THE TRAILING SLASH
+	return c.String(http.StatusOK, string(response))
 }
 
 func GetRoomByName(c echo.Context) error {
@@ -55,7 +63,31 @@ func GetRoomByName(c echo.Context) error {
 	building := strings.Split(c.Param("room"), "+")
 	roomName := strings.Split(c.Param("room"), "+")
 
-	roomResponse := room{Building: building[0], Room: roomName[1], Hostname: hostname, Address: address, Available: helpers.CheckAvailability()}
+	roomResponse := room{Building: building[0], Room: roomName[1], Hostname: hostname, Address: address}
+
+	jsonResponse, _ := json.Marshal(roomResponse)
+	return c.String(http.StatusOK, string(jsonResponse))
+}
+
+// GetRoomByNameAndBuilding is almost identical to GetRoomByName with the addition of room availability checking (possible because of the supplying of a building in the API call)
+func GetRoomByNameAndBuilding(c echo.Context) error {
+	// Get the room's ID from its name
+	response := helpers.GetHTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/?search="+c.Param("room"))
+	rooms := fusionResponse{}
+	err := json.Unmarshal(response, &rooms)
+	helpers.CheckErr(err)
+
+	// Get info about the room using its ID
+	response = helpers.GetHTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/"+rooms.APIRooms[0].RoomID)
+	rooms = fusionResponse{}
+	err = json.Unmarshal(response, &rooms)
+	helpers.CheckErr(err)
+
+	hostname := rooms.APIRooms[0].Symbols[0].ProcessorName
+	address := rooms.APIRooms[0].Symbols[0].ConnectInfo
+	availability := helpers.CheckAvailability(c.Param("building"), c.Param("room"))
+
+	roomResponse := roomWithAvailability{Building: c.Param("building"), Room: c.Param("room"), Hostname: hostname, Address: address, Available: availability}
 
 	jsonResponse, _ := json.Marshal(roomResponse)
 	return c.String(http.StatusOK, string(jsonResponse))

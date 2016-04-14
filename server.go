@@ -23,7 +23,8 @@ func main() {
 	// e.Get("/buildings", ...)
 	// e.Get("/buildings/:building", ...)
 	// e.Get("/buildings/:building/room", ...)
-	// e.Get("/buildings/:building/rooms/:room", ...)
+	e.Get("/buildings/:building/rooms/:room", controllers.GetRoomByNameAndBuilding)
+	e.Get("/buildings/:building/rooms/:room/", controllers.GetRoomByNameAndBuilding)
 	// e.Get("/buildings/:building/rooms/:room/signals", ...)
 	// e.Get("/buildings/:building/rooms/:room/signals/:signal", ...)
 	//
