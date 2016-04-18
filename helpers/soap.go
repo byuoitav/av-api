@@ -43,12 +43,16 @@ func SoapDecode(data []byte, contents interface{}) error {
 }
 
 // SoapRequest sends a SOAP request and returns the response
-func SoapRequest(url string, payload []byte) []byte {
+func SoapRequest(url string, payload []byte) ([]byte, error) {
 	resp, err := http.Post(url, "text/xml", bytes.NewBuffer(payload))
-	CheckErr(err)
+	if err != nil {
+		return nil, err
+	}
 
 	body, err := ioutil.ReadAll(resp.Body)
-	CheckErr(err)
+	if err != nil {
+		return nil, err
+	}
 
-	return body
+	return body, nil
 }

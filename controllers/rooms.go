@@ -53,13 +53,17 @@ func GetRoomByName(c echo.Context) error {
 	response := helpers.GetHTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/?search="+c.Param("room"))
 	rooms := fusionResponse{}
 	err := json.Unmarshal(response, &rooms)
-	helpers.CheckErr(err)
+	if err != nil {
+		return c.String(http.StatusBadRequest, "An error was encountered. Please contact your system administrator. Error: "+err.Error())
+	}
 
 	// Get info about the room using its ID
 	response = helpers.GetHTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/"+rooms.APIRooms[0].RoomID)
 	rooms = fusionResponse{}
 	err = json.Unmarshal(response, &rooms)
-	helpers.CheckErr(err)
+	if err != nil {
+		return c.String(http.StatusBadRequest, "An error was encountered. Please contact your system administrator. Error: "+err.Error())
+	}
 
 	hostname := rooms.APIRooms[0].Symbols[0].ProcessorName
 	address := rooms.APIRooms[0].Symbols[0].ConnectInfo
@@ -78,7 +82,9 @@ func GetRoomByNameAndBuilding(c echo.Context) error {
 	response := helpers.GetHTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/?search="+c.Param("room"))
 	rooms := fusionResponse{}
 	err := json.Unmarshal(response, &rooms)
-	helpers.CheckErr(err)
+	if err != nil {
+		return c.String(http.StatusBadRequest, "An error was encountered. Please contact your system administrator. Error: "+err.Error())
+	}
 
 	if len(rooms.APIRooms) == 0 { // Return an error if Fusion doesn't have record of the room specified
 		return c.String(http.StatusNotFound, "Could not find the room specified")
@@ -88,7 +94,9 @@ func GetRoomByNameAndBuilding(c echo.Context) error {
 	response = helpers.GetHTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/"+rooms.APIRooms[0].RoomID)
 	rooms = fusionResponse{}
 	err = json.Unmarshal(response, &rooms)
-	helpers.CheckErr(err)
+	if err != nil {
+		return c.String(http.StatusBadRequest, "An error was encountered. Please contact your system administrator. Error: "+err.Error())
+	}
 
 	fmt.Printf("%+v\n", rooms)
 

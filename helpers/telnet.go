@@ -2,9 +2,11 @@ package helpers
 
 import "github.com/ziutek/telnet"
 
-func GetTelnetOutput(address string, port string, command string) string {
+func GetTelnetOutput(address string, port string, command string) (string, error) {
 	t, err := telnet.Dial("tcp", address+":"+port)
-	CheckErr(err)
+	if err != nil {
+		return "", err
+	}
 
 	t.SetUnixWriteMode(true) // Convert any '\n' (LF) to '\r\n' (CR LF)
 
@@ -13,16 +15,20 @@ func GetTelnetOutput(address string, port string, command string) string {
 	copy(buf, command)
 	buf[len(command)] = '\n'
 	_, err = t.Write(buf)
-	CheckErr(err)
+	if err != nil {
+		return "", err
+	}
 
 	t.SkipUntil("TSW-750>") // Skip to the first prompt delimiter
 	var output []byte
 	output, err = t.ReadUntil("TSW-750>") // Read until the second prompt delimiter (provided by sending two commands in sendCommand)
-	CheckErr(err)
+	if err != nil {
+		return "", err
+	}
 
 	t.Close() // Close the telnet session
 
 	output = output[:len(output)-10] // Ghetto trim the prompt off the response
 
-	return string(output)
+	return string(output), nil
 }

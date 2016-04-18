@@ -62,27 +62,40 @@ type room struct {
 	Available   bool
 }
 
-func getallBuildings() allBuildings {
+func getallBuildings() (allBuildings, error) {
 	request := &allBuildingsRequest{Username: os.Getenv("EMS_API_USERNAME"), Password: os.Getenv("EMS_API_PASSWORD")}
 	encodedRequest, err := SoapEncode(&request)
-	CheckErr(err)
+	if err != nil {
+		return allBuildings{}, err
+	}
 
-	response := SoapRequest("https://emsweb-dev.byu.edu/EMSAPI/Service.asmx", encodedRequest)
+	response, err := SoapRequest("https://emsweb-dev.byu.edu/EMSAPI/Service.asmx", encodedRequest)
+	if err != nil {
+		return allBuildings{}, err
+	}
+
 	allBuildingsContainer := allBuildingsResponse{}
 	err = SoapDecode([]byte(response), &allBuildingsContainer)
-	CheckErr(err)
+	if err != nil {
+		return allBuildings{}, err
+	}
 
 	buildings := allBuildings{}
 	err = xml.Unmarshal([]byte(allBuildingsContainer.Result), &buildings)
-	CheckErr(err)
+	if err != nil {
+		return allBuildings{}, err
+	}
 
 	// fmt.Printf("%v\n", buildings)
 
-	return buildings
+	return buildings, nil
 }
 
 func getBuildingID(buildingCode string) (int, error) {
-	buildings := getallBuildings()
+	buildings, err := getallBuildings()
+	if err != nil {
+		return -1, nil
+	}
 
 	for index := range buildings.Buildings {
 		if buildings.Buildings[index].BuildingCode == buildingCode {
@@ -93,25 +106,33 @@ func getBuildingID(buildingCode string) (int, error) {
 	return -1, fmt.Errorf("Couldn't find a record of the supplied %s building", buildingCode)
 }
 
-func getAllRooms(buildingID int) allRooms {
+func getAllRooms(buildingID int) (allRooms, error) {
 	var buildings []int
 	buildings = append(buildings, buildingID)
 	request := &allRoomsRequest{Username: os.Getenv("EMS_API_USERNAME"), Password: os.Getenv("EMS_API_PASSWORD"), Buildings: buildings}
 	encodedRequest, err := SoapEncode(&request)
-	CheckErr(err)
+	if err != nil {
+		return allRooms{}, err
+	}
 
-	response := SoapRequest("https://emsweb-dev.byu.edu/EMSAPI/Service.asmx", encodedRequest)
+	response, err := SoapRequest("https://emsweb-dev.byu.edu/EMSAPI/Service.asmx", encodedRequest)
+	if err != nil {
+		return allRooms{}, err
+	}
+
 	allRoomsContainer := allRoomsResponse{}
 	err = SoapDecode([]byte(response), &allRoomsContainer)
-	CheckErr(err)
+	if err != nil {
+		return allRooms{}, err
+	}
 
 	rooms := allRooms{}
 	err = xml.Unmarshal([]byte(allRoomsContainer.Result), &rooms)
-	CheckErr(err)
+	if err != nil {
+		return allRooms{}, err
+	}
 
-	// fmt.Printf("%v\n", rooms)
-
-	return rooms
+	return rooms, nil
 }
 
 // GetRoomID returns the ID of a building from its building code
