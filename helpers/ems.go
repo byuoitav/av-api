@@ -76,17 +76,15 @@ func getallBuildings() allBuildings {
 	err = xml.Unmarshal([]byte(allBuildingsContainer.Result), &buildings)
 	CheckErr(err)
 
+	// fmt.Printf("%v\n", buildings)
+
 	return buildings
 }
 
 func getBuildingID(buildingCode string) (int, error) {
 	buildings := getallBuildings()
 
-	// fmt.Printf("All Buildings: %v\n", buildings)
-
 	for index := range buildings.Buildings {
-		// fmt.Printf("Building ID: %v\n", buildings.Buildings[index].ID)
-
 		if buildings.Buildings[index].BuildingCode == buildingCode {
 			return buildings.Buildings[index].ID, nil
 		}
@@ -102,8 +100,6 @@ func getAllRooms(buildingID int) allRooms {
 	encodedRequest, err := SoapEncode(&request)
 	CheckErr(err)
 
-	// fmt.Printf("Request: %s\n", encodedRequest)
-
 	response := SoapRequest("https://emsweb-dev.byu.edu/EMSAPI/Service.asmx", encodedRequest)
 	allRoomsContainer := allRoomsResponse{}
 	err = SoapDecode([]byte(response), &allRoomsContainer)
@@ -112,6 +108,8 @@ func getAllRooms(buildingID int) allRooms {
 	rooms := allRooms{}
 	err = xml.Unmarshal([]byte(allRoomsContainer.Result), &rooms)
 	CheckErr(err)
+
+	// fmt.Printf("%v\n", rooms)
 
 	return rooms
 }
@@ -127,8 +125,7 @@ func GetRoomID(building string, room string) (int, error) {
 	re := regexp.MustCompile(`(` + building + " " + room + `)\w*`)
 
 	for index := range rooms.Rooms {
-		// fmt.Printf("Room Info: %s\n", rooms.Rooms[index].Room)
-		match := re.FindStringSubmatch(rooms.Rooms[index].Room) // Make the RegEx do magic
+		match := re.FindStringSubmatch(rooms.Rooms[index].Description) // Make the RegEx do magic
 
 		if len(match) != 0 {
 			return rooms.Rooms[index].ID, nil

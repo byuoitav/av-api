@@ -53,7 +53,7 @@ func checkEMSAvailability(building string, room string) bool {
 	now := time.Now()
 	date := now
 	startTime := now
-	endTime := now.Add(50 * time.Minute)
+	endTime := now.Add(30 * time.Minute) // Check a half hour time interval
 
 	request := &roomAvailabilityRequest{Username: os.Getenv("EMS_API_USERNAME"), Password: os.Getenv("EMS_API_PASSWORD"), RoomID: roomID, BookingDate: date, StartTime: startTime, EndTime: endTime}
 	encodedRequest, err := SoapEncode(&request)

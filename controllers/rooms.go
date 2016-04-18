@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -22,6 +23,8 @@ type fusionRoom struct {
 type fusionSymbol struct {
 	ProcessorName string
 	ConnectInfo   string
+	SymbolID      string
+	Available     bool
 }
 
 type room struct {
@@ -86,6 +89,8 @@ func GetRoomByNameAndBuilding(c echo.Context) error {
 	rooms = fusionResponse{}
 	err = json.Unmarshal(response, &rooms)
 	helpers.CheckErr(err)
+
+	fmt.Printf("%v\n", rooms)
 
 	hostname := rooms.APIRooms[0].Symbols[0].ProcessorName
 	address := rooms.APIRooms[0].Symbols[0].ConnectInfo
