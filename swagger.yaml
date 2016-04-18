@@ -3,10 +3,11 @@ info:
   title: Brigham Young University Audiovisual API
   description: Manage various AV systems across BYU campus with the BYU AV API
   version: "0.2"
-host: api.byu.edu
+# host: api.byu.edu
+host: avmetrics1.byu.edu:8000
 schemes:
   - https
-basePath: "/v0.2"
+# basePath: "/v0.2"
 produces:
   - application/json
 paths:
