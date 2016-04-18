@@ -6,7 +6,7 @@ info:
 # host: api.byu.edu
 host: avmetrics1.byu.edu:8000
 schemes:
-  - https
+  - http
 # basePath: "/v0.2"
 produces:
   - application/json
