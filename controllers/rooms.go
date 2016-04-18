@@ -30,6 +30,7 @@ type room struct {
 	Room     string
 	Hostname string
 	Address  string
+	Health   helpers.Health
 }
 
 type roomWithAvailability struct {
@@ -37,6 +38,7 @@ type roomWithAvailability struct {
 	Room      string
 	Hostname  string
 	Address   string
+	Health    helpers.Health
 	Available bool
 }
 
@@ -47,9 +49,13 @@ func GetRooms(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "An error was encountered. Please contact your system administrator.\nError: "+err.Error())
 	}
 
-	return c.String(http.StatusOK, string(response))
+	rooms := fusionResponse{}
+	err = json.Unmarshal(response, &rooms)
+
+	return c.JSON(http.StatusOK, rooms)
 }
 
+// GetRoomByName get a room from Fusion using only its name
 func GetRoomByName(c echo.Context) error {
 	// Get the room's ID from its name
 	response, err := helpers.RequestHTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/?search="+c.Param("building")+"+"+c.Param("room"))
@@ -82,8 +88,7 @@ func GetRoomByName(c echo.Context) error {
 
 	roomResponse := room{Building: building[0], Room: roomName[1], Hostname: hostname, Address: address}
 
-	jsonResponse, _ := json.Marshal(roomResponse)
-	return c.String(http.StatusOK, string(jsonResponse))
+	return c.JSON(http.StatusOK, roomResponse)
 }
 
 // GetRoomByNameAndBuilding is almost identical to GetRoomByName with the addition of room availability checking (possible because of the supplying of a building in the API call)
@@ -120,13 +125,17 @@ func GetRoomByNameAndBuilding(c echo.Context) error {
 
 	hostname := rooms.APIRooms[0].Symbols[0].ProcessorName
 	address := rooms.APIRooms[0].Symbols[0].ConnectInfo
+	health, err := helpers.GetHealth(address)
+	if err != nil {
+		return c.String(http.StatusBadRequest, "An error was encountered. Please contact your system administrator.\nError: "+err.Error())
+	}
+
 	availability, err := helpers.CheckAvailability(c.Param("building"), c.Param("room"), rooms.APIRooms[0].Symbols[0].SymbolID)
 	if err != nil {
 		return c.String(http.StatusBadRequest, "An error was encountered. Please contact your system administrator.\nError: "+err.Error())
 	}
 
-	roomResponse := roomWithAvailability{Building: c.Param("building"), Room: c.Param("room"), Hostname: hostname, Address: address, Available: availability}
+	roomResponse := roomWithAvailability{Building: c.Param("building"), Room: c.Param("room"), Hostname: hostname, Address: address, Health: health, Available: availability}
 
-	jsonResponse, _ := json.Marshal(roomResponse)
-	return c.String(http.StatusOK, string(jsonResponse))
+	return c.JSON(http.StatusOK, roomResponse)
 }
