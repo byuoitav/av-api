@@ -86,8 +86,6 @@ func getallBuildings() (allBuildings, error) {
 		return allBuildings{}, err
 	}
 
-	// fmt.Printf("%v\n", buildings)
-
 	return buildings, nil
 }
 
@@ -103,7 +101,7 @@ func getBuildingID(buildingCode string) (int, error) {
 		}
 	}
 
-	return -1, fmt.Errorf("Couldn't find a record of the supplied %s building", buildingCode)
+	return -1, fmt.Errorf("Couldn't find a record of the supplied %s building in the EMS database", buildingCode)
 }
 
 func getAllRooms(buildingID int) (allRooms, error) {
@@ -158,5 +156,5 @@ func GetRoomID(building string, room string) (int, error) {
 		}
 	}
 
-	return -1, fmt.Errorf("Couldn't find a record of the supplied %s room in the %s building", room, building)
+	return -1, fmt.Errorf("Couldn't find a record of the supplied %s room in the %s building in the EMS database", room, building)
 }

@@ -1,13 +1,13 @@
 package helpers
 
 import (
+	"encoding/json"
 	"encoding/xml"
-	"fmt"
 	"os"
 	"time"
 )
 
-type roomAvailabilityRequest struct {
+type roomAvailabilityRequestEMS struct {
 	XMLName     struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetRoomAvailability"`
 	Username    string   `xml:"UserName"`
 	Password    string
@@ -17,29 +17,37 @@ type roomAvailabilityRequest struct {
 	EndTime     time.Time
 }
 
-type roomAvailabilityResponse struct {
+type roomAvailabilityResponseEMS struct {
 	XMLName struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetRoomAvailabilityResponse"`
 	Result  string   `xml:"GetRoomAvailabilityResult"`
 }
 
-type roomResponse struct {
-	Response []roomAvailability `xml:"Data"`
+type roomResponseEMS struct {
+	Response []roomAvailabilityEMS `xml:"Data"`
 }
 
-type roomAvailability struct {
+type roomAvailabilityEMS struct {
 	Available bool
 }
 
-// CheckAvailability checks room availability by consulting with the EMS API and examining the "Power On" signal in Fusion
-func CheckAvailability(building string, room string) (bool, error) {
-	telnet, err := checkFusionAvailability()
+type roomResponseFusion struct {
+	Response []roomAvailabilityFusion `json:"API_Signals"`
+}
+
+type roomAvailabilityFusion struct {
+	Available bool `json:"RawValue"`
+}
+
+// CheckAvailability checks room availability by consulting with the EMS API and examining the "POWER_ON" signal in Fusion
+func CheckAvailability(building string, room string, symbol string) (bool, error) {
+	telnet, err := checkFusionAvailability(symbol)
 	if err != nil {
 		return false, err
 	}
 
 	scheduling, err := checkEMSAvailability(building, room)
 	if err != nil {
-		return false, err
+		scheduling = true // Return a false positive if EMS doesn't know what we're talking about
 	}
 
 	if telnet && scheduling {
@@ -49,8 +57,24 @@ func CheckAvailability(building string, room string) (bool, error) {
 	return false, nil
 }
 
-func checkFusionAvailability() (bool, error) {
-	return true, nil // Temporary for debugging and placeholding
+func checkFusionAvailability(symbol string) (bool, error) {
+	response, err := RequestHTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/SignalValues/"+symbol+"/SYSTEM_POWER")
+	if err != nil {
+		return false, err
+	}
+
+	availability := roomResponseFusion{}
+	json.Unmarshal([]byte(response), &availability)
+
+	if len(availability.Response) == 0 { // Return a false positive if Fusion doesn't have the "POWER_ON" symbol for the given room
+		return true, nil
+	}
+
+	if availability.Response[0].Available { // If the system is currently powered on
+		return false, nil
+	}
+
+	return true, nil
 }
 
 func checkEMSAvailability(building string, room string) (bool, error) {
@@ -64,26 +88,24 @@ func checkEMSAvailability(building string, room string) (bool, error) {
 	startTime := now
 	endTime := now.Add(30 * time.Minute) // Check a half hour time interval
 
-	request := &roomAvailabilityRequest{Username: os.Getenv("EMS_API_USERNAME"), Password: os.Getenv("EMS_API_PASSWORD"), RoomID: roomID, BookingDate: date, StartTime: startTime, EndTime: endTime}
+	request := &roomAvailabilityRequestEMS{Username: os.Getenv("EMS_API_USERNAME"), Password: os.Getenv("EMS_API_PASSWORD"), RoomID: roomID, BookingDate: date, StartTime: startTime, EndTime: endTime}
 	encodedRequest, err := SoapEncode(&request)
 	if err != nil {
 		return false, err
 	}
-
-	fmt.Printf("%s\n", encodedRequest)
 
 	response, err := SoapRequest("https://emsweb-dev.byu.edu/EMSAPI/Service.asmx", encodedRequest)
 	if err != nil {
 		return false, err
 	}
 
-	availability := roomAvailabilityResponse{}
+	availability := roomAvailabilityResponseEMS{}
 	err = SoapDecode([]byte(response), &availability)
 	if err != nil {
 		return false, err
 	}
 
-	roomAvailability := roomResponse{}
+	roomAvailability := roomResponseEMS{}
 	err = xml.Unmarshal([]byte(availability.Result), &roomAvailability)
 	if err != nil {
 		return false, err

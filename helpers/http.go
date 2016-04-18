@@ -5,8 +5,8 @@ import (
 	"net/http"
 )
 
-// GetHTTP is used to quickly make calls to the Crestron Fusion API
-func GetHTTP(requestType string, url string) ([]byte, error) {
+// RequestHTTP is used to quickly make calls to the Crestron Fusion API
+func RequestHTTP(requestType string, url string) ([]byte, error) {
 	client := &http.Client{}
 	req, err := http.NewRequest(requestType, url, nil)
 	if err != nil {
