@@ -72,7 +72,11 @@ func checkEMSAvailability(building string, room string) (bool, error) {
 
 	fmt.Printf("%s\n", encodedRequest)
 
-	response := SoapRequest("https://emsweb-dev.byu.edu/EMSAPI/Service.asmx", encodedRequest)
+	response, err := SoapRequest("https://emsweb-dev.byu.edu/EMSAPI/Service.asmx", encodedRequest)
+	if err != nil {
+		return false, err
+	}
+
 	availability := roomAvailabilityResponse{}
 	err = SoapDecode([]byte(response), &availability)
 	if err != nil {

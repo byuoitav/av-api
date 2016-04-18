@@ -44,21 +44,33 @@ type roomWithAvailability struct {
 
 // GetRooms returns a list of all rooms Crestron Fusion knows about
 func GetRooms(c echo.Context) error {
-	response := helpers.GetHTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/") // MAKE SURE YOU HAVE THE TRAILING SLASH
+	response, err := helpers.GetHTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/") // MAKE SURE YOU HAVE THE TRAILING SLASH
+	if err != nil {
+		return c.String(http.StatusBadRequest, "An error was encountered. Please contact your system administrator. Error: "+err.Error())
+	}
+
 	return c.String(http.StatusOK, string(response))
 }
 
 func GetRoomByName(c echo.Context) error {
 	// Get the room's ID from its name
-	response := helpers.GetHTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/?search="+c.Param("room"))
+	response, err := helpers.GetHTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/?search="+c.Param("room"))
+	if err != nil {
+		return c.String(http.StatusBadRequest, "An error was encountered. Please contact your system administrator. Error: "+err.Error())
+	}
+
 	rooms := fusionResponse{}
-	err := json.Unmarshal(response, &rooms)
+	err = json.Unmarshal(response, &rooms)
 	if err != nil {
 		return c.String(http.StatusBadRequest, "An error was encountered. Please contact your system administrator. Error: "+err.Error())
 	}
 
 	// Get info about the room using its ID
-	response = helpers.GetHTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/"+rooms.APIRooms[0].RoomID)
+	response, err = helpers.GetHTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/"+rooms.APIRooms[0].RoomID)
+	if err != nil {
+		return c.String(http.StatusBadRequest, "An error was encountered. Please contact your system administrator. Error: "+err.Error())
+	}
+
 	rooms = fusionResponse{}
 	err = json.Unmarshal(response, &rooms)
 	if err != nil {
@@ -79,9 +91,13 @@ func GetRoomByName(c echo.Context) error {
 // GetRoomByNameAndBuilding is almost identical to GetRoomByName with the addition of room availability checking (possible because of the supplying of a building in the API call)
 func GetRoomByNameAndBuilding(c echo.Context) error {
 	// Get the room's ID from its name
-	response := helpers.GetHTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/?search="+c.Param("room"))
+	response, err := helpers.GetHTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/?search="+c.Param("room"))
+	if err != nil {
+		return c.String(http.StatusBadRequest, "An error was encountered. Please contact your system administrator. Error: "+err.Error())
+	}
+
 	rooms := fusionResponse{}
-	err := json.Unmarshal(response, &rooms)
+	err = json.Unmarshal(response, &rooms)
 	if err != nil {
 		return c.String(http.StatusBadRequest, "An error was encountered. Please contact your system administrator. Error: "+err.Error())
 	}
@@ -91,7 +107,11 @@ func GetRoomByNameAndBuilding(c echo.Context) error {
 	}
 
 	// Get info about the room using its ID
-	response = helpers.GetHTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/"+rooms.APIRooms[0].RoomID)
+	response, err = helpers.GetHTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/"+rooms.APIRooms[0].RoomID)
+	if err != nil {
+		return c.String(http.StatusBadRequest, "An error was encountered. Please contact your system administrator. Error: "+err.Error())
+	}
+
 	rooms = fusionResponse{}
 	err = json.Unmarshal(response, &rooms)
 	if err != nil {

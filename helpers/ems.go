@@ -142,7 +142,10 @@ func GetRoomID(building string, room string) (int, error) {
 		return -1, err
 	}
 
-	rooms := getAllRooms(buildingID)
+	rooms, err := getAllRooms(buildingID)
+	if err != nil {
+		return -1, err
+	}
 
 	// Some of the room names in the EMS API have asterisks following them for unknown reasons so we have to use a RegEx to ignore them
 	re := regexp.MustCompile(`(` + building + " " + room + `)\w*`)
