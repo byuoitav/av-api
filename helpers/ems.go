@@ -117,7 +117,9 @@ func getAllRooms(buildingID int) allRooms {
 // GetRoomID returns the ID of a building from its building code
 func GetRoomID(building string, room string) (int, error) {
 	buildingID, err := getBuildingID(building)
-	CheckErr(err)
+	if err != nil {
+		return -1, err
+	}
 
 	rooms := getAllRooms(buildingID)
 

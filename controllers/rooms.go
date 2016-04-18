@@ -90,11 +90,14 @@ func GetRoomByNameAndBuilding(c echo.Context) error {
 	err = json.Unmarshal(response, &rooms)
 	helpers.CheckErr(err)
 
-	fmt.Printf("%v\n", rooms)
+	fmt.Printf("%+v\n", rooms)
 
 	hostname := rooms.APIRooms[0].Symbols[0].ProcessorName
 	address := rooms.APIRooms[0].Symbols[0].ConnectInfo
-	availability := helpers.CheckAvailability(c.Param("building"), c.Param("room"))
+	availability, err := helpers.CheckAvailability(c.Param("building"), c.Param("room"))
+	if err != nil {
+		return c.String(http.StatusBadRequest, "An error was encountered. Please contact your system administrator. Error: "+err.Error())
+	}
 
 	roomResponse := roomWithAvailability{Building: c.Param("building"), Room: c.Param("room"), Hostname: hostname, Address: address, Available: availability}
 

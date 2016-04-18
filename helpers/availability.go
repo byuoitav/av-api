@@ -31,24 +31,33 @@ type roomAvailability struct {
 }
 
 // CheckAvailability checks room availability by consulting with the EMS API and examining the "Power On" signal in Fusion
-func CheckAvailability(building string, room string) bool {
-	telnet := checkFusionAvailability()
-	scheduling := checkEMSAvailability(building, room)
-
-	if telnet && scheduling {
-		return true
+func CheckAvailability(building string, room string) (bool, error) {
+	telnet, err := checkFusionAvailability()
+	if err != nil {
+		return false, err
 	}
 
-	return false
+	scheduling, err := checkEMSAvailability(building, room)
+	if err != nil {
+		return false, err
+	}
+
+	if telnet && scheduling {
+		return true, nil
+	}
+
+	return false, nil
 }
 
-func checkFusionAvailability() bool {
-	return true // Temporary for debugging and placeholding
+func checkFusionAvailability() (bool, error) {
+	return true, nil // Temporary for debugging and placeholding
 }
 
-func checkEMSAvailability(building string, room string) bool {
+func checkEMSAvailability(building string, room string) (bool, error) {
 	roomID, err := GetRoomID(building, room)
-	CheckErr(err)
+	if err != nil {
+		return false, err
+	}
 
 	now := time.Now()
 	date := now
@@ -57,18 +66,24 @@ func checkEMSAvailability(building string, room string) bool {
 
 	request := &roomAvailabilityRequest{Username: os.Getenv("EMS_API_USERNAME"), Password: os.Getenv("EMS_API_PASSWORD"), RoomID: roomID, BookingDate: date, StartTime: startTime, EndTime: endTime}
 	encodedRequest, err := SoapEncode(&request)
-	CheckErr(err)
+	if err != nil {
+		return false, err
+	}
 
 	fmt.Printf("%s\n", encodedRequest)
 
 	response := SoapRequest("https://emsweb-dev.byu.edu/EMSAPI/Service.asmx", encodedRequest)
 	availability := roomAvailabilityResponse{}
 	err = SoapDecode([]byte(response), &availability)
-	CheckErr(err)
+	if err != nil {
+		return false, err
+	}
 
 	roomAvailability := roomResponse{}
 	err = xml.Unmarshal([]byte(availability.Result), &roomAvailability)
-	CheckErr(err)
+	if err != nil {
+		return false, err
+	}
 
-	return roomAvailability.Response[0].Available
+	return roomAvailability.Response[0].Available, nil
 }
