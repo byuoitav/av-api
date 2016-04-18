@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-type RoomAvailabilityRequest struct {
+type roomAvailabilityRequest struct {
 	XMLName     struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetRoomAvailability"`
 	Username    string   `xml:"UserName"`
 	Password    string
@@ -17,15 +17,23 @@ type RoomAvailabilityRequest struct {
 	EndTime     time.Time
 }
 
-type RoomAvailabilityResponse struct {
+type roomAvailabilityResponse struct {
 	XMLName struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetRoomAvailabilityResponse"`
 	Result  string   `xml:"GetRoomAvailabilityResult"`
 }
 
-// CheckAvailability checks room availability by consulting with the EMS API and trying to ping the room via telnet
+type roomResponse struct {
+	Response []roomAvailability `xml:"Data"`
+}
+
+type roomAvailability struct {
+	Available bool
+}
+
+// CheckAvailability checks room availability by consulting with the EMS API and examining the "Power On" signal in Fusion
 func CheckAvailability(building string, room string) bool {
-	telnet := CheckTelnetAvailability()
-	scheduling := CheckEMSAvailability(building, room)
+	telnet := checkFusionAvailability()
+	scheduling := checkEMSAvailability(building, room)
 
 	if telnet && scheduling {
 		return true
@@ -34,38 +42,33 @@ func CheckAvailability(building string, room string) bool {
 	return false
 }
 
-// CheckTelnetAvailability pings the room via telnet to see if the room is currently in use
-func CheckTelnetAvailability() bool {
+func checkFusionAvailability() bool {
 	return true // Temporary for debugging and placeholding
 }
 
-// CheckEMSAvailability consults the EMS API to see if the room in question is scheduled to be in use currently
-func CheckEMSAvailability(building string, room string) bool {
+func checkEMSAvailability(building string, room string) bool {
 	roomID, err := GetRoomID(building, room)
 	CheckErr(err)
 
-	fmt.Printf("%v", roomID)
+	now := time.Now()
+	date := now
+	startTime := now
+	endTime := now.Add(50 * time.Minute)
 
-	date := time.Now()
-	startTime := time.Now()
-	endTime := time.Now()
-
-	fmt.Printf("Date: %v, Start: %v, End: %v\n", date, startTime, endTime)
-
-	request := &RoomAvailabilityRequest{Username: os.Getenv("EMS_API_USERNAME"), Password: os.Getenv("EMS_API_PASSWORD"), RoomID: roomID, BookingDate: date, StartTime: startTime, EndTime: endTime}
+	request := &roomAvailabilityRequest{Username: os.Getenv("EMS_API_USERNAME"), Password: os.Getenv("EMS_API_PASSWORD"), RoomID: roomID, BookingDate: date, StartTime: startTime, EndTime: endTime}
 	encodedRequest, err := SoapEncode(&request)
 	CheckErr(err)
 
+	fmt.Printf("%s\n", encodedRequest)
+
 	response := SoapRequest("https://emsweb-dev.byu.edu/EMSAPI/Service.asmx", encodedRequest)
-	availability := RoomAvailabilityResponse{}
+	availability := roomAvailabilityResponse{}
 	err = SoapDecode([]byte(response), &availability)
 	CheckErr(err)
 
-	roomAvailability := Room{}
+	roomAvailability := roomResponse{}
 	err = xml.Unmarshal([]byte(availability.Result), &roomAvailability)
 	CheckErr(err)
 
-	fmt.Printf("%v", roomAvailability.Available)
-
-	return roomAvailability.Available
+	return roomAvailability.Response[0].Available
 }

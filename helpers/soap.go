@@ -28,6 +28,7 @@ func SoapEncode(contents interface{}) ([]byte, error) {
 
 	data = append([]byte("\n"), data...)
 	env := SoapEnvelope{Body: SoapBody{Contents: data}}
+
 	return xml.MarshalIndent(&env, "", "  ")
 }
 

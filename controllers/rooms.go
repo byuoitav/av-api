@@ -77,6 +77,10 @@ func GetRoomByNameAndBuilding(c echo.Context) error {
 	err := json.Unmarshal(response, &rooms)
 	helpers.CheckErr(err)
 
+	if len(rooms.APIRooms) == 0 { // Return an error if Fusion doesn't have record of the room specified
+		return c.String(http.StatusNotFound, "Could not find the room specified")
+	}
+
 	// Get info about the room using its ID
 	response = helpers.GetHTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/"+rooms.APIRooms[0].RoomID)
 	rooms = fusionResponse{}
