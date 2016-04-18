@@ -15,6 +15,8 @@ func main() {
 	// Echo doesn't like doing things "magically" which means it won't auto-redirect endpoints without a trailing slash to one with a trailing slash (and vice versa) which is why endpoints are duplicated
 
 	// GET requests
+	e.Get("/", controllers.Root)
+
 	e.Get("/health", controllers.Health)
 	e.Get("/health/", controllers.Health)
 
