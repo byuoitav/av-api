@@ -1,6 +1,6 @@
 # Brigham Young University Audiovisual API  
 
-[![Run in Postman](https://run.pstmn.io/button.svg)](https://app.getpostman.com/run-collection/6a1964154481b8b2114c) [![View in Swagger](http://jessemillar.com/view-in-swagger-button/button.svg)](https://byuoitav.github.io/av-api/)
+[![Run in Postman](https://run.pstmn.io/button.svg)](https://app.getpostman.com/run-collection/6a1964154481b8b2114c) [![View in Swagger](http://www.jessemillar.com/view-in-swagger-button/button.svg)](https://byuoitav.github.io/av-api/)
 
 ## Requirements
 - Updates should post to ServiceNow CMDB
