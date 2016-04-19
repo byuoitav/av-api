@@ -2,12 +2,12 @@ swagger: "2.0"
 info:
   title: Brigham Young University Audiovisual API
   description: Manage various AV systems across BYU campus with the BYU AV API
-  version: "0.2"
+  version: "0.3"
 # host: api.byu.edu
 host: avmetrics1.byu.edu:8000
 schemes:
   - http
-# basePath: "/v0.2"
+# basePath: "/v0.3"
 produces:
   - application/json
 paths:
@@ -63,15 +63,11 @@ paths:
     get:
       summary: All Rooms
       description: |
-        The Room endpoint returns information about the various AV products
-        offered across campus. The response includes the display name
-        and other details about each product.
+        Returns information about the various AV products offered across
+        campus. The response includes the display name and other details
+        about each product.
       parameters:
-        - name: room
-          in: path
-          description: Room hostname
-          required: true
-          type: string
+        - $ref: "#/parameters/room"
       tags:
         - Rooms
       responses:
@@ -92,11 +88,7 @@ paths:
       description: |
         Update information about a room in the Crestron Fusion database.
       parameters:
-        - name: room
-          in: path
-          description: Room hostname
-          required: true
-          type: string
+        - $ref: "#/parameters/room"
         - name: body
           description: The updated room information
           in: body
@@ -129,6 +121,28 @@ paths:
       responses:
         200:
           description: All went well
+        401:
+          $ref: "#/responses/401"
+        500:
+          $ref: "#/responses/500"
+        503:
+          $ref: "#/responses/503"
+        default:
+          $ref: "#/responses/default"
+  /devices/{hostname}:
+    get:
+      summary: Device Information
+      description: |
+        Returns information about a device whose hostname is specified.
+      parameters:
+        - $ref: "#/parameters/hostname"
+      tags:
+        - Devices
+      responses:
+        200:
+          description: Device information
+          schema:
+            $ref: "#/definitions/DeviceResponse"
         401:
           $ref: "#/responses/401"
         500:
@@ -250,6 +264,29 @@ paths:
       responses:
         200:
           description: All went well
+        401:
+          $ref: "#/responses/401"
+        500:
+          $ref: "#/responses/500"
+        503:
+          $ref: "#/responses/503"
+        default:
+          $ref: "#/responses/default"
+  /buildings/{building}/rooms:
+    get:
+      summary: Get All Building Rooms
+      description: |
+        Returns information about all TEC rooms in a specified buliding.
+      parameters:
+        - $ref: "#/parameters/building"
+      tags:
+        - Rooms
+        - Buildings
+      responses:
+        200:
+          description: An array of rooms
+          schema:
+            $ref: "#/definitions/RoomResponse"
         401:
           $ref: "#/responses/401"
         500:
@@ -483,6 +520,12 @@ definitions:
       href:
         type: string
         description: The link to the endpoint
+  DNS:
+    type: object
+    properties:
+      address:
+        type: string
+        description: The IP address of a DNS server
   Room:
     type: object
     properties:
@@ -512,7 +555,10 @@ definitions:
           $ref: "#/definitions/SignalRequest"
       available:
         type: boolean
-        description: Whether or not the room is currently available (calculated based on campus room scheduling and whether or not the room"s processor reports as in-use)
+        description: |
+          Whether or not the room is currently available (calculated based on
+          campus room scheduling and whether or not the room"s processor
+          reports as in-use)
   RoomResponse:
     type: object
     properties:
@@ -536,6 +582,52 @@ definitions:
       description:
         type: string
         description: A human-readable description of the room
+  Device:
+    type: object
+    properties:
+      links:
+        type: array
+        items:
+          $ref: "#/definitions/HATEOAS"
+      hostname:
+        type: string
+        description: The hostname of the device
+      description:
+        type: string
+        description: A human-readable description of the device
+      room:
+        type: object
+        description: Information about the room containing the device
+        $ref: "#/definitions/Room"
+      address:
+        type: string
+        description: The IP address of the processor
+      subnet:
+        type: string
+        description: The IP subnet mask of the device
+      gateway:
+        type: string
+        description: The device's default gateway
+      serial:
+        type: string
+        description: The serial number of the device
+      MAC:
+        type: string
+        description: The MAC address of the device
+      DNS:
+        type: array
+        description: The DNS servers declared for the device
+        items:
+          $ref: "#/definitions/DNS"
+  DeviceResponse:
+    type: object
+    properties:
+      links:
+        type: array
+        items:
+          $ref: "#/definitions/HATEOAS"
+      device:
+        $ref: "#/definitions/Device"
   Building:
     type: object
     properties:
@@ -545,19 +637,16 @@ definitions:
           $ref: "#/definitions/HATEOAS"
       name:
         type: string
-        description: The human-readable name of the room
+        description: The human-readable name of the building
       ID:
         type: string
-        description: The GUID of the room
-      roomID:
+        description: The GUID of the building
+      shortname:
         type: string
-        description: The room number
+        description: The building shortname
       description:
         type: string
-        description: A human-readable description of the room
-      available:
-        type: boolean
-        description: Whether or not the room is currently available (calculated based on campus room scheduling and whether or not the room"s processor reports as in-use)
+        description: A human-readable description of the building
   BuildingResponse:
     type: object
     properties:
@@ -636,7 +725,13 @@ parameters:
   room:
     name: room
     in: path
-    description: Room hostname
+    description: Room name
+    required: true
+    type: string
+  hostname:
+    name: hostname
+    in: path
+    description: Device hostname
     required: true
     type: string
   signal:
