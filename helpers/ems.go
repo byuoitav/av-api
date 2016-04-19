@@ -69,7 +69,7 @@ func getallBuildings() (allBuildings, error) {
 		return allBuildings{}, err
 	}
 
-	response, err := SoapRequest("https://emsweb-dev.byu.edu/EMSAPI/Service.asmx", encodedRequest)
+	response, err := SoapRequest("https://emsweb.byu.edu/EMSAPI/Service.asmx", encodedRequest)
 	if err != nil {
 		return allBuildings{}, err
 	}
@@ -113,7 +113,7 @@ func getAllRooms(buildingID int) (allRooms, error) {
 		return allRooms{}, err
 	}
 
-	response, err := SoapRequest("https://emsweb-dev.byu.edu/EMSAPI/Service.asmx", encodedRequest)
+	response, err := SoapRequest("https://emsweb.byu.edu/EMSAPI/Service.asmx", encodedRequest)
 	if err != nil {
 		return allRooms{}, err
 	}
