@@ -27,7 +27,7 @@ type fusionSymbol struct {
 }
 
 // Room represents clean data for a single room
-type Room struct {
+type room struct {
 	Building string
 	Room     string
 	Hostname string
@@ -93,7 +93,7 @@ func GetRoomByName(c echo.Context) error {
 	building := strings.Split(c.Param("room"), "+")
 	roomName := strings.Split(c.Param("room"), "+")
 
-	roomResponse := Room{Building: building[0], Room: roomName[1], Hostname: hostname, Address: address}
+	roomResponse := room{Building: building[0], Room: roomName[1], Hostname: hostname, Address: address}
 
 	return c.JSON(http.StatusOK, roomResponse)
 }
