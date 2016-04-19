@@ -2,7 +2,11 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"net/http"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/byuoitav/av-api/helpers"
@@ -10,7 +14,8 @@ import (
 )
 
 type fusionResponse struct {
-	APIRooms []fusionRoom `json:"API_Rooms"`
+	APIRooms   []fusionRoom `json:"API_Rooms"`
+	Pagination string       `json:"Message"`
 }
 
 type fusionRoom struct {
@@ -44,13 +49,52 @@ type roomWithAvailability struct {
 
 // GetRooms returns a list of all rooms Crestron Fusion knows about
 func GetRooms(c echo.Context) error {
-	response, err := helpers.RequestHTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/") // MAKE SURE YOU HAVE THE TRAILING SLASH
-	if err != nil {
-		return c.String(http.StatusBadRequest, "An error was encountered. Please contact your system administrator.\nError: "+err.Error())
-	}
+	// response, err := helpers.RequestHTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/") // MAKE SURE YOU HAVE THE TRAILING SLASH
+	// if err != nil {
+	// 	return c.String(http.StatusBadRequest, "An error was encountered. Please contact your system administrator.\nError: "+err.Error())
+	// }
+	//
+	// rooms := fusionResponse{}
+	// err = json.Unmarshal(response, &rooms)
 
-	rooms := fusionResponse{}
-	err = json.Unmarshal(response, &rooms)
+	currentPage := 1
+	lastPage := 1
+
+	var toReturn []FusionRoomInfo
+
+	for currentPage <= lastPage {
+		reqAddress := address + "?page=" + strconv.Itoa(currentPage)
+		fmt.Printf("\nRequestAddress %s \n", reqAddress)
+		req, err := http.NewRequest("GET", reqAddress, nil)
+		req.Header.Add("Content-Type", "application/json")
+		check(err)
+
+		resp, err := client.Do(req)
+		check(err)
+
+		var response = FusionRoomResponse{}
+		bits, err := ioutil.ReadAll(resp.Body)
+		check(err)
+
+		fmt.Printf("\nResponse: %s\n", bits)
+
+		err = json.Unmarshal(bits, &response)
+		check(err)
+
+		myExp := regexp.MustCompile(`Page ([0-9]+) of ([0-9]+)`)
+
+		match := myExp.FindStringSubmatch(response.Message)
+
+		toReturn = append(toReturn, response.APIRooms...)
+
+		currentPage, err = strconv.Atoi(match[1])
+		check(err)
+		lastPage, err = strconv.Atoi(match[2])
+		check(err)
+		fmt.Printf("\nDownloaded page %v of %v\n", currentPage, lastPage)
+
+		currentPage++
+	}
 
 	return c.JSON(http.StatusOK, rooms)
 }
