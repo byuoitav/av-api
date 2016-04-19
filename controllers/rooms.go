@@ -18,7 +18,6 @@ type fusionRoom struct {
 	RoomID   string
 	RoomName string
 	Symbols  []fusionSymbol
-	Poots    string
 }
 
 type fusionSymbol struct {
