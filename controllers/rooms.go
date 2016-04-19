@@ -2,10 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
-	"fmt"
-	"io/ioutil"
 	"net/http"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -14,14 +11,14 @@ import (
 )
 
 type fusionResponse struct {
-	APIRooms   []fusionRoom `json:"API_Rooms"`
-	Pagination string       `json:"Message"`
+	Rooms []fusionRoom `json:"API_Rooms"`
 }
 
 type fusionRoom struct {
 	RoomID   string
 	RoomName string
 	Symbols  []fusionSymbol
+	Poots    string
 }
 
 type fusionSymbol struct {
@@ -30,7 +27,8 @@ type fusionSymbol struct {
 	SymbolID      string
 }
 
-type room struct {
+// Room represents clean data for a single room
+type Room struct {
 	Building string
 	Room     string
 	Hostname string
@@ -49,52 +47,18 @@ type roomWithAvailability struct {
 
 // GetRooms returns a list of all rooms Crestron Fusion knows about
 func GetRooms(c echo.Context) error {
-	// response, err := helpers.RequestHTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/") // MAKE SURE YOU HAVE THE TRAILING SLASH
-	// if err != nil {
-	// 	return c.String(http.StatusBadRequest, "An error was encountered. Please contact your system administrator.\nError: "+err.Error())
-	// }
-	//
-	// rooms := fusionResponse{}
-	// err = json.Unmarshal(response, &rooms)
-
-	currentPage := 1
-	lastPage := 1
-
-	var toReturn []FusionRoomInfo
-
-	for currentPage <= lastPage {
-		reqAddress := address + "?page=" + strconv.Itoa(currentPage)
-		fmt.Printf("\nRequestAddress %s \n", reqAddress)
-		req, err := http.NewRequest("GET", reqAddress, nil)
-		req.Header.Add("Content-Type", "application/json")
-		check(err)
-
-		resp, err := client.Do(req)
-		check(err)
-
-		var response = FusionRoomResponse{}
-		bits, err := ioutil.ReadAll(resp.Body)
-		check(err)
-
-		fmt.Printf("\nResponse: %s\n", bits)
-
-		err = json.Unmarshal(bits, &response)
-		check(err)
-
-		myExp := regexp.MustCompile(`Page ([0-9]+) of ([0-9]+)`)
-
-		match := myExp.FindStringSubmatch(response.Message)
-
-		toReturn = append(toReturn, response.APIRooms...)
-
-		currentPage, err = strconv.Atoi(match[1])
-		check(err)
-		lastPage, err = strconv.Atoi(match[2])
-		check(err)
-		fmt.Printf("\nDownloaded page %v of %v\n", currentPage, lastPage)
-
-		currentPage++
+	count, err := helpers.GetFusionRecordCount()
+	if err != nil {
+		return c.String(http.StatusBadRequest, "An error was encountered. Please contact your system administrator.\nError: "+err.Error())
 	}
+
+	response, err := helpers.RequestHTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/?pagesize="+strconv.Itoa(count))
+	if err != nil {
+		return c.String(http.StatusBadRequest, "An error was encountered. Please contact your system administrator.\nError: "+err.Error())
+	}
+
+	rooms := fusionResponse{}
+	err = json.Unmarshal(response, &rooms)
 
 	return c.JSON(http.StatusOK, rooms)
 }
@@ -114,7 +78,7 @@ func GetRoomByName(c echo.Context) error {
 	}
 
 	// Get info about the room using its ID
-	response, err = helpers.RequestHTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/"+rooms.APIRooms[0].RoomID)
+	response, err = helpers.RequestHTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/"+rooms.Rooms[0].RoomID)
 	if err != nil {
 		return c.String(http.StatusBadRequest, "An error was encountered. Please contact your system administrator.\nError: "+err.Error())
 	}
@@ -125,12 +89,12 @@ func GetRoomByName(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "An error was encountered. Please contact your system administrator.\nError: "+err.Error())
 	}
 
-	hostname := rooms.APIRooms[0].Symbols[0].ProcessorName
-	address := rooms.APIRooms[0].Symbols[0].ConnectInfo
+	hostname := rooms.Rooms[0].Symbols[0].ProcessorName
+	address := rooms.Rooms[0].Symbols[0].ConnectInfo
 	building := strings.Split(c.Param("room"), "+")
 	roomName := strings.Split(c.Param("room"), "+")
 
-	roomResponse := room{Building: building[0], Room: roomName[1], Hostname: hostname, Address: address}
+	roomResponse := Room{Building: building[0], Room: roomName[1], Hostname: hostname, Address: address}
 
 	return c.JSON(http.StatusOK, roomResponse)
 }
@@ -149,14 +113,14 @@ func GetRoomByNameAndBuilding(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "An error was encountered. Please contact your system administrator.\nError: "+err.Error())
 	}
 
-	if len(rooms.APIRooms) == 0 { // Return an error if Fusion doesn't have record of the room specified
+	if len(rooms.Rooms) == 0 { // Return an error if Fusion doesn't have record of the room specified
 		return c.String(http.StatusNotFound, "An error was encountered. Please contact your system administrator.\nError: Could not find room "+c.Param("room")+" in the "+c.Param("building")+" building in the Fusion database")
-	} else if len(rooms.APIRooms) > 1 {
+	} else if len(rooms.Rooms) > 1 {
 		return c.String(http.StatusNotFound, "Error: Your search \""+c.Param("building")+" "+c.Param("room")+"\" returned multiple results from the Fusion database")
 	}
 
 	// Get info about the room using its ID
-	response, err = helpers.RequestHTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/"+rooms.APIRooms[0].RoomID)
+	response, err = helpers.RequestHTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/"+rooms.Rooms[0].RoomID)
 	if err != nil {
 		return c.String(http.StatusBadRequest, "An error was encountered. Please contact your system administrator.\nError: "+err.Error())
 	}
@@ -167,14 +131,14 @@ func GetRoomByNameAndBuilding(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "An error was encountered. Please contact your system administrator.\nError: "+err.Error())
 	}
 
-	hostname := rooms.APIRooms[0].Symbols[0].ProcessorName
-	address := rooms.APIRooms[0].Symbols[0].ConnectInfo
+	hostname := rooms.Rooms[0].Symbols[0].ProcessorName
+	address := rooms.Rooms[0].Symbols[0].ConnectInfo
 	health, err := helpers.GetHealth(address)
 	if err != nil {
 		return c.String(http.StatusBadRequest, "An error was encountered. Please contact your system administrator.\nError: "+err.Error())
 	}
 
-	availability, err := helpers.CheckAvailability(c.Param("building"), c.Param("room"), rooms.APIRooms[0].Symbols[0].SymbolID)
+	availability, err := helpers.CheckAvailability(c.Param("building"), c.Param("room"), rooms.Rooms[0].Symbols[0].SymbolID)
 	if err != nil {
 		return c.String(http.StatusBadRequest, "An error was encountered. Please contact your system administrator.\nError: "+err.Error())
 	}
