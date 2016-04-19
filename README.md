@@ -1,6 +1,6 @@
 # Brigham Young University Audiovisual API  
 
-[![Run in Postman](https://run.pstmn.io/button.svg)](https://app.getpostman.com/run-collection/535e1aa2df75f17c63f0)
+[![Run in Postman](https://run.pstmn.io/button.svg)](https://app.getpostman.com/run-collection/6a1964154481b8b2114c)
 
 ## Requirements
 - Updates should post to ServiceNow CMDB
