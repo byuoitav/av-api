@@ -94,7 +94,7 @@ func checkEMSAvailability(building string, room string) (bool, error) {
 		return false, err
 	}
 
-	response, err := SoapRequest("https://emsweb-dev.byu.edu/EMSAPI/Service.asmx", encodedRequest)
+	response, err := SoapRequest("https://emsweb.byu.edu/EMSAPI/Service.asmx", encodedRequest)
 	if err != nil {
 		return false, err
 	}
