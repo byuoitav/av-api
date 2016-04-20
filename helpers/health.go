@@ -4,6 +4,8 @@ import (
 	"net"
 	"strings"
 	"time"
+
+	"github.com/byuoitav/av-api/packages/cretelnet"
 )
 
 // Health represents the results of various health checks run on each box
@@ -40,7 +42,7 @@ func checkPingIn(address string) (bool, error) {
 }
 
 func checkPingOut(address string) (bool, error) {
-	response, err := GetTelnetOutput(address, "DMPS-300-C>", "ping avmetrics1.byu.edu")
+	response, err := cretelnet.GetOutput(address, "DMPS-300-C>", "ping avmetrics1.byu.edu")
 	if err != nil {
 		return false, err
 	}

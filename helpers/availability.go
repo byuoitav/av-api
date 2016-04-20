@@ -1,10 +1,11 @@
 package helpers
 
 import (
-	"encoding/json"
 	"encoding/xml"
 	"os"
 	"time"
+
+	"github.com/byuoitav/av-api/packages/fusion"
 )
 
 type roomAvailabilityRequestEMS struct {
@@ -30,51 +31,23 @@ type roomAvailabilityEMS struct {
 	Available bool
 }
 
-type roomResponseFusion struct {
-	Response []roomAvailabilityFusion `json:"API_Signals"`
-}
-
-type roomAvailabilityFusion struct {
-	Available bool `json:"RawValue"`
-}
-
 // CheckAvailability checks room availability by consulting with the EMS API and examining the "POWER_ON" signal in Fusion
 func CheckAvailability(building string, room string, symbol string) (bool, error) {
-	telnet, err := checkFusionAvailability(symbol)
+	fusionAvailable, err := fusion.IsRoomAvailable(symbol)
 	if err != nil {
 		return false, err
 	}
 
-	scheduling, err := checkEMSAvailability(building, room)
+	schedulingAvailable, err := checkEMSAvailability(building, room)
 	if err != nil {
-		scheduling = true // Return a false positive if EMS doesn't know what we're talking about
+		schedulingAvailable = true // Return positive if EMS doesn't know what we're talking about
 	}
 
-	if telnet && scheduling {
+	if fusionAvailable && schedulingAvailable {
 		return true, nil
 	}
 
 	return false, nil
-}
-
-func checkFusionAvailability(symbol string) (bool, error) {
-	response, err := RequestHTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/SignalValues/"+symbol+"/SYSTEM_POWER")
-	if err != nil {
-		return false, err
-	}
-
-	availability := roomResponseFusion{}
-	json.Unmarshal([]byte(response), &availability)
-
-	if len(availability.Response) == 0 { // Return a false positive if Fusion doesn't have the "POWER_ON" symbol for the given room
-		return true, nil
-	}
-
-	if availability.Response[0].Available { // If the system is currently powered on
-		return false, nil
-	}
-
-	return true, nil
 }
 
 func checkEMSAvailability(building string, room string) (bool, error) {
