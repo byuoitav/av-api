@@ -5,14 +5,14 @@ import (
 	"github.com/byuoitav/av-api/packages/fusion"
 )
 
-// CheckAvailability checks room availability by consulting with the EMS API and examining the "POWER_ON" signal in Fusion
-func CheckAvailability(building string, room string, symbol string) (bool, error) {
-	fusionAvailable, err := fusion.IsRoomAvailable(symbol)
+// IsRoomAvailable checks room availability by consulting with the EMS API and examining the "POWER_ON" signal in Fusion
+func IsRoomAvailable(room fusion.Room) (bool, error) {
+	fusionAvailable, err := fusion.IsRoomAvailable(room.Symbol)
 	if err != nil {
 		return false, err
 	}
 
-	schedulingAvailable, err := emschedule.IsRoomAvailable(building, room)
+	schedulingAvailable, err := emschedule.IsRoomAvailable(room.Building, room.Room)
 	if err != nil {
 		schedulingAvailable = true // Return positive if EMS doesn't know what we're talking about
 	}

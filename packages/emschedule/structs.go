@@ -63,29 +63,6 @@ type RoomAvailability struct {
 	Available bool
 }
 
-type EMSchedulingAllBuildings struct {
-	Buildings []EMSchedulingBuilding `xml:"Data"`
-}
-
-type EMSchedulingBuilding struct {
-	BuildingCode string `xml:"BuildingCode"`
-	ID           int    `xml:"ID"`
-	Description  string `xml:"Description"`
-}
-
-type EMSchedulingAllRooms struct {
-	Rooms []EMSchedulingRoom `xml:"Data"`
-}
-
-type EMSchedulingRoom struct {
-	Room        string
-	ID          int    `xml:"ID"`
-	Description string `xml:"Description"`
-	Available   bool
-}
-
-// Clean structs for returning data
-
 type AllBuildings struct {
 	Buildings []Building `xml:"Data"`
 }
@@ -102,7 +79,7 @@ type AllRooms struct {
 
 type Room struct {
 	Room        string
-	ID          int    `xml:"ID"`
-	Description string `xml:"Description"`
+	ID          int
+	Description string
 	Available   bool
 }

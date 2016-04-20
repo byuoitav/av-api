@@ -111,13 +111,13 @@ func GetAllRooms() (AllRooms, error) {
 		fusionRoom := fusionRooms.APIRooms[i]
 
 		room := Room{
-			Name:      fusionRoom.RoomName,
-			ID:        fusionRoom.RoomID,
-			Hostname:  fusionRoom.Hostname,
-			Address:   fusionRoom.Address,
-			Building:  fusionRoom.Building,
-			Room:      fusionRoom.Room,
-			Available: fusionRoom.Available,
+			Name:     fusionRoom.RoomName,
+			ID:       fusionRoom.RoomID,
+			Hostname: fusionRoom.Hostname,
+			Address:  fusionRoom.Address,
+			Building: fusionRoom.Building,
+			Room:     fusionRoom.Room,
+			// Available: fusionRoom.Available,
 		}
 
 		rooms.Rooms = append(rooms.Rooms, room)
@@ -160,23 +160,18 @@ func GetRoomByNameAndBuilding(building string, room string) (Room, error) {
 	}
 
 	sampleSymbol := rooms.APIRooms[0].Symbols[0]
-	sampleSignal := sampleSymbol.Signals[0]
 
 	hostname := sampleSymbol.ProcessorName
 	address := sampleSymbol.ConnectInfo
-	availability, err := IsRoomAvailable(sampleSignal.SymbolID)
-	if err != nil {
-		return Room{}, err
-	}
 
 	roomResponse := Room{
-		Name:      building + "-" + room,
-		ID:        roomID,
-		Building:  building,
-		Room:      room,
-		Hostname:  hostname,
-		Address:   address,
-		Available: availability,
+		Name:     building + "-" + room,
+		ID:       roomID,
+		Building: building,
+		Room:     room,
+		Hostname: hostname,
+		Address:  address,
+		Symbol:   sampleSymbol.Signals[0].SymbolID,
 		// Symbols:   rooms.APIRooms[0].Symbols,
 	}
 

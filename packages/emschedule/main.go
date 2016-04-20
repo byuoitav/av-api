@@ -22,7 +22,15 @@ func IsRoomAvailable(building string, room string) (bool, error) {
 	startTime := now
 	endTime := now.Add(30 * time.Minute) // Check a half hour time interval
 
-	request := &RoomAvailabilityRequestSOAP{Username: os.Getenv("EMS_API_USERNAME"), Password: os.Getenv("EMS_API_PASSWORD"), RoomID: roomID, BookingDate: date, StartTime: startTime, EndTime: endTime}
+	request := &RoomAvailabilityRequestSOAP{
+		Username:    os.Getenv("EMS_API_USERNAME"),
+		Password:    os.Getenv("EMS_API_PASSWORD"),
+		RoomID:      roomID,
+		BookingDate: date,
+		StartTime:   startTime,
+		EndTime:     endTime,
+	}
+
 	encodedRequest, err := soap.Encode(&request)
 	if err != nil {
 		return false, err
@@ -77,7 +85,12 @@ func GetRoomID(building string, room string) (int, error) {
 func GetAllRooms(buildingID int) (AllRooms, error) {
 	var buildings []int
 	buildings = append(buildings, buildingID)
-	request := &AllRoomsRequestSOAP{Username: os.Getenv("EMS_API_USERNAME"), Password: os.Getenv("EMS_API_PASSWORD"), Buildings: buildings}
+	request := &AllRoomsRequestSOAP{
+		Username:  os.Getenv("EMS_API_USERNAME"),
+		Password:  os.Getenv("EMS_API_PASSWORD"),
+		Buildings: buildings,
+	}
+
 	encodedRequest, err := soap.Encode(&request)
 	if err != nil {
 		return AllRooms{}, err
@@ -88,14 +101,14 @@ func GetAllRooms(buildingID int) (AllRooms, error) {
 		return AllRooms{}, err
 	}
 
-	allRoomsContainer := AllRoomsResponseSOAP{}
-	err = soap.Decode([]byte(response), &allRoomsContainer)
+	allRooms := AllRoomsResponseSOAP{}
+	err = soap.Decode([]byte(response), &allRooms)
 	if err != nil {
 		return AllRooms{}, err
 	}
 
 	rooms := AllRooms{}
-	err = xml.Unmarshal([]byte(allRoomsContainer.Result), &rooms)
+	err = xml.Unmarshal([]byte(allRooms.Result), &rooms)
 	if err != nil {
 		return AllRooms{}, err
 	}
@@ -119,7 +132,11 @@ func GetBuildingID(buildingCode string) (int, error) {
 }
 
 func GetAllBuildings() (AllBuildings, error) {
-	request := &AllBuildingsRequestSOAP{Username: os.Getenv("EMS_API_USERNAME"), Password: os.Getenv("EMS_API_PASSWORD")}
+	request := &AllBuildingsRequestSOAP{
+		Username: os.Getenv("EMS_API_USERNAME"),
+		Password: os.Getenv("EMS_API_PASSWORD"),
+	}
+
 	encodedRequest, err := soap.Encode(&request)
 	if err != nil {
 		return AllBuildings{}, err
@@ -130,14 +147,14 @@ func GetAllBuildings() (AllBuildings, error) {
 		return AllBuildings{}, err
 	}
 
-	allBuildingsContainer := AllBuildingsResponseSOAP{}
-	err = soap.Decode([]byte(response), &allBuildingsContainer)
+	allBuilding := AllBuildingsResponseSOAP{}
+	err = soap.Decode([]byte(response), &allBuilding)
 	if err != nil {
 		return AllBuildings{}, err
 	}
 
 	buildings := AllBuildings{}
-	err = xml.Unmarshal([]byte(allBuildingsContainer.Result), &buildings)
+	err = xml.Unmarshal([]byte(allBuilding.Result), &buildings)
 	if err != nil {
 		return AllBuildings{}, err
 	}

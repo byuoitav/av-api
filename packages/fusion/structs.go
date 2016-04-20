@@ -55,5 +55,6 @@ type Room struct {
 	Address   string `json:"address,omitempty"`
 	Building  string `json:"building,omitempty"`
 	Room      string `json:"room,omitempty"`
+	Symbol    string `json:"symbol,omitempty"`
 	Available bool   `json:"available,omitempty"`
 }
