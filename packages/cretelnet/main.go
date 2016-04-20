@@ -1,9 +1,9 @@
-package helpers
+package cretelnet
 
 import "github.com/ziutek/telnet"
 
-// GetTelnetOutput runs a Telnet command and returns the result
-func GetTelnetOutput(address string, prompt string, command string) (string, error) {
+// GetOutput runs a Telnet command and returns the result
+func GetOutput(address string, prompt string, command string) (string, error) {
 	t, err := telnet.Dial("tcp", address+":23")
 	if err != nil {
 		return "", err
@@ -29,7 +29,7 @@ func GetTelnetOutput(address string, prompt string, command string) (string, err
 
 	t.Close() // Close the telnet session
 
-	output = output[:len(output)-len(prompt)] // Ghetto trim the prompt off the response
+	output = output[:len(output)-len(prompt)] // Trim the prompt off the response
 
 	return string(output), nil
 }
