@@ -3,7 +3,6 @@ package fusion
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -46,30 +45,38 @@ func GetRecordCount() (int, error) {
 }
 
 // GetRoomID gets a room's Fusion ID from its building and room name
-func GetRoomID(building string, room string) (int, error) {
+func GetRoomID(building string, room string) (string, error) {
 	response, err := HTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/?search="+building+"+"+room)
 	if err != nil {
-		return -1, err
+		return "", err
 	}
 
 	rooms := RoomsResponse{}
 	err = json.Unmarshal(response, &rooms)
 	if err != nil {
-		return -1, err
+		return "", err
 	}
-
-	fmt.Printf("%+v", rooms)
 
 	if len(rooms.Rooms) == 0 { // Return an error if Fusion doesn't have record of the room specified
-		return -1, errors.New("Could not find room " + room + " in the " + building + " building in the Fusion database")
+		return "", errors.New("Could not find room " + room + " in the " + building + " building in the Fusion database")
 	} else if len(rooms.Rooms) > 1 {
-		return -1, errors.New("Your search \"" + building + " " + room + "\" returned multiple results from the Fusion database")
+		return "", errors.New("Your search \"" + building + " " + room + "\" returned multiple results from the Fusion database")
 	}
 
-	return 1, nil // TODO: Return the actual ID
+	return rooms.Rooms[0].RoomID, nil
 }
 
-func IsRoomAvailable(symbol string) (bool, error) {
+func GetRoomSymbolID(roomID string) (string, error) {
+	return "", nil
+}
+
+// IsRoomAvailable returns a bool representing whether or not a room is available according to the Fusion "SYSTEM_POWER" symbol
+func IsRoomAvailable(roomID string) (bool, error) {
+	symbol, err := GetRoomSymbolID(roomID)
+	if err != nil {
+		return false, err
+	}
+
 	response, err := HTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/SignalValues/"+symbol+"/SYSTEM_POWER")
 	if err != nil {
 		return false, err
@@ -82,7 +89,7 @@ func IsRoomAvailable(symbol string) (bool, error) {
 		return true, nil
 	}
 
-	if availability.Rooms[0].Available { // If the system is currently powered on
+	if availability.Rooms[0].Available { // If the system is currently powered on (Fusion does things backwards from how we want)
 		return false, nil
 	}
 
@@ -112,7 +119,11 @@ func GetRooms() (RoomsResponse, error) {
 
 // GetRoomByName gets information about a room from only its name (EG: ASB+A203)
 func GetRoomByName(roomName string) (Room, error) {
-	roomParse := strings.Split("+", roomName)
+	roomParse := strings.Split(roomName, "-")
+	if len(roomParse) != 2 {
+		return Room{}, errors.New("Please supply a room name in the format of 'BLDG-ROOM' similar to 'ASB-A203'")
+	}
+
 	room, err := GetRoomByNameAndBuilding(roomParse[0], roomParse[1])
 	if err != nil {
 		return Room{}, err
@@ -128,8 +139,7 @@ func GetRoomByNameAndBuilding(building string, room string) (Room, error) {
 		return Room{}, err
 	}
 
-	// Get info about the room using its ID
-	response, err := HTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/"+strconv.Itoa(roomID))
+	response, err := HTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/"+roomID)
 	if err != nil {
 		return Room{}, err
 	}
@@ -142,8 +152,21 @@ func GetRoomByNameAndBuilding(building string, room string) (Room, error) {
 
 	hostname := rooms.Rooms[0].Symbols[0].ProcessorName
 	address := rooms.Rooms[0].Symbols[0].ConnectInfo
+	availability, err := IsRoomAvailable(roomID)
+	if err != nil {
+		return Room{}, err
+	}
 
-	roomResponse := Room{Building: building, Room: room, Hostname: hostname, Address: address}
+	roomResponse := Room{
+		RoomID:    roomID,
+		RoomName:  building + "-" + room,
+		Building:  building,
+		Room:      room,
+		Hostname:  hostname,
+		Address:   address,
+		Available: availability,
+		Symbols:   rooms.Rooms[0].Symbols,
+	}
 
 	return roomResponse, nil
 }

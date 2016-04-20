@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 
+	"github.com/byuoitav/av-api/helpers"
 	"github.com/byuoitav/av-api/packages/fusion"
 	"github.com/labstack/echo"
 )
@@ -11,7 +12,7 @@ import (
 func GetRooms(c echo.Context) error {
 	response, err := fusion.GetRooms()
 	if err != nil {
-		return c.String(http.StatusBadRequest, "An error was encountered. Please contact your system administrator.\nError: "+err.Error())
+		return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 	}
 
 	return c.JSON(http.StatusOK, response)
@@ -21,7 +22,7 @@ func GetRooms(c echo.Context) error {
 func GetRoomByName(c echo.Context) error {
 	response, err := fusion.GetRoomByName(c.Param("room"))
 	if err != nil {
-		return c.String(http.StatusBadRequest, "An error was encountered. Please contact your system administrator.\nError: "+err.Error())
+		return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 	}
 
 	return c.JSON(http.StatusOK, response)
@@ -31,7 +32,7 @@ func GetRoomByName(c echo.Context) error {
 func GetRoomByNameAndBuilding(c echo.Context) error {
 	response, err := fusion.GetRoomByNameAndBuilding(c.Param("building"), c.Param("room"))
 	if err != nil {
-		return c.String(http.StatusBadRequest, "An error was encountered. Please contact your system administrator.\nError: "+err.Error())
+		return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 	}
 
 	return c.JSON(http.StatusOK, response)
