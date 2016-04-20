@@ -15,12 +15,12 @@ type Availability struct {
 type Room struct {
 	RoomName  string
 	RoomID    string
-	Hostname  string
-	Address   string
-	Building  string
-	Room      string
-	Available bool
-	Symbols   []Symbol
+	Hostname  string   `json:",omitempty"`
+	Address   string   `json:",omitempty"`
+	Building  string   `json:",omitempty"`
+	Room      string   `json:",omitempty"`
+	Available bool     `json:",omitempty"`
+	Symbols   []Symbol `json:",omitempty"`
 }
 
 type Symbol struct {

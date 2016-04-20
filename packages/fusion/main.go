@@ -66,18 +66,9 @@ func GetRoomID(building string, room string) (string, error) {
 	return rooms.Rooms[0].RoomID, nil
 }
 
-func GetRoomSymbolID(roomID string) (string, error) {
-	return "", nil
-}
-
 // IsRoomAvailable returns a bool representing whether or not a room is available according to the Fusion "SYSTEM_POWER" symbol
-func IsRoomAvailable(roomID string) (bool, error) {
-	symbol, err := GetRoomSymbolID(roomID)
-	if err != nil {
-		return false, err
-	}
-
-	response, err := HTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/SignalValues/"+symbol+"/SYSTEM_POWER")
+func IsRoomAvailable(symbolID string) (bool, error) {
+	response, err := HTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/SignalValues/"+symbolID+"/SYSTEM_POWER")
 	if err != nil {
 		return false, err
 	}
@@ -150,9 +141,12 @@ func GetRoomByNameAndBuilding(building string, room string) (Room, error) {
 		return Room{}, err
 	}
 
-	hostname := rooms.Rooms[0].Symbols[0].ProcessorName
-	address := rooms.Rooms[0].Symbols[0].ConnectInfo
-	availability, err := IsRoomAvailable(roomID)
+	sampleSymbol := rooms.Rooms[0].Symbols[0]
+	sampleSignal := sampleSymbol.Signals[0]
+
+	hostname := sampleSymbol.ProcessorName
+	address := sampleSymbol.ConnectInfo
+	availability, err := IsRoomAvailable(sampleSignal.SymbolID)
 	if err != nil {
 		return Room{}, err
 	}
