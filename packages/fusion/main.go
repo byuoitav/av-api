@@ -38,32 +38,10 @@ func GetRecordCount() (int, error) {
 		return -1, err
 	}
 
-	count := recordCount{}
+	count := FusionRecordCount{}
 	json.Unmarshal(response, &count)
 
-	return count.Count, nil
-}
-
-// GetRoomID gets a room's Fusion ID from its building and room name
-func GetRoomID(building string, room string) (string, error) {
-	response, err := HTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/?search="+building+"+"+room)
-	if err != nil {
-		return "", err
-	}
-
-	rooms := RoomsResponse{}
-	err = json.Unmarshal(response, &rooms)
-	if err != nil {
-		return "", err
-	}
-
-	if len(rooms.Rooms) == 0 { // Return an error if Fusion doesn't have record of the room specified
-		return "", errors.New("Could not find room " + room + " in the " + building + " building in the Fusion database")
-	} else if len(rooms.Rooms) > 1 {
-		return "", errors.New("Your search \"" + building + " " + room + "\" returned multiple results from the Fusion database")
-	}
-
-	return rooms.Rooms[0].RoomID, nil
+	return count.TotalRecords, nil
 }
 
 // IsRoomAvailable returns a bool representing whether or not a room is available according to the Fusion "SYSTEM_POWER" symbol
@@ -73,36 +51,76 @@ func IsRoomAvailable(symbolID string) (bool, error) {
 		return false, err
 	}
 
-	availability := RoomsResponse{}
+	availability := FusionAllRooms{}
 	json.Unmarshal([]byte(response), &availability)
 
-	if len(availability.Rooms) == 0 { // Return a false positive if Fusion doesn't have the "POWER_ON" symbol for the given room
+	if len(availability.APIRooms) == 0 { // Return a false positive if Fusion doesn't have the "POWER_ON" symbol for the given room
 		return true, nil
 	}
 
-	if availability.Rooms[0].Available { // If the system is currently powered on (Fusion does things backwards from how we want)
+	if availability.APIRooms[0].Available { // If the system is currently powered on (Fusion does things backwards from how we want)
 		return false, nil
 	}
 
 	return true, nil
 }
 
+// GetRoomID gets a room's Fusion ID from its building and room name
+func GetRoomID(building string, room string) (string, error) {
+	response, err := HTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/?search="+building+"+"+room)
+	if err != nil {
+		return "", err
+	}
+
+	rooms := FusionAllRooms{}
+	err = json.Unmarshal(response, &rooms)
+	if err != nil {
+		return "", err
+	}
+
+	if len(rooms.APIRooms) == 0 { // Return an error if Fusion doesn't have record of the room specified
+		return "", errors.New("Could not find room " + room + " in the " + building + " building in the Fusion database")
+	} else if len(rooms.APIRooms) > 1 {
+		return "", errors.New("Your search \"" + building + " " + room + "\" returned multiple results from the Fusion database")
+	}
+
+	return rooms.APIRooms[0].RoomID, nil
+}
+
 // GetRooms returns all known rooms from the Crestron Fusion database
-func GetRooms() (RoomsResponse, error) {
+func GetRooms() (AllRooms, error) {
 	count, err := GetRecordCount()
 	if err != nil {
-		return RoomsResponse{}, err
+		return AllRooms{}, err
 	}
 
 	response, err := HTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/?pagesize="+strconv.Itoa(count))
 	if err != nil {
-		return RoomsResponse{}, err
+		return AllRooms{}, err
 	}
 
-	rooms := RoomsResponse{}
-	err = json.Unmarshal(response, &rooms)
+	fusionRooms := FusionAllRooms{}
+	err = json.Unmarshal(response, &fusionRooms)
 	if err != nil {
-		return RoomsResponse{}, err
+		return AllRooms{}, err
+	}
+
+	rooms := AllRooms{}
+
+	for i := 0; i < len(fusionRooms.APIRooms); i++ {
+		fusionRoom := fusionRooms.APIRooms[i]
+
+		room := Room{
+			Name:      fusionRoom.RoomName,
+			ID:        fusionRoom.RoomID,
+			Hostname:  fusionRoom.Hostname,
+			Address:   fusionRoom.Address,
+			Building:  fusionRoom.Building,
+			Room:      fusionRoom.Room,
+			Available: fusionRoom.Available,
+		}
+
+		rooms.Rooms = append(rooms.Rooms, room)
 	}
 
 	return rooms, nil
@@ -135,13 +153,13 @@ func GetRoomByNameAndBuilding(building string, room string) (Room, error) {
 		return Room{}, err
 	}
 
-	rooms := RoomsResponse{}
+	rooms := FusionAllRooms{}
 	err = json.Unmarshal(response, &rooms)
 	if err != nil {
 		return Room{}, err
 	}
 
-	sampleSymbol := rooms.Rooms[0].Symbols[0]
+	sampleSymbol := rooms.APIRooms[0].Symbols[0]
 	sampleSignal := sampleSymbol.Signals[0]
 
 	hostname := sampleSymbol.ProcessorName
@@ -152,14 +170,14 @@ func GetRoomByNameAndBuilding(building string, room string) (Room, error) {
 	}
 
 	roomResponse := Room{
-		RoomID:    roomID,
-		RoomName:  building + "-" + room,
+		Name:      building + "-" + room,
+		ID:        roomID,
 		Building:  building,
 		Room:      room,
 		Hostname:  hostname,
 		Address:   address,
 		Available: availability,
-		Symbols:   rooms.Rooms[0].Symbols,
+		// Symbols:   rooms.APIRooms[0].Symbols,
 	}
 
 	return roomResponse, nil

@@ -1,81 +1,66 @@
-package helpers
+package emschedule
 
 import (
 	"encoding/xml"
 	"fmt"
 	"os"
 	"regexp"
+	"time"
+
+	"github.com/byuoitav/av-api/packages/soap"
 )
 
-type allBuildingsRequest struct {
-	XMLName  struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetBuildings"`
-	Username string   `xml:"UserName"`
-	Password string
-}
+func IsRoomAvailable(building string, room string) (bool, error) {
+	roomID, err := GetRoomID(building, room)
+	if err != nil {
+		return false, err
+	}
 
-type allBuildingsResponse struct {
-	XMLName struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetBuildingsResponse"`
-	Result  string   `xml:"GetBuildingsResult"`
-}
+	now := time.Now()
+	date := now
+	startTime := now
+	endTime := now.Add(30 * time.Minute) // Check a half hour time interval
 
-type allRoomsRequest struct {
-	XMLName   struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetRooms"`
-	Username  string   `xml:"UserName"`
-	Password  string
-	Buildings []int `xml:"int"`
-}
+	request := &roomAvailabilityRequestEMS{Username: os.Getenv("EMS_API_USERNAME"), Password: os.Getenv("EMS_API_PASSWORD"), RoomID: roomID, BookingDate: date, StartTime: startTime, EndTime: endTime}
+	encodedRequest, err := soap.Encode(&request)
+	if err != nil {
+		return false, err
+	}
 
-type allRoomsResponse struct {
-	XMLName struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetRoomsResponse"`
-	Result  string   `xml:"GetRoomsResult"`
-}
+	response, err := soap.Request("https://emsweb.byu.edu/EMSAPI/Service.asmx", encodedRequest)
+	if err != nil {
+		return false, err
+	}
 
-type buildingRequest struct {
-	XMLName  struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetBuildings"`
-	Username string   `xml:"UserName"`
-	Password string
-}
+	availability := roomAvailabilityResponseEMS{}
+	err = soap.Decode([]byte(response), &availability)
+	if err != nil {
+		return false, err
+	}
 
-type buildingResponse struct {
-	XMLName struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetBuildingsResponse"`
-	Result  string   `xml:"GetBuildingsResult"`
-}
+	roomAvailability := roomResponseEMS{}
+	err = xml.Unmarshal([]byte(availability.Result), &roomAvailability)
+	if err != nil {
+		return false, err
+	}
 
-type allBuildings struct {
-	Buildings []building `xml:"Data"`
-}
-
-type building struct {
-	BuildingCode string `xml:"BuildingCode"`
-	ID           int    `xml:"ID"`
-	Description  string `xml:"Description"`
-}
-
-type allRooms struct {
-	Rooms []room `xml:"Data"`
-}
-
-type room struct {
-	Room        string
-	ID          int    `xml:"ID"`
-	Description string `xml:"Description"`
-	Available   bool
+	return roomAvailability.Response[0].Available, nil
 }
 
 func getallBuildings() (allBuildings, error) {
 	request := &allBuildingsRequest{Username: os.Getenv("EMS_API_USERNAME"), Password: os.Getenv("EMS_API_PASSWORD")}
-	encodedRequest, err := SoapEncode(&request)
+	encodedRequest, err := soap.Encode(&request)
 	if err != nil {
 		return allBuildings{}, err
 	}
 
-	response, err := SoapRequest("https://emsweb.byu.edu/EMSAPI/Service.asmx", encodedRequest)
+	response, err := soap.Request("https://emsweb.byu.edu/EMSAPI/Service.asmx", encodedRequest)
 	if err != nil {
 		return allBuildings{}, err
 	}
 
 	allBuildingsContainer := allBuildingsResponse{}
-	err = SoapDecode([]byte(response), &allBuildingsContainer)
+	err = soap.Decode([]byte(response), &allBuildingsContainer)
 	if err != nil {
 		return allBuildings{}, err
 	}
@@ -108,18 +93,18 @@ func getAllRooms(buildingID int) (allRooms, error) {
 	var buildings []int
 	buildings = append(buildings, buildingID)
 	request := &allRoomsRequest{Username: os.Getenv("EMS_API_USERNAME"), Password: os.Getenv("EMS_API_PASSWORD"), Buildings: buildings}
-	encodedRequest, err := SoapEncode(&request)
+	encodedRequest, err := soap.Encode(&request)
 	if err != nil {
 		return allRooms{}, err
 	}
 
-	response, err := SoapRequest("https://emsweb.byu.edu/EMSAPI/Service.asmx", encodedRequest)
+	response, err := soap.Request("https://emsweb.byu.edu/EMSAPI/Service.asmx", encodedRequest)
 	if err != nil {
 		return allRooms{}, err
 	}
 
 	allRoomsContainer := allRoomsResponse{}
-	err = SoapDecode([]byte(response), &allRoomsContainer)
+	err = soap.Decode([]byte(response), &allRoomsContainer)
 	if err != nil {
 		return allRooms{}, err
 	}

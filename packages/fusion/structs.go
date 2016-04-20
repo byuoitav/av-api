@@ -1,43 +1,55 @@
 package fusion
 
-// Exported structs
-
-// RoomsResponse is a struct for receiving responses from Fusion
-type RoomsResponse struct {
-	Rooms []Room `json:"API_Rooms"`
+type FusionRecordCount struct {
+	TotalRecords int `json:"TotalRecords"`
 }
 
-type Availability struct {
-	Available bool `json:"RawValue"`
+type FusionAvailability struct {
+	RawValue bool
 }
 
-// Room is a clean struct representing a room populated with information from Fusion
-type Room struct {
+// FusionAllRooms is a struct for receiving responses from Fusion
+type FusionAllRooms struct {
+	APIRooms []FusionRoom `json:"API_Rooms"`
+}
+
+// FusionRoom is a struct representing a room in Fusion's data
+type FusionRoom struct {
 	RoomName  string
 	RoomID    string
-	Hostname  string   `json:",omitempty"`
-	Address   string   `json:",omitempty"`
-	Building  string   `json:",omitempty"`
-	Room      string   `json:",omitempty"`
-	Available bool     `json:",omitempty"`
-	Symbols   []Symbol `json:",omitempty"`
+	Hostname  string
+	Address   string
+	Building  string
+	Room      string
+	Available bool
+	Symbols   []FusionSymbol
 }
 
-type Symbol struct {
+type FusionSymbol struct {
 	ProcessorName string
 	ConnectInfo   string
 	SymbolID      string
-	Signals       []Signal
+	Signals       []FusionSignal
 }
 
-type Signal struct {
+type FusionSignal struct {
 	AttributeID string
 	RawValue    string
 	SymbolID    string
 }
 
-// Unexported structs
+// AllRooms is a clean struct for returning room data
+type AllRooms struct {
+	Rooms []Room `json:"rooms"`
+}
 
-type recordCount struct {
-	Count int `json:"TotalRecords"`
+// Room is a clean struct representing a room
+type Room struct {
+	Name      string `json:"name"`
+	ID        string
+	Hostname  string `json:"hostname,omitempty"`
+	Address   string `json:"address,omitempty"`
+	Building  string `json:"building,omitempty"`
+	Room      string `json:"room,omitempty"`
+	Available bool   `json:"available,omitempty"`
 }
