@@ -52,7 +52,7 @@ func GetRoomID(building string, room string) (int, error) {
 		return -1, err
 	}
 
-	rooms := Response{}
+	rooms := RoomsResponse{}
 	err = json.Unmarshal(response, &rooms)
 	if err != nil {
 		return -1, err
@@ -69,20 +69,20 @@ func GetRoomID(building string, room string) (int, error) {
 	return 1, nil // TODO: Return the actual ID
 }
 
-func RoomAvailable(symbol string) (bool, error) {
+func IsRoomAvailable(symbol string) (bool, error) {
 	response, err := HTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/SignalValues/"+symbol+"/SYSTEM_POWER")
 	if err != nil {
 		return false, err
 	}
 
-	availability := roomResponseFusion{}
+	availability := RoomsResponse{}
 	json.Unmarshal([]byte(response), &availability)
 
-	if len(availability.Response) == 0 { // Return a false positive if Fusion doesn't have the "POWER_ON" symbol for the given room
+	if len(availability.Rooms) == 0 { // Return a false positive if Fusion doesn't have the "POWER_ON" symbol for the given room
 		return true, nil
 	}
 
-	if availability.Response[0].Available { // If the system is currently powered on
+	if availability.Rooms[0].Available { // If the system is currently powered on
 		return false, nil
 	}
 
@@ -90,21 +90,21 @@ func RoomAvailable(symbol string) (bool, error) {
 }
 
 // GetRooms returns all known rooms from the Crestron Fusion database
-func GetRooms() (Response, error) {
+func GetRooms() (RoomsResponse, error) {
 	count, err := GetRecordCount()
 	if err != nil {
-		return Response{}, err
+		return RoomsResponse{}, err
 	}
 
 	response, err := HTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/?pagesize="+strconv.Itoa(count))
 	if err != nil {
-		return Response{}, err
+		return RoomsResponse{}, err
 	}
 
-	rooms := Response{}
+	rooms := RoomsResponse{}
 	err = json.Unmarshal(response, &rooms)
 	if err != nil {
-		return Response{}, err
+		return RoomsResponse{}, err
 	}
 
 	return rooms, nil
@@ -129,12 +129,12 @@ func GetRoomByNameAndBuilding(building string, room string) (Room, error) {
 	}
 
 	// Get info about the room using its ID
-	response, err = HTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/"+strconv.Itoa(roomID))
+	response, err := HTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/rooms/"+strconv.Itoa(roomID))
 	if err != nil {
 		return Room{}, err
 	}
 
-	rooms = Response{}
+	rooms := RoomsResponse{}
 	err = json.Unmarshal(response, &rooms)
 	if err != nil {
 		return Room{}, err
@@ -143,7 +143,7 @@ func GetRoomByNameAndBuilding(building string, room string) (Room, error) {
 	hostname := rooms.Rooms[0].Symbols[0].ProcessorName
 	address := rooms.Rooms[0].Symbols[0].ConnectInfo
 
-	roomResponse := room{Building: building, Room: room, Hostname: hostname, Address: address}
+	roomResponse := Room{Building: building, Room: room, Hostname: hostname, Address: address}
 
 	return roomResponse, nil
 }

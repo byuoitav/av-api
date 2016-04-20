@@ -17,9 +17,14 @@ type Availability struct {
 
 // Room is a clean struct representing a room populated with information from Fusion
 type Room struct {
-	RoomID   string
-	RoomName string
-	Symbols  []Symbol
+	RoomID    string
+	RoomName  string
+	Symbols   []Symbol
+	Building  string
+	Room      string
+	Hostname  string
+	Address   string
+	Available bool
 }
 
 type Symbol struct {
