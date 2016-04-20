@@ -8,9 +8,9 @@ import (
 	"github.com/labstack/echo"
 )
 
-// GetRooms returns a list of all rooms Crestron Fusion knows about
-func GetRooms(c echo.Context) error {
-	response, err := fusion.GetRooms()
+// GetAllRooms returns a list of all rooms Crestron Fusion knows about
+func GetAllRooms(c echo.Context) error {
+	response, err := fusion.GetAllRooms()
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 	}

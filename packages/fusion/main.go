@@ -87,8 +87,8 @@ func GetRoomID(building string, room string) (string, error) {
 	return rooms.APIRooms[0].RoomID, nil
 }
 
-// GetRooms returns all known rooms from the Crestron Fusion database
-func GetRooms() (AllRooms, error) {
+// GetAllRooms returns all known rooms from the Crestron Fusion database
+func GetAllRooms() (AllRooms, error) {
 	count, err := GetRecordCount()
 	if err != nil {
 		return AllRooms{}, err

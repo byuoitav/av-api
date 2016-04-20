@@ -1,5 +1,7 @@
 package fusion
 
+// Structs for holding Fusion data
+
 type FusionRecordCount struct {
 	TotalRecords int `json:"TotalRecords"`
 }
@@ -37,6 +39,8 @@ type FusionSignal struct {
 	RawValue    string
 	SymbolID    string
 }
+
+// Clean structs for returning data
 
 // AllRooms is a clean struct for returning room data
 type AllRooms struct {

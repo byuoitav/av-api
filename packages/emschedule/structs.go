@@ -2,7 +2,9 @@ package emschedule
 
 import "time"
 
-type roomAvailabilityRequestEMS struct {
+// SOAP structs for calls
+
+type RoomAvailabilityRequestSOAP struct {
 	XMLName     struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetRoomAvailability"`
 	Username    string   `xml:"UserName"`
 	Password    string
@@ -12,68 +14,93 @@ type roomAvailabilityRequestEMS struct {
 	EndTime     time.Time
 }
 
-type roomAvailabilityResponseEMS struct {
+type RoomAvailabilityResponseSOAP struct {
 	XMLName struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetRoomAvailabilityResponse"`
 	Result  string   `xml:"GetRoomAvailabilityResult"`
 }
 
-type roomResponseEMS struct {
-	Response []roomAvailabilityEMS `xml:"Data"`
-}
-
-type roomAvailabilityEMS struct {
-	Available bool
-}
-
-type allBuildingsRequest struct {
+type AllBuildingsRequestSOAP struct {
 	XMLName  struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetBuildings"`
 	Username string   `xml:"UserName"`
 	Password string
 }
 
-type allBuildingsResponse struct {
+type AllBuildingsResponseSOAP struct {
 	XMLName struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetBuildingsResponse"`
 	Result  string   `xml:"GetBuildingsResult"`
 }
 
-type allRoomsRequest struct {
+type AllRoomsRequestSOAP struct {
 	XMLName   struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetRooms"`
 	Username  string   `xml:"UserName"`
 	Password  string
 	Buildings []int `xml:"int"`
 }
 
-type allRoomsResponse struct {
+type AllRoomsResponseSOAP struct {
 	XMLName struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetRoomsResponse"`
 	Result  string   `xml:"GetRoomsResult"`
 }
 
-type buildingRequest struct {
+type BuildingRequestSOAP struct {
 	XMLName  struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetBuildings"`
 	Username string   `xml:"UserName"`
 	Password string
 }
 
-type buildingResponse struct {
+type BuildingResponseSOAP struct {
 	XMLName struct{} `xml:"http://DEA.EMS.API.Web.Service/ GetBuildingsResponse"`
 	Result  string   `xml:"GetBuildingsResult"`
 }
 
-type allBuildings struct {
-	Buildings []building `xml:"Data"`
+// Structs for holding data from EMS
+
+type RoomResponse struct {
+	Response []RoomAvailability `xml:"Data"`
 }
 
-type building struct {
+type RoomAvailability struct {
+	Available bool
+}
+
+type EMSchedulingAllBuildings struct {
+	Buildings []EMSchedulingBuilding `xml:"Data"`
+}
+
+type EMSchedulingBuilding struct {
 	BuildingCode string `xml:"BuildingCode"`
 	ID           int    `xml:"ID"`
 	Description  string `xml:"Description"`
 }
 
-type allRooms struct {
-	Rooms []room `xml:"Data"`
+type EMSchedulingAllRooms struct {
+	Rooms []EMSchedulingRoom `xml:"Data"`
 }
 
-type room struct {
+type EMSchedulingRoom struct {
+	Room        string
+	ID          int    `xml:"ID"`
+	Description string `xml:"Description"`
+	Available   bool
+}
+
+// Clean structs for returning data
+
+type AllBuildings struct {
+	Buildings []Building `xml:"Data"`
+}
+
+type Building struct {
+	BuildingCode string `xml:"BuildingCode"`
+	ID           int    `xml:"ID"`
+	Description  string `xml:"Description"`
+}
+
+type AllRooms struct {
+	Rooms []Room `xml:"Data"`
+}
+
+type Room struct {
 	Room        string
 	ID          int    `xml:"ID"`
 	Description string `xml:"Description"`

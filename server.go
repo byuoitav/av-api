@@ -18,8 +18,8 @@ func main() {
 	e.Get("/health", controllers.Health)
 	e.Get("/health/", controllers.Health)
 
-	e.Get("/rooms", controllers.GetRooms)
-	e.Get("/rooms/", controllers.GetRooms)
+	e.Get("/rooms", controllers.GetAllRooms)
+	e.Get("/rooms/", controllers.GetAllRooms)
 	e.Get("/rooms/:room", controllers.GetRoomByName)
 	e.Get("/rooms/:room/", controllers.GetRoomByName)
 
