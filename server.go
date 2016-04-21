@@ -4,11 +4,19 @@ import (
 	"fmt"
 
 	"github.com/byuoitav/av-api/controllers"
+	"github.com/byuoitav/av-api/packages/hateoas"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/engine/fasthttp"
 )
 
 func main() {
+	stuff, err := hateoas.Load("swagger.yaml")
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("%s", stuff)
+
 	port := ":8000"
 	e := echo.New()
 
