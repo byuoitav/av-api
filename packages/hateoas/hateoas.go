@@ -1,32 +1,48 @@
 package hateoas
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"regexp"
 
 	"gopkg.in/yaml.v2"
 )
 
-func Load(fileLocation string) (string, error) {
-	swagger := Swagger{}
+var swagger Swagger
 
+func Load(fileLocation string) error {
 	contents, err := ioutil.ReadFile(fileLocation)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	err = yaml.Unmarshal(contents, &swagger)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	marshal, err := json.Marshal(swagger)
-	if err != nil {
-		return "", err
+	return nil
+}
+
+func AddLinks(endpoint string) ([]Link, error) {
+	re := regexp.MustCompile(`^\` + endpoint + `\/[a-zA-Z{}]*$`)
+
+	for key := range swagger.Paths {
+		match := re.MatchString(key)
+
+		if match {
+			fmt.Printf("%+v\n", match)
+		}
 	}
 
-	fmt.Printf("%s\n", marshal)
+	allLinks := []Link{}
 
-	return "", nil
+	link := Link{
+		Rel:  "Poots",
+		HREF: "/stuff",
+	}
+
+	allLinks = append(allLinks, link)
+
+	return allLinks, nil
 }

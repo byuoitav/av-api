@@ -1,5 +1,10 @@
 package hateoas
 
+type Link struct {
+	Rel  string `json:"rel"`
+	HREF string `json:"href"`
+}
+
 type Swagger struct {
 	Paths map[string]Path `json:"paths"`
 }

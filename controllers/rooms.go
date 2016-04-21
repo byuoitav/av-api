@@ -5,6 +5,7 @@ import (
 
 	"github.com/byuoitav/av-api/helpers"
 	"github.com/byuoitav/av-api/packages/fusion"
+	"github.com/byuoitav/av-api/packages/hateoas"
 	"github.com/labstack/echo"
 )
 
@@ -24,6 +25,16 @@ func GetAllRooms(c echo.Context) error {
 	allRooms, err := fusion.GetAllRooms()
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
+	}
+
+	// Add HATEOAS links
+	for i := range allRooms.Rooms {
+		links, err := hateoas.AddLinks("/rooms")
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
+		}
+
+		allRooms.Rooms[i].Links = links
 	}
 
 	return c.JSON(http.StatusOK, allRooms)

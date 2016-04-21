@@ -1,5 +1,7 @@
 package fusion
 
+import "github.com/byuoitav/av-api/packages/hateoas"
+
 // Structs for holding Fusion data
 
 type FusionRecordCount struct {
@@ -44,12 +46,14 @@ type FusionSignal struct {
 
 // AllRooms is a clean struct for returning room data
 type AllRooms struct {
-	Rooms []Room `json:"rooms"`
+	Links []hateoas.Link `json:"links,omitempty"`
+	Rooms []Room         `json:"rooms"`
 }
 
 // Room is a clean struct representing a room
 type Room struct {
-	Name      string `json:"name"`
+	Links     []hateoas.Link `json:"links,omitempty"`
+	Name      string         `json:"name"`
 	ID        string
 	Hostname  string `json:"hostname,omitempty"`
 	Address   string `json:"address,omitempty"`

@@ -10,12 +10,10 @@ import (
 )
 
 func main() {
-	stuff, err := hateoas.Load("swagger.yaml")
+	err := hateoas.Load("swagger.yaml")
 	if err != nil {
 		panic(err)
 	}
-
-	fmt.Printf("%s", stuff)
 
 	port := ":8000"
 	e := echo.New()
