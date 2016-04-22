@@ -63,6 +63,13 @@ func GetRoomByNameAndBuilding(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 	}
 
+	links, err := hateoas.AddLinks(c, []string{c.Param("building"), c.Param("room")})
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
+	}
+
+	room.Links = links
+
 	room, err = isRoomAvailable(room)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))

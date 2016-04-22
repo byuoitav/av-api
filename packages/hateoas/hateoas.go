@@ -1,6 +1,7 @@
 package hateoas
 
 import (
+	"fmt"
 	"io/ioutil"
 	"regexp"
 	"strings"
@@ -24,6 +25,20 @@ func MergeSort(first []string, second []string) string {
 	return strings.Join(final[:], "")
 }
 
+func SwaggerToEcho(path string) string {
+	echoRegex := regexp.MustCompile(`\:(\w+)`)
+
+	antiParameters := echoRegex.Split(path, -1)
+	parameters := echoRegex.FindAllString(path, -1)
+
+	for i := range parameters {
+		parameters[i] = strings.Replace(parameters[i], ":", "{", 1)
+		parameters[i] = parameters[i] + "}"
+	}
+
+	return MergeSort(antiParameters, parameters)
+}
+
 func Load(fileLocation string) error {
 	contents, err := ioutil.ReadFile(fileLocation)
 	if err != nil {
@@ -40,7 +55,11 @@ func Load(fileLocation string) error {
 
 func AddLinks(c echo.Context, parameters []string) ([]Link, error) {
 	allLinks := []Link{}
-	hateoasRegex := regexp.MustCompile(`^\` + c.Path() + `\/[a-zA-Z{}]*$`)
+	contextPath := SwaggerToEcho(c.Path())
+
+	fmt.Printf("%s\n", contextPath)
+
+	hateoasRegex := regexp.MustCompile(`^\` + contextPath + `\/[a-zA-Z{}]*$`)
 	parameterRegex := regexp.MustCompile(`\{(.*?)\}`)
 
 	for path := range swagger.Paths {
@@ -57,6 +76,8 @@ func AddLinks(c echo.Context, parameters []string) ([]Link, error) {
 			allLinks = append(allLinks, link)
 		}
 	}
+
+	fmt.Printf("%+v\n", allLinks)
 
 	return allLinks, nil
 }
