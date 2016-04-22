@@ -110,14 +110,9 @@ func GetAllRooms() (AllRooms, error) {
 	for i := 0; i < len(fusionRooms.APIRooms); i++ {
 		fusionRoom := fusionRooms.APIRooms[i]
 
-		room := Room{
-			Name:     fusionRoom.RoomName,
-			ID:       fusionRoom.RoomID,
-			Hostname: fusionRoom.Hostname,
-			Address:  fusionRoom.Address,
-			Building: fusionRoom.Building,
-			Room:     fusionRoom.Room,
-			// Available: fusionRoom.Available,
+		room := SlimRoom{
+			Name: fusionRoom.RoomName,
+			ID:   fusionRoom.RoomID,
 		}
 
 		rooms.Rooms = append(rooms.Rooms, room)

@@ -47,7 +47,14 @@ type FusionSignal struct {
 // AllRooms is a clean struct for returning room data
 type AllRooms struct {
 	Links []hateoas.Link `json:"links,omitempty"`
-	Rooms []Room         `json:"rooms"`
+	Rooms []SlimRoom     `json:"rooms"`
+}
+
+// SlimRoom is a clean struct representing a room
+type SlimRoom struct {
+	Links []hateoas.Link `json:"links,omitempty"`
+	Name  string         `json:"name"`
+	ID    string
 }
 
 // Room is a clean struct representing a room
