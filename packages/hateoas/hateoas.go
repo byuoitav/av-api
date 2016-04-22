@@ -29,7 +29,8 @@ func MergeSort(first []string, second []string) string {
 	return strings.Join(final[:], "")
 }
 
-func SwaggerToEcho(path string) string {
+// EchoToSwagger converts paths from Echo syntax to Swagger syntax
+func EchoToSwagger(path string) string {
 	echoRegex := regexp.MustCompile(`\:(\w+)`)
 
 	antiParameters := echoRegex.Split(path, -1)
@@ -59,14 +60,14 @@ func Load(fileLocation string) error {
 
 func AddLinks(c echo.Context, parameters []string) ([]Link, error) {
 	allLinks := []Link{}
-	contextPath := SwaggerToEcho(c.Path())
+	contextPath := EchoToSwagger(c.Path())
 
 	// Make the path regex friendly
 	contextPath = strings.Replace(contextPath, "/", `\/`, -1)
 	contextPath = strings.Replace(contextPath, "{", `\{`, -1)
 	contextPath = strings.Replace(contextPath, "}", `\}`, -1)
 
-	hateoasRegex := regexp.MustCompile(`^` + contextPath + `\/[a-zA-Z{}]*`)
+	hateoasRegex := regexp.MustCompile(`^` + contextPath + `\/[a-zA-Z{}]*$`)
 	parameterRegex := regexp.MustCompile(`\{(.*?)\}`)
 
 	for path := range swagger.Paths {
