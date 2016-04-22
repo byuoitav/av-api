@@ -61,7 +61,7 @@ paths:
           $ref: "#/responses/default"
   /rooms/{room}:
     get:
-      summary: All Rooms
+      summary: Get a Specific Room
       description: |
         Returns information about the various AV products offered across
         campus. The response includes the display name and other details
@@ -428,7 +428,7 @@ paths:
           $ref: "#/responses/default"
   /buildings/{building}/rooms/{room}/signals/{signal}:
     get:
-      summary: All Signals
+      summary: Get a Specific Signal
       description: |
         Return information about a specified signal in a specific room and
         building.
