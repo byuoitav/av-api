@@ -26,3 +26,8 @@ type Parameter struct {
 	In       string `yaml:"in,omitempty"`
 	Required bool   `yaml:"required,omitempty"`
 }
+
+// Root is a generic struct utilized at the root of an API to provide initial HATEOAS links
+type Root struct {
+	Links []Link `json:"links,omitempty"`
+}

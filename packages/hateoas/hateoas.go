@@ -61,13 +61,20 @@ func Load(fileLocation string) error {
 func AddLinks(c echo.Context, parameters []string) ([]Link, error) {
 	allLinks := []Link{}
 	contextPath := EchoToSwagger(c.Path())
+	contextRegex := "" // Populate a few lines down
 
-	// Make the path regex friendly
-	contextPath = strings.Replace(contextPath, "/", `\/`, -1)
-	contextPath = strings.Replace(contextPath, "{", `\{`, -1)
-	contextPath = strings.Replace(contextPath, "}", `\}`, -1)
+	if contextPath != "/" {
+		// Make the path regex friendly
+		contextPath = strings.Replace(contextPath, "/", `\/`, -1)
+		contextPath = strings.Replace(contextPath, "{", `\{`, -1)
+		contextPath = strings.Replace(contextPath, "}", `\}`, -1)
 
-	hateoasRegex := regexp.MustCompile(`^` + contextPath + `\/[a-zA-Z{}]*$`)
+		contextRegex = `^` + contextPath + `\/[a-zA-Z{}]*$`
+	} else {
+		contextRegex = `^\/[a-zA-Z{}]*$`
+	}
+
+	hateoasRegex := regexp.MustCompile(contextRegex)
 	parameterRegex := regexp.MustCompile(`\{(.*?)\}`)
 
 	for path := range swagger.Paths {

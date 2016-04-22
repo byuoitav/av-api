@@ -153,7 +153,7 @@ paths:
           $ref: "#/responses/default"
   /buildings:
     get:
-      summary: All Rooms
+      summary: All Buildings
       description: |
         Returns information about all the buildings with TEC capability
         across campus.
