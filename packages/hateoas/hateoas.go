@@ -2,6 +2,7 @@ package hateoas
 
 import (
 	"io/ioutil"
+	"net/http"
 	"regexp"
 	"strings"
 
@@ -45,7 +46,13 @@ func EchoToSwagger(path string) string {
 }
 
 func Load(fileLocation string) error {
-	contents, err := ioutil.ReadFile(fileLocation)
+	response, err := http.Get(fileLocation)
+	if err != nil {
+		return err
+	}
+
+	defer response.Body.Close()
+	contents, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		return err
 	}
