@@ -60,5 +60,12 @@ type Room struct {
 	Building  string `json:"building,omitempty"`
 	Room      string `json:"room,omitempty"`
 	Symbol    string `json:"symbol,omitempty"`
+	Health    Health `json:"health"`
 	Available bool   `json:"available"`
+}
+
+// Health represents the results of various health checks run on each box
+type Health struct {
+	PingIn  bool
+	PingOut bool
 }
