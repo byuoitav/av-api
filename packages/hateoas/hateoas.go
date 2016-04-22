@@ -65,6 +65,17 @@ func Load(fileLocation string) error {
 	return nil
 }
 
+// GetInfo returns general information about the API (mainly for the root path)
+func GetInfo() Root {
+	returnStruct := Root{
+		Title:       swagger.Info.Title,
+		Description: swagger.Info.Description,
+		Version:     swagger.Info.Version,
+	}
+
+	return returnStruct
+}
+
 func AddLinks(c echo.Context, parameters []string) ([]Link, error) {
 	allLinks := []Link{}
 	contextPath := EchoToSwagger(c.Path())

@@ -10,7 +10,7 @@ import (
 
 // Root offers HATEOAS links from the root endpoint of the API
 func Root(c echo.Context) error {
-	hateoasObject := hateoas.Root{}
+	hateoasObject := hateoas.GetInfo()
 
 	links, err := hateoas.AddLinks(c, []string{})
 	if err != nil {

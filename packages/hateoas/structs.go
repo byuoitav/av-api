@@ -6,7 +6,14 @@ type Link struct {
 }
 
 type Swagger struct {
+	Info  Info            `json:"info,omitempty"`
 	Paths map[string]Path `json:"paths"`
+}
+
+type Info struct {
+	Title       string `json:"title,omitempty"`
+	Description string `json:"description,omitempty"`
+	Version     string `json:"version,omitempty"`
 }
 
 type Path struct {
@@ -29,5 +36,8 @@ type Parameter struct {
 
 // Root is a generic struct utilized at the root of an API to provide initial HATEOAS links
 type Root struct {
-	Links []Link `json:"links,omitempty"`
+	Title       string `json:"title,omitempty"`
+	Description string `json:"description,omitempty"`
+	Version     string `json:"version,omitempty"`
+	Links       []Link `json:"links,omitempty"`
 }
