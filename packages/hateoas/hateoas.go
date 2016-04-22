@@ -1,6 +1,7 @@
 package hateoas
 
 import (
+	"fmt"
 	"io/ioutil"
 	"regexp"
 	"strings"
@@ -61,6 +62,8 @@ func Load(fileLocation string) error {
 func AddLinks(c echo.Context, parameters []string) ([]Link, error) {
 	allLinks := []Link{}
 	contextPath := EchoToSwagger(c.Path())
+
+	fmt.Printf("%s\n", contextPath)
 
 	// Make the path regex friendly
 	contextPath = strings.Replace(contextPath, "/", `\/`, -1)
