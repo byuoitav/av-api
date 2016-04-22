@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/byuoitav/av-api/helpers"
 	"github.com/byuoitav/av-api/packages/fusion"
@@ -29,7 +30,7 @@ func GetAllRooms(c echo.Context) error {
 
 	// Add HATEOAS links
 	for i := range allRooms.Rooms {
-		links, err := hateoas.AddLinks("/rooms")
+		links, err := hateoas.AddLinks(c, []string{strings.Replace(allRooms.Rooms[i].Name, " ", "-", -1)})
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 		}
