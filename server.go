@@ -1,28 +1,18 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 
 	"github.com/byuoitav/av-api/controllers"
-	"github.com/byuoitav/av-api/packages/emschedule"
 	"github.com/byuoitav/av-api/packages/hateoas"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/engine/fasthttp"
 )
 
-var userEMS = flag.String("emsUser", "", "EMS username")
-var passwordEMS = flag.String("emsPassword", "", "EMS password")
-
 func main() {
-	flag.Parse() // Get command-line flags
-
-	// Pass flags to the EMS package (this is nasty)
-	emschedule.Username = *userEMS
-	emschedule.Password = *passwordEMS
-
-	err := hateoas.Load("swagger.yaml")
+	err := hateoas.Load("https://raw.githubusercontent.com/byuoitav/av-api/master/swagger.yaml")
 	if err != nil {
+		fmt.Printf("Could not locate swagger.yaml file. Error: %s", err.Error())
 		panic(err)
 	}
 

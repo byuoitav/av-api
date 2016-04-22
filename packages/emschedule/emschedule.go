@@ -3,14 +3,12 @@ package emschedule
 import (
 	"encoding/xml"
 	"fmt"
+	"os"
 	"regexp"
 	"time"
 
 	"github.com/byuoitav/av-api/packages/soap"
 )
-
-var Username string
-var Password string
 
 // IsRoomAvailable returns a bool representing whether or not a room is available according to the EMS scheduling system
 func IsRoomAvailable(building string, room string) (bool, error) {
@@ -25,8 +23,8 @@ func IsRoomAvailable(building string, room string) (bool, error) {
 	endTime := now.Add(30 * time.Minute) // Check a half hour time interval
 
 	request := &RoomAvailabilityRequestSOAP{
-		Username:    Username,
-		Password:    Password,
+		Username:    os.Getenv("EMS_API_USERNAME"),
+		Password:    os.Getenv("EMS_API_PASSWORD"),
 		RoomID:      roomID,
 		BookingDate: date,
 		StartTime:   startTime,
@@ -88,8 +86,8 @@ func GetAllRooms(buildingID int) (AllRooms, error) {
 	var buildings []int
 	buildings = append(buildings, buildingID)
 	request := &AllRoomsRequestSOAP{
-		Username:  Username,
-		Password:  Password,
+		Username:  os.Getenv("EMS_API_USERNAME"),
+		Password:  os.Getenv("EMS_API_PASSWORD"),
 		Buildings: buildings,
 	}
 
@@ -135,8 +133,8 @@ func GetBuildingID(buildingCode string) (int, error) {
 
 func GetAllBuildings() (AllBuildings, error) {
 	request := &AllBuildingsRequestSOAP{
-		Username: Username,
-		Password: Password,
+		Username: os.Getenv("EMS_API_USERNAME"),
+		Password: os.Getenv("EMS_API_PASSWORD"),
 	}
 
 	encodedRequest, err := soap.Encode(&request)
