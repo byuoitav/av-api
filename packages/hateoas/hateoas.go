@@ -1,7 +1,6 @@
 package hateoas
 
 import (
-	"fmt"
 	"io/ioutil"
 	"regexp"
 	"strings"
@@ -62,15 +61,20 @@ func Load(fileLocation string) error {
 func AddLinks(c echo.Context, parameters []string) ([]Link, error) {
 	allLinks := []Link{}
 	contextPath := EchoToSwagger(c.Path())
+	contextRegex := "" // Populate a few lines down
 
-	fmt.Printf("%s\n", contextPath)
+	if contextPath != "/" {
+		// Make the path regex friendly
+		contextPath = strings.Replace(contextPath, "/", `\/`, -1)
+		contextPath = strings.Replace(contextPath, "{", `\{`, -1)
+		contextPath = strings.Replace(contextPath, "}", `\}`, -1)
 
-	// Make the path regex friendly
-	contextPath = strings.Replace(contextPath, "/", `\/`, -1)
-	contextPath = strings.Replace(contextPath, "{", `\{`, -1)
-	contextPath = strings.Replace(contextPath, "}", `\}`, -1)
+		contextRegex = `^` + contextPath + `\/[a-zA-Z{}]*$`
+	} else {
+		contextRegex = `^\/[a-zA-Z{}]*$`
+	}
 
-	hateoasRegex := regexp.MustCompile(`^` + contextPath + `\/[a-zA-Z{}]*$`)
+	hateoasRegex := regexp.MustCompile(contextRegex)
 	parameterRegex := regexp.MustCompile(`\{(.*?)\}`)
 
 	for path := range swagger.Paths {
