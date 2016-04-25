@@ -9,9 +9,8 @@ import (
 )
 
 func GetAllBuildings() (AllBuildings, error) {
-	url := "http://search-byu-oit-av-metrics-ruenjnrqfuhghh7omvtmgcqe7m.us-west-1.es.amazonaws.com/config/_search"
-
-	var jsonStr = []byte(`{
+	// Ask Elasticsearch for all the room names via an aggregation
+	var postBody = []byte(`{
   "aggs": {
     "full_name": {
       "terms": {
@@ -22,7 +21,7 @@ func GetAllBuildings() (AllBuildings, error) {
   }
 }`)
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
+	req, err := http.NewRequest("POST", "http://search-byu-oit-av-metrics-ruenjnrqfuhghh7omvtmgcqe7m.us-west-1.es.amazonaws.com/config/_search", bytes.NewBuffer(postBody))
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
@@ -33,15 +32,16 @@ func GetAllBuildings() (AllBuildings, error) {
 
 	defer response.Body.Close()
 
-	body, _ := ioutil.ReadAll(response.Body)
-	// fmt.Println("Body:", string(body))
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return AllBuildings{}, err
+	}
 
 	elasticAllBuildings := ElasticAggregationResponse{}
 	json.Unmarshal(body, &elasticAllBuildings)
 
-	// fmt.Printf("%+v", elasticAllBuildings)
-
 	allBuildings := AllBuildings{}
+
 	for i := range elasticAllBuildings.Aggregations.FullName.Buckets {
 		buildingName := strings.ToUpper(elasticAllBuildings.Aggregations.FullName.Buckets[i].Key)
 		building := Building{Building: buildingName}
