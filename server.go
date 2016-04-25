@@ -34,8 +34,13 @@ func main() {
 
 	e.Get("/buildings", controllers.GetAllBuildings)
 	e.Get("/buildings/", controllers.GetAllBuildings)
+<<<<<<< HEAD
 	e.Get("/buildings/:building", controllers.GetBuildingByName)
 	e.Get("/buildings/:building/", controllers.GetBuildingByName)
+=======
+	e.Get("/buildings/:building", controllers.GetRoomsByBuilding)
+	e.Get("/buildings/:building/", controllers.GetRoomsByBuilding)
+>>>>>>> f8ae4b1442df9786b8fe19dce6e2c62d8946070a
 	e.Get("/buildings/:building/rooms", controllers.GetRoomsByBuilding)
 	e.Get("/buildings/:building/rooms/", controllers.GetRoomsByBuilding)
 	e.Get("/buildings/:building/rooms/:room", controllers.GetRoomByNameAndBuilding)
