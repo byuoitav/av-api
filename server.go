@@ -32,8 +32,8 @@ func main() {
 	e.Get("/rooms/:room", controllers.GetRoomByName)
 	e.Get("/rooms/:room/", controllers.GetRoomByName)
 
-	e.Get("/buildings", controllers.UnimplementedResponse)
-	e.Get("/buildings/", controllers.UnimplementedResponse)
+	e.Get("/buildings", controllers.GetAllBuildings)
+	e.Get("/buildings/", controllers.GetAllBuildings)
 	e.Get("/buildings/:building", controllers.UnimplementedResponse)
 	e.Get("/buildings/:building/", controllers.UnimplementedResponse)
 	e.Get("/buildings/:building/rooms", controllers.UnimplementedResponse)
