@@ -70,6 +70,36 @@ func GetRoomByName(c echo.Context) error {
 	return c.JSON(http.StatusOK, room)
 }
 
+func GetRoomsByBuilding(c echo.Context) error {
+	allRooms, err := fusion.GetAllRooms()
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
+	}
+
+	// Remove rooms that are not in the asked-for building
+	for i := len(allRooms.Rooms) - 1; i >= 0; i-- {
+		roomBuilding := strings.Split(allRooms.Rooms[i].Name, " ")
+
+		if roomBuilding[0] != c.Param("building") {
+			allRooms.Rooms = append(allRooms.Rooms[:i], allRooms.Rooms[i+1:]...)
+		}
+	}
+
+	// Add HATEOAS links
+	for i := range allRooms.Rooms {
+		room := strings.Split(allRooms.Rooms[i].Name, " ")
+
+		links, err := hateoas.AddLinks(c, []string{c.Param("building"), room[1]})
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
+		}
+
+		allRooms.Rooms[i].Links = links
+	}
+
+	return c.JSON(http.StatusOK, allRooms)
+}
+
 // GetRoomByNameAndBuilding is almost identical to GetRoomByName
 func GetRoomByNameAndBuilding(c echo.Context) error {
 	room, err := fusion.GetRoomByNameAndBuilding(c.Param("building"), c.Param("room"))
