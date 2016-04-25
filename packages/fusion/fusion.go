@@ -44,6 +44,18 @@ func GetRecordCount() (int, error) {
 	return count.TotalRecords, nil
 }
 
+func TranslateFusionSignalTypes(signalType int) (string, error) {
+	// TODO: Map the int to a string (1: analog, 2: digital, 3: serial) in the clean struct
+
+	knownSignals := []string{"analog", "digital", "serial"}
+
+	if signalType-1 < len(knownSignals) {
+		return knownSignals[signalType-1], nil
+	}
+
+	return "", errors.New("Unknown signal type: " + string(signalType))
+}
+
 // IsRoomAvailable returns a bool representing whether or not a room is available according to the Fusion "SYSTEM_POWER" symbol
 func IsRoomAvailable(symbolID string) (bool, error) {
 	response, err := HTTP("GET", "http://lazyeye.byu.edu/fusion/apiservice/SignalValues/"+symbolID+"/SYSTEM_POWER")
@@ -166,8 +178,24 @@ func GetRoomByNameAndBuilding(building string, room string) (Room, error) {
 		Room:     room,
 		Hostname: hostname,
 		Address:  address,
-		Symbol:   sampleSymbol.Signals[0].SymbolID,
-		// Symbols:   rooms.APIRooms[0].Symbols,
+		Symbol:   sampleSymbol.SymbolID,
+	}
+
+	for i := range rooms.APIRooms[0].Symbols[0].Signals {
+		fusionSignal := rooms.APIRooms[0].Symbols[0].Signals[i]
+		signalType, err := TranslateFusionSignalTypes(fusionSignal.AttributeType)
+		if err != nil {
+			return Room{}, err
+		}
+
+		signal := Signal{
+			Name:  fusionSignal.AttributeName,
+			ID:    fusionSignal.AttributeID,
+			Type:  signalType,
+			Value: fusionSignal.RawValue,
+		}
+
+		roomResponse.Signals = append(roomResponse.Signals, signal)
 	}
 
 	return roomResponse, nil
