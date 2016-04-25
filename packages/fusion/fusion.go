@@ -117,7 +117,6 @@ func GetAllRooms() (AllRooms, error) {
 			Address:  fusionRoom.Address,
 			Building: fusionRoom.Building,
 			Room:     fusionRoom.Room,
-			// Available: fusionRoom.Available,
 		}
 
 		rooms.Rooms = append(rooms.Rooms, room)

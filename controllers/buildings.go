@@ -17,7 +17,7 @@ func GetAllBuildings(c echo.Context) error {
 
 	// Add HATEOAS links
 	for i := range allBuildings.Buildings {
-		links, err := hateoas.AddLinks(c, []string{})
+		links, err := hateoas.AddLinks(c, []string{allBuildings.Buildings[i].Building})
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 		}
