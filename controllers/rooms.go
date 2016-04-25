@@ -48,6 +48,20 @@ func GetRoomByName(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 	}
 
+	links, err := hateoas.AddLinks(c, []string{c.Param("building"), c.Param("room")})
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
+	}
+
+	room.Links = links
+
+	health, err := helpers.GetHealth(room.Address)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
+	}
+
+	room.Health = health
+
 	room, err = isRoomAvailable(room)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
@@ -69,6 +83,13 @@ func GetRoomByNameAndBuilding(c echo.Context) error {
 	}
 
 	room.Links = links
+
+	health, err := helpers.GetHealth(room.Address)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
+	}
+
+	room.Health = health
 
 	room, err = isRoomAvailable(room)
 	if err != nil {

@@ -47,7 +47,14 @@ type FusionSignal struct {
 // AllRooms is a clean struct for returning room data
 type AllRooms struct {
 	Links []hateoas.Link `json:"links,omitempty"`
-	Rooms []Room         `json:"rooms"`
+	Rooms []SlimRoom     `json:"rooms"`
+}
+
+// SlimRoom is a clean struct representing a room
+type SlimRoom struct {
+	Links []hateoas.Link `json:"links,omitempty"`
+	Name  string         `json:"name"`
+	ID    string
 }
 
 // Room is a clean struct representing a room
@@ -60,5 +67,12 @@ type Room struct {
 	Building  string `json:"building,omitempty"`
 	Room      string `json:"room,omitempty"`
 	Symbol    string `json:"symbol,omitempty"`
+	Health    Health `json:"health"`
 	Available bool   `json:"available"`
+}
+
+// Health represents the results of various health checks run on each box
+type Health struct {
+	PingIn  bool
+	PingOut bool
 }
