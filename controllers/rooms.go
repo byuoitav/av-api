@@ -73,7 +73,7 @@ func GetRoomsByBuilding(c echo.Context) error {
 
 	// Add HATEOAS links
 	for i := range allRooms.Rooms {
-		links, err := hateoas.AddLinks(c, []string{strings.Replace(allRooms.Rooms[i].Name, " ", "-", -1)})
+		links, err := hateoas.AddLinks(c, []string{c.Param("building")})
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 		}
