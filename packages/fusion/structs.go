@@ -37,9 +37,10 @@ type FusionSymbol struct {
 }
 
 type FusionSignal struct {
-	AttributeID string
-	RawValue    string
-	SymbolID    string
+	AttributeID   string
+	AttributeName string
+	AttributeType int // TODO: Map the int to a string (analog, digital, etc.) in the clean struct
+	RawValue      string
 }
 
 // Clean structs for returning data
@@ -62,13 +63,21 @@ type Room struct {
 	Links     []hateoas.Link `json:"links,omitempty"`
 	Name      string         `json:"name"`
 	ID        string
-	Hostname  string `json:"hostname,omitempty"`
-	Address   string `json:"address,omitempty"`
-	Building  string `json:"building,omitempty"`
-	Room      string `json:"room,omitempty"`
-	Symbol    string `json:"symbol,omitempty"`
-	Health    Health `json:"health"`
-	Available bool   `json:"available"`
+	Hostname  string   `json:"hostname,omitempty"`
+	Address   string   `json:"address,omitempty"`
+	Building  string   `json:"building,omitempty"`
+	Room      string   `json:"room,omitempty"`
+	Symbol    string   `json:"symbol,omitempty"`
+	Available bool     `json:"available"`
+	Health    Health   `json:"health"`
+	Signals   []Signal `json:"signals"`
+}
+
+type Signal struct {
+	Name  string `json:"name"`
+	ID    string
+	Type  string `json:"type"`
+	Value string `json:"value"`
 }
 
 // Health represents the results of various health checks run on each box
