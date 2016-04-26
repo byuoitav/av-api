@@ -118,7 +118,7 @@ func GetRoomByNameAndBuilding(c echo.Context) error {
 
 	// Add HATEOAS links for signals
 	for i := range room.Signals {
-		links, err := hateoas.AddLinks(c, []string{c.Param("building"), c.Param("room"), room.Signals[i].Name})
+		links, err := hateoas.AddLinks(c, []string{c.Param("building"), c.Param("room"), "/" + room.Signals[i].Name})
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 		}
