@@ -41,7 +41,7 @@ func checkPingIn(address string) (bool, error) {
 func checkPingOut(address string) (bool, error) {
 	url := "http://avmetrics1.byu.edu:8001/sendCommand/"
 
-	var jsonStr = []byte(`{"Command":"ping avmetrics1.byu.edu", "IPAddress": "` + address + `"}`)
+	var jsonStr = []byte(`{"Timeout":"1", "Command":"ping avmetrics1.byu.edu", "IPAddress": "` + address + `"}`)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonStr))
 	req.Header.Set("Content-Type", "application/json")
 

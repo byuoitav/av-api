@@ -44,9 +44,8 @@ func GetRecordCount() (int, error) {
 	return count.TotalRecords, nil
 }
 
+// TranslateFusionSignalTypes takes Fusion-returned integer values and returns a human-readable string describing the signal's type
 func TranslateFusionSignalTypes(signalType int) (string, error) {
-	// TODO: Map the int to a string (1: analog, 2: digital, 3: serial) in the clean struct
-
 	knownSignals := []string{"analog", "digital", "serial"}
 
 	if signalType-1 < len(knownSignals) {
@@ -199,4 +198,56 @@ func GetRoomByNameAndBuilding(building string, room string) (Room, error) {
 	}
 
 	return roomResponse, nil
+}
+
+func GetAllSignalsByRoomAndBuilding(building string, room string) (SlimRoom, error) {
+	fullRoom, err := GetRoomByNameAndBuilding(building, room)
+	if err != nil {
+		return SlimRoom{}, err
+	}
+
+	slimRoom := SlimRoom{
+		Name: fullRoom.Name,
+		ID:   fullRoom.ID,
+	}
+
+	for i := range fullRoom.Signals {
+		signal := Signal{
+			Name:  fullRoom.Signals[i].Name,
+			ID:    fullRoom.Signals[i].ID,
+			Type:  fullRoom.Signals[i].Type,
+			Value: fullRoom.Signals[i].Value,
+		}
+
+		slimRoom.Signals = append(slimRoom.Signals, signal)
+	}
+
+	return slimRoom, nil
+}
+
+func GetSignalByRoomAndBuilding(building string, room string, signalName string) (SlimRoom, error) {
+	fullRoom, err := GetRoomByNameAndBuilding(building, room)
+	if err != nil {
+		return SlimRoom{}, err
+	}
+
+	slimRoom := SlimRoom{
+		Name: fullRoom.Name,
+		ID:   fullRoom.ID,
+	}
+
+	for i := range fullRoom.Signals {
+		if strings.ToLower(fullRoom.Signals[i].Name) == strings.ToLower(signalName) {
+			signal := Signal{
+				Name:  fullRoom.Signals[i].Name,
+				ID:    fullRoom.Signals[i].ID,
+				Type:  fullRoom.Signals[i].Type,
+				Value: fullRoom.Signals[i].Value,
+			}
+
+			slimRoom.Signals = append(slimRoom.Signals, signal)
+		}
+	}
+
+	return slimRoom, nil
 }

@@ -70,7 +70,8 @@ func GetRoomByName(c echo.Context) error {
 	return c.JSON(http.StatusOK, room)
 }
 
-func GetRoomsByBuilding(c echo.Context) error {
+// GetAllRoomsByBuilding pulls room information from fusion by building designator
+func GetAllRoomsByBuilding(c echo.Context) error {
 	allRooms, err := fusion.GetAllRooms()
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
@@ -107,12 +108,23 @@ func GetRoomByNameAndBuilding(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 	}
 
+	// Add HATEOAS links
 	links, err := hateoas.AddLinks(c, []string{c.Param("building"), c.Param("room")})
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 	}
 
 	room.Links = links
+
+	// Add HATEOAS links for signals
+	for i := range room.Signals {
+		links, err := hateoas.AddLinks(c, []string{c.Param("building"), c.Param("room"), room.Signals[i].Name})
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
+		}
+
+		room.Signals[i].Links = links
+	}
 
 	health, err := helpers.GetHealth(room.Address)
 	if err != nil {
@@ -122,6 +134,34 @@ func GetRoomByNameAndBuilding(c echo.Context) error {
 	room.Health = health
 
 	room, err = isRoomAvailable(room)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
+	}
+
+	return c.JSON(http.StatusOK, room)
+}
+
+func GetAllSignalsByRoomAndBuilding(c echo.Context) error {
+	room, err := fusion.GetAllSignalsByRoomAndBuilding(c.Param("building"), c.Param("room"))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
+	}
+
+	// Add HATEOAS links
+	for i := range room.Signals {
+		links, err := hateoas.AddLinks(c, []string{c.Param("building"), c.Param("room"), room.Signals[i].Name})
+		if err != nil {
+			return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
+		}
+
+		room.Signals[i].Links = links
+	}
+
+	return c.JSON(http.StatusOK, room)
+}
+
+func GetSignalByRoomAndBuilding(c echo.Context) error {
+	room, err := fusion.GetSignalByRoomAndBuilding(c.Param("building"), c.Param("room"), c.Param("signal"))
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 	}

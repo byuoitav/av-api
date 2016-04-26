@@ -53,9 +53,10 @@ type AllRooms struct {
 
 // SlimRoom is a clean struct representing a room
 type SlimRoom struct {
-	Links []hateoas.Link `json:"links,omitempty"`
-	Name  string         `json:"name"`
-	ID    string
+	Links   []hateoas.Link `json:"links,omitempty"`
+	Name    string         `json:"name"`
+	ID      string
+	Signals []Signal `json:"signals,omitempty"`
 }
 
 // Room is a clean struct representing a room
@@ -74,7 +75,8 @@ type Room struct {
 }
 
 type Signal struct {
-	Name  string `json:"name"`
+	Links []hateoas.Link `json:"links,omitempty"`
+	Name  string         `json:"name"`
 	ID    string
 	Type  string `json:"type"`
 	Value string `json:"value"`
