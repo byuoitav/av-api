@@ -32,10 +32,6 @@ func MergeSort(first []string, second []string) string {
 
 // EchoToSwagger converts paths from Echo syntax to Swagger syntax
 func EchoToSwagger(path string) string {
-	if strings.HasSuffix(path, "/") { // Remove trailing slash if needed
-		path = path[:len(path)-len("/")]
-	}
-
 	echoRegex := regexp.MustCompile(`\:(\w+)`)
 
 	antiParameters := echoRegex.Split(path, -1)
