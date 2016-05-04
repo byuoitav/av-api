@@ -13,7 +13,7 @@ import (
 func main() {
 	err := hateoas.Load("https://raw.githubusercontent.com/byuoitav/av-api/master/swagger.yaml")
 	if err != nil {
-		fmt.Printf("Could not load swagger.yaml file. Error: %s", err.Error())
+		fmt.Println("Could not load swagger.yaml file")
 		panic(err)
 	}
 
