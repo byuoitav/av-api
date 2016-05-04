@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/byuoitav/av-api/controllers"
-	"github.com/byuoitav/av-api/packages/hateoas"
+	"github.com/byuoitav/hateoas"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/engine/fasthttp"
 	"github.com/labstack/echo/middleware"

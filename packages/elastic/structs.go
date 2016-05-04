@@ -1,6 +1,6 @@
 package elastic
 
-import "github.com/byuoitav/av-api/packages/hateoas"
+import "github.com/byuoitav/hateoas"
 
 type ElasticAggregationResponse struct {
 	Aggregations ElasticAggregation

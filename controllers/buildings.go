@@ -7,7 +7,7 @@ import (
 	"github.com/byuoitav/av-api/helpers"
 	"github.com/byuoitav/av-api/packages/elastic"
 	"github.com/byuoitav/av-api/packages/fusion"
-	"github.com/byuoitav/av-api/packages/hateoas"
+	"github.com/byuoitav/hateoas"
 	"github.com/labstack/echo"
 )
 

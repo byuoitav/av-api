@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/byuoitav/av-api/helpers"
-	"github.com/byuoitav/av-api/packages/hateoas"
+	"github.com/byuoitav/hateoas"
 	"github.com/labstack/echo"
 )
 

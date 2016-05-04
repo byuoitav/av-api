@@ -1,6 +1,6 @@
 package fusion
 
-import "github.com/byuoitav/av-api/packages/hateoas"
+import "github.com/byuoitav/hateoas"
 
 // Structs for holding Fusion data
 
