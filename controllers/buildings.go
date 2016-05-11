@@ -19,7 +19,7 @@ func GetAllBuildings(c echo.Context) error {
 
 	// Add HATEOAS links
 	for i := range allBuildings.Buildings {
-		links, err := hateoas.AddLinks(c, []string{allBuildings.Buildings[i].Building})
+		links, err := hateoas.AddLinks(c.Path(), []string{allBuildings.Buildings[i].Building})
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 		}
@@ -47,7 +47,7 @@ func GetBuildingByName(c echo.Context) error {
 
 	// Add HATEOAS links
 	for i := range allRooms.Rooms {
-		links, err := hateoas.AddLinks(c, []string{c.Param("building")})
+		links, err := hateoas.AddLinks(c.Path(), []string{c.Param("building")})
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 		}

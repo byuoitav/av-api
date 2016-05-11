@@ -30,7 +30,7 @@ func GetAllRooms(c echo.Context) error {
 
 	// Add HATEOAS links
 	for i := range allRooms.Rooms {
-		links, err := hateoas.AddLinks(c, []string{strings.Replace(allRooms.Rooms[i].Name, " ", "-", -1)})
+		links, err := hateoas.AddLinks(c.Path(), []string{strings.Replace(allRooms.Rooms[i].Name, " ", "-", -1)})
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 		}
@@ -48,7 +48,7 @@ func GetRoomByName(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 	}
 
-	links, err := hateoas.AddLinks(c, []string{c.Param("building"), c.Param("room")})
+	links, err := hateoas.AddLinks(c.Path(), []string{c.Param("building"), c.Param("room")})
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 	}
@@ -90,7 +90,7 @@ func GetAllRoomsByBuilding(c echo.Context) error {
 	for i := range allRooms.Rooms {
 		room := strings.Split(allRooms.Rooms[i].Name, " ")
 
-		links, err := hateoas.AddLinks(c, []string{c.Param("building"), room[1]})
+		links, err := hateoas.AddLinks(c.Path(), []string{c.Param("building"), room[1]})
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 		}
@@ -109,7 +109,7 @@ func GetRoomByNameAndBuilding(c echo.Context) error {
 	}
 
 	// Add HATEOAS links
-	links, err := hateoas.AddLinks(c, []string{c.Param("building"), c.Param("room")})
+	links, err := hateoas.AddLinks(c.Path(), []string{c.Param("building"), c.Param("room")})
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 	}
@@ -118,7 +118,7 @@ func GetRoomByNameAndBuilding(c echo.Context) error {
 
 	// Add HATEOAS links for signals
 	for i := range room.Signals {
-		links, err := hateoas.AddLinks(c, []string{c.Param("building"), c.Param("room"), "/" + room.Signals[i].Name})
+		links, err := hateoas.AddLinks(c.Path(), []string{c.Param("building"), c.Param("room"), "/" + room.Signals[i].Name})
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 		}
@@ -149,7 +149,7 @@ func GetAllSignalsByRoomAndBuilding(c echo.Context) error {
 
 	// Add HATEOAS links
 	for i := range room.Signals {
-		links, err := hateoas.AddLinks(c, []string{c.Param("building"), c.Param("room"), room.Signals[i].Name})
+		links, err := hateoas.AddLinks(c.Path(), []string{c.Param("building"), c.Param("room"), room.Signals[i].Name})
 		if err != nil {
 			return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 		}

@@ -12,7 +12,7 @@ import (
 func Root(c echo.Context) error {
 	hateoasObject := hateoas.GetInfo()
 
-	links, err := hateoas.AddLinks(c, []string{})
+	links, err := hateoas.AddLinks(c.Path(), []string{})
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 	}
