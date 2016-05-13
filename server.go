@@ -5,6 +5,7 @@ import (
 
 	"github.com/byuoitav/av-api/controllers"
 	"github.com/byuoitav/hateoas"
+	"github.com/jessemillar/health"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/engine/fasthttp"
 	"github.com/labstack/echo/middleware"
@@ -24,7 +25,7 @@ func main() {
 	// GET requests
 	e.Get("/", controllers.Root)
 
-	e.Get("/health", controllers.Health)
+	e.Get("/health", health.Check)
 
 	e.Get("/rooms", controllers.GetAllRooms)
 	e.Get("/rooms/:room", controllers.GetRoomByName)
