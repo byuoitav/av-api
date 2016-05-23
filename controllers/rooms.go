@@ -141,6 +141,7 @@ func GetRoomByNameAndBuilding(context echo.Context) error {
 	return context.JSON(http.StatusOK, room)
 }
 
+// GetAllSignalsByRoomAndBuilding returns a list of all known signals related to the given room and building
 func GetAllSignalsByRoomAndBuilding(context echo.Context) error {
 	room, err := fusion.GetAllSignalsByRoomAndBuilding(context.Param("building"), context.Param("room"))
 	if err != nil {
@@ -160,6 +161,7 @@ func GetAllSignalsByRoomAndBuilding(context echo.Context) error {
 	return context.JSON(http.StatusOK, room)
 }
 
+// GetSignalByRoomAndBuilding returns a signal related to the given room and building
 func GetSignalByRoomAndBuilding(context echo.Context) error {
 	room, err := fusion.GetSignalByRoomAndBuilding(context.Param("building"), context.Param("room"), context.Param("signal"))
 	if err != nil {

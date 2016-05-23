@@ -11,6 +11,7 @@ import (
 	"github.com/labstack/echo"
 )
 
+// GetAllBuildings returns a list of all known buildings
 func GetAllBuildings(context echo.Context) error {
 	allBuildings, err := elastic.GetAllBuildings()
 	if err != nil {
@@ -30,6 +31,7 @@ func GetAllBuildings(context echo.Context) error {
 	return context.JSON(http.StatusOK, allBuildings)
 }
 
+// GetBuildingByName retrieves a specific building by name
 func GetBuildingByName(context echo.Context) error {
 	allRooms, err := fusion.GetAllRooms()
 	if err != nil {

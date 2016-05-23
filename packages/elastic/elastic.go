@@ -8,8 +8,8 @@ import (
 	"strings"
 )
 
+// GetAllBuildings asks Elasticsearch for all known room names via an aggregation
 func GetAllBuildings() (AllBuildings, error) {
-	// Ask Elasticsearch for all the room names via an aggregation
 	var postBody = []byte(`{
   "aggs": {
     "full_name": {
@@ -37,7 +37,7 @@ func GetAllBuildings() (AllBuildings, error) {
 		return AllBuildings{}, err
 	}
 
-	elasticAllBuildings := ElasticAggregationResponse{}
+	elasticAllBuildings := AggregationResponse{}
 	json.Unmarshal(body, &elasticAllBuildings)
 
 	allBuildings := AllBuildings{}
