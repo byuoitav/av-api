@@ -2,7 +2,7 @@ swagger: "2.0"
 info:
   title: Brigham Young University Audiovisual API
   description: Manage various AV systems across BYU campus with the BYU AV API
-  version: "0.3"
+  version: "0.4"
 # host: api.byu.edu
 host: avmetrics1.byu.edu:8000
 schemes:
@@ -11,6 +11,28 @@ schemes:
 produces:
   - application/json
 paths:
+  /health:
+    get:
+      summary: Check Service Health
+      description: |
+        Returns information about the microservice's health.
+      tags:
+        - Health
+      responses:
+        200:
+          description: A health message
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/Response"
+        401:
+          $ref: "#/responses/401"
+        500:
+          $ref: "#/responses/500"
+        503:
+          $ref: "#/responses/503"
+        default:
+          $ref: "#/responses/default"
   /rooms:
     get:
       summary: All Rooms
@@ -559,6 +581,16 @@ definitions:
           Whether or not the room is currently available (calculated based on
           campus room scheduling and whether or not the room"s processor
           reports as in-use)
+  Response:
+    type: object
+    properties:
+      links:
+        type: array
+        items:
+          $ref: "#/definitions/HATEOAS"
+      message:
+        type: string
+        description: A human-readable message about what just happened
   RoomResponse:
     type: object
     properties:
@@ -596,8 +628,6 @@ definitions:
         type: string
         description: A human-readable description of the device
       room:
-        type: object
-        description: Information about the room containing the device
         $ref: "#/definitions/Room"
       address:
         type: string

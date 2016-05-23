@@ -23,7 +23,7 @@ func main() {
 	e.Pre(middleware.RemoveTrailingSlash())
 
 	// GET requests
-	e.Get("/", controllers.Root)
+	e.Get("/", hateoas.RootResponse)
 
 	e.Get("/health", health.Check)
 

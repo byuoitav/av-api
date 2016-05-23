@@ -7,6 +7,6 @@ import (
 )
 
 // UnimplementedResponse is a placeholder function that lets the user know that I haven't finished the API yet
-func UnimplementedResponse(c echo.Context) error {
-	return c.String(http.StatusOK, "This endpoint has yet to be implemented.")
+func UnimplementedResponse(context echo.Context) error {
+	return context.String(http.StatusOK, "This endpoint has yet to be implemented.")
 }
