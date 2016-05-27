@@ -4,11 +4,11 @@ machine:
 
 dependencies:
   post:
-    - docker build -t byuoitav/av-api .
+    - docker build -t byuoitav/av-api:$CIRCLE_SHA1 .
 
 deployment:
   production:
     branch: master
     commands:
       - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
-      - docker push byuoitav/av-api
+      - docker push byuoitav/av-api:$CIRCLE_SHA1
