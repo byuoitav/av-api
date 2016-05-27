@@ -6,3 +6,5 @@
 
 ### Setup
 The `EMS_API_USERNAME` and `EMS_API_PASSWORD` environment variables need to be set in order to retrieve room availability data from the [Event Management System](https://emsweb.byu.edu/VirtualEMS/BrowseForSpace.aspx).
+
+a
