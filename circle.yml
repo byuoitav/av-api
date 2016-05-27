@@ -14,3 +14,4 @@ deployment:
       - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
       - docker push byuoitav/av-api:$CIRCLE_SHA1
       - docker push byuoitav/av-api:latest
+      - ./deploy.sh $CIRCLE_PROJECT_REPONAME $CIRCLE_SHA1
