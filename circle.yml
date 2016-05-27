@@ -5,7 +5,7 @@ machine:
 dependencies:
   post:
     - docker build -t byuoitav/av-api:$CIRCLE_SHA1 .
-    - docker build byuoitav/av-api:latest .
+    - docker build -t byuoitav/av-api:latest .
 
 deployment:
   production:
