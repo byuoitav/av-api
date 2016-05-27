@@ -4,7 +4,7 @@ machine:
 
 dependencies:
   post:
-    - docker build -t byuoitav/av-api:$CIRCLE_SHA1 .
+    - docker build -t byuoitav/av-api:$CIRCLE_SHA1 -t byuoitav/av-api:latest .
 
 deployment:
   production:
@@ -12,3 +12,4 @@ deployment:
     commands:
       - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
       - docker push byuoitav/av-api:$CIRCLE_SHA1
+      - docker push byuoitav/av-api:latest
