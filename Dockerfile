@@ -1,4 +1,4 @@
-FROM golang:1.6
+FROM golang:1.6.2
 
 RUN mkdir -p /go/src/github.com/byuoitav
 ADD . /go/src/github.com/byuoitav/av-api
