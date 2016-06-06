@@ -19,41 +19,41 @@ func main() {
 	}
 
 	port := ":8000"
-	e := echo.New()
-	e.Pre(middleware.RemoveTrailingSlash())
+	router := echo.New()
+	router.Pre(middleware.RemoveTrailingSlash())
 
 	// GET requests
-	e.Get("/", hateoas.RootResponse)
+	router.Get("/", hateoas.RootResponse)
 
-	e.Get("/health", health.Check)
+	router.Get("/health", health.Check)
 
-	e.Get("/rooms", controllers.GetAllRooms)
-	e.Get("/rooms/:room", controllers.GetRoomByName)
+	router.Get("/rooms", controllers.GetAllRooms)
+	router.Get("/rooms/:room", controllers.GetRoomByName)
 
-	e.Get("/buildings", controllers.GetAllBuildings)
-	e.Get("/buildings/:building", controllers.GetBuildingByName)
-	e.Get("/buildings/:building/rooms", controllers.GetAllRoomsByBuilding)
-	e.Get("/buildings/:building/rooms/:room", controllers.GetRoomByNameAndBuilding)
-	e.Get("/buildings/:building/rooms/:room/signals", controllers.GetAllSignalsByRoomAndBuilding)
-	e.Get("/buildings/:building/rooms/:room/signals/:signal", controllers.GetSignalByRoomAndBuilding)
+	router.Get("/buildings", controllers.GetAllBuildings)
+	router.Get("/buildings/:building", controllers.GetBuildingByName)
+	router.Get("/buildings/:building/rooms", controllers.GetAllRoomsByBuilding)
+	router.Get("/buildings/:building/rooms/:room", controllers.GetRoomByNameAndBuilding)
+	router.Get("/buildings/:building/rooms/:room/signals", controllers.GetAllSignalsByRoomAndBuilding)
+	router.Get("/buildings/:building/rooms/:room/signals/:signal", controllers.GetSignalByRoomAndBuilding)
 
 	// POST requests
-	e.Post("/rooms", controllers.UnimplementedResponse)
-	e.Post("/buildings", controllers.UnimplementedResponse)
-	e.Post("/buildings/:building/rooms/:room/signals", controllers.UnimplementedResponse)
+	router.Post("/rooms", controllers.UnimplementedResponse)
+	router.Post("/buildings", controllers.UnimplementedResponse)
+	router.Post("/buildings/:building/rooms/:room/signals", controllers.UnimplementedResponse)
 
 	// PUT requests
-	e.Put("/rooms/:room", controllers.UnimplementedResponse)
-	e.Put("/buildings/:building", controllers.UnimplementedResponse)
-	e.Put("/buildings/:building/rooms/:room", controllers.UnimplementedResponse)
-	e.Put("/buildings/:building/rooms/:room/signals/:signal", controllers.UnimplementedResponse)
+	router.Put("/rooms/:room", controllers.UnimplementedResponse)
+	router.Put("/buildings/:building", controllers.UnimplementedResponse)
+	router.Put("/buildings/:building/rooms/:room", controllers.UnimplementedResponse)
+	router.Put("/buildings/:building/rooms/:room/signals/:signal", controllers.UnimplementedResponse)
 
 	// DELETE requests
-	e.Delete("/rooms/:room", controllers.UnimplementedResponse)
-	e.Delete("/buildings/:building", controllers.UnimplementedResponse)
-	e.Delete("/buildings/:building/rooms/:room", controllers.UnimplementedResponse)
-	e.Delete("/buildings/:building/rooms/:room/signals/:signal", controllers.UnimplementedResponse)
+	router.Delete("/rooms/:room", controllers.UnimplementedResponse)
+	router.Delete("/buildings/:building", controllers.UnimplementedResponse)
+	router.Delete("/buildings/:building/rooms/:room", controllers.UnimplementedResponse)
+	router.Delete("/buildings/:building/rooms/:room/signals/:signal", controllers.UnimplementedResponse)
 
 	fmt.Printf("AV API is listening on %s\n", port)
-	e.Run(fasthttp.New(port))
+	router.Run(fasthttp.New(port))
 }
