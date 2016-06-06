@@ -1,16 +1,14 @@
 {
-  "AWSEBDockerrunVersion": "1",
-  "Authentication": {
-    "Bucket": "elasticbeanstalk-us-west-2-194925301021",
-    "Key": ".dockercfg"
-  },
-  "Image": {
-    "Name": "byuoitav/av-api:latest",
-    "Update": "true"
-  },
- "Ports": [
-    {
-      "ContainerPort": "8000"
-    }
-  ]
+    "AWSEBDockerrunVersion": "1",
+    "Authentication": {
+        "Bucket": "elasticbeanstalk-us-west-2-194925301021",
+        "Key": ".dockercfg"
+    },
+    "Image": {
+        "Name": "byuoitav/av-api:latest",
+        "Update": "true"
+    },
+    "Ports": [{
+        "ContainerPort": "8000"
+    }]
 }
