@@ -7,7 +7,7 @@ import (
 	"github.com/byuoitav/hateoas"
 	"github.com/jessemillar/health"
 	"github.com/labstack/echo"
-	"github.com/labstack/echo/engine/fasthttp"
+	"github.com/labstack/echo/engine/standard"
 	"github.com/labstack/echo/middleware"
 )
 
@@ -55,5 +55,5 @@ func main() {
 	router.Delete("/buildings/:building/rooms/:room/signals/:signal", controllers.UnimplementedResponse)
 
 	fmt.Printf("AV API is listening on %s\n", port)
-	router.Run(fasthttp.New(port))
+	router.Run(standard.New(port))
 }
