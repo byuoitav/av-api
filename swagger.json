@@ -1,12 +1,12 @@
 {
     "swagger": "2.0",
     "info": {
-        "title": "Brigham Young University Audiovisual API",
-        "description": "Manage various AV systems across BYU campus with the BYU AV API",
+        "title": "AV API",
+        "description": "Manage various AV systems across the BYU campus",
         "version": "0.4"
     },
     "host": "api.byu.edu:443",
-    "basePath": "/byuoitav/av-api/0.3",
+    "basePath": "/byuoitav-av-api/0.4",
     "schemes": [
         "https"
     ],
@@ -17,7 +17,7 @@
         "/health": {
             "get": {
                 "summary": "Check Service Health",
-                "description": "Returns information about the microservice's health.\n",
+                "description": "Returns information about the microservice's health.",
                 "tags": [
                     "Health"
                 ],
@@ -49,7 +49,7 @@
         "/rooms": {
             "get": {
                 "summary": "All Rooms",
-                "description": "Returns information about all the TEC rooms across campus.\n",
+                "description": "Returns information about all the TEC rooms across campus.",
                 "tags": [
                     "Rooms"
                 ],
@@ -79,7 +79,7 @@
             },
             "post": {
                 "summary": "Make a Room",
-                "description": "Make a new room and add it to the Crestron Fusion database.\n",
+                "description": "Make a new room and add it to the Crestron Fusion database.",
                 "parameters": [{
                     "name": "body",
                     "description": "The new room to created",
@@ -117,7 +117,7 @@
         "/rooms/{room}": {
             "get": {
                 "summary": "Get a Specific Room",
-                "description": "Returns information about the various AV products offered across\ncampus. The response includes the display name and other details\nabout each product.\n",
+                "description": "Returns information about the various AV products offered across campus. The response includes the display name and other details about each product.",
                 "parameters": [{
                     "$ref": "#/parameters/room"
                 }],
@@ -147,7 +147,7 @@
             },
             "put": {
                 "summary": "Update a Room",
-                "description": "Update information about a room in the Crestron Fusion database.\n",
+                "description": "Update information about a room in the Crestron Fusion database.",
                 "parameters": [{
                     "$ref": "#/parameters/room"
                 }, {
@@ -185,7 +185,7 @@
             },
             "delete": {
                 "summary": "Delete a Room",
-                "description": "Delete a room from the Crestron Fusion database.\n",
+                "description": "Delete a room from the Crestron Fusion database.",
                 "parameters": [{
                     "$ref": "#/parameters/room"
                 }],
@@ -214,7 +214,7 @@
         "/devices/{hostname}": {
             "get": {
                 "summary": "Device Information",
-                "description": "Returns information about a device whose hostname is specified.\n",
+                "description": "Returns information about a device whose hostname is specified.",
                 "parameters": [{
                     "$ref": "#/parameters/hostname"
                 }],
@@ -246,7 +246,7 @@
         "/buildings": {
             "get": {
                 "summary": "All Buildings",
-                "description": "Returns information about all the buildings with TEC capability\nacross campus.\n",
+                "description": "Returns information about all the buildings with TEC capability across campus.",
                 "tags": [
                     "Buildings"
                 ],
@@ -276,7 +276,7 @@
             },
             "post": {
                 "summary": "Make a Building",
-                "description": "Make a new building and add it to the database.\n",
+                "description": "Make a new building and add it to the database.",
                 "parameters": [{
                     "name": "body",
                     "description": "The new building to create",
@@ -314,7 +314,7 @@
         "/buildings/{building}": {
             "get": {
                 "summary": "All Rooms",
-                "description": "Returns information about rooms with TEC capability in the given\nbuilding.\n",
+                "description": "Returns information about rooms with TEC capability in the given building.",
                 "parameters": [{
                     "$ref": "#/parameters/building"
                 }],
@@ -348,7 +348,7 @@
             },
             "put": {
                 "summary": "Update a Building",
-                "description": "Update a building and add it to the Crestron Fusion database.\n",
+                "description": "Update a building and add it to the Crestron Fusion database.",
                 "parameters": [{
                     "$ref": "#/parameters/building"
                 }, {
@@ -386,7 +386,7 @@
             },
             "delete": {
                 "summary": "Delete a Building",
-                "description": "Delete a building from the Crestron Fusion database.\n",
+                "description": "Delete a building from the Crestron Fusion database.",
                 "parameters": [{
                     "$ref": "#/parameters/building"
                 }],
@@ -415,7 +415,7 @@
         "/buildings/{building}/rooms": {
             "get": {
                 "summary": "Get All Building Rooms",
-                "description": "Returns information about all TEC rooms in a specified buliding.\n",
+                "description": "Returns information about all TEC rooms in a specified buliding.",
                 "parameters": [{
                     "$ref": "#/parameters/building"
                 }],
@@ -448,7 +448,7 @@
         "/buildings/{building}/rooms/{room}": {
             "get": {
                 "summary": "Get a Specific Room",
-                "description": "Returns information about a specific TEC room in a specified buliding.\n",
+                "description": "Returns information about a specific TEC room in a specified buliding.",
                 "parameters": [{
                     "$ref": "#/parameters/building"
                 }, {
@@ -481,7 +481,7 @@
             },
             "put": {
                 "summary": "Make a Signal",
-                "description": "Update information about a room for a specific building and add it to\nthe Crestron Fusion database.\n",
+                "description": "Update information about a room for a specific building and add it to the Crestron Fusion database.",
                 "parameters": [{
                     "$ref": "#/parameters/building"
                 }, {
@@ -521,7 +521,7 @@
             },
             "delete": {
                 "summary": "Delete a Room",
-                "description": "Delete a room from the Crestron Fusion database.\n",
+                "description": "Delete a room from the Crestron Fusion database.",
                 "parameters": [{
                     "$ref": "#/parameters/building"
                 }, {
@@ -553,7 +553,7 @@
         "/buildings/{building}/rooms/{room}/signals": {
             "get": {
                 "summary": "All Room Signals",
-                "description": "Return information about all signals available in a specific TEC room.\n",
+                "description": "Return information about all signals available in a specific TEC room.",
                 "parameters": [{
                     "$ref": "#/parameters/building"
                 }, {
@@ -590,7 +590,7 @@
             },
             "post": {
                 "summary": "Make a Signal",
-                "description": "Make a new signal and add it to the Crestron Fusion database for the\nspecified building and room.\n",
+                "description": "Make a new signal and add it to the Crestron Fusion database for the specified building and room.",
                 "parameters": [{
                     "$ref": "#/parameters/building"
                 }, {
@@ -633,7 +633,7 @@
         "/buildings/{building}/rooms/{room}/signals/{signal}": {
             "get": {
                 "summary": "Get a Specific Signal",
-                "description": "Return information about a specified signal in a specific room and\nbuilding.\n",
+                "description": "Return information about a specified signal in a specific room and building.",
                 "parameters": [{
                     "$ref": "#/parameters/building"
                 }, {
@@ -672,7 +672,7 @@
             },
             "put": {
                 "summary": "Update a Signal",
-                "description": "Update information about a signal and add the changes to the Creston\nFusion database.\n",
+                "description": "Update information about a signal and add the changes to the Creston Fusion database.",
                 "parameters": [{
                     "$ref": "#/parameters/building"
                 }, {
@@ -715,7 +715,7 @@
             },
             "delete": {
                 "summary": "Delete a Signal",
-                "description": "Delete a specific signal from the Crestron Fusion database.\n",
+                "description": "Delete a specific signal from the Crestron Fusion database.",
                 "parameters": [{
                     "$ref": "#/parameters/building"
                 }, {
@@ -809,7 +809,7 @@
                 },
                 "available": {
                     "type": "boolean",
-                    "description": "Whether or not the room is currently available (calculated based on\ncampus room scheduling and whether or not the room\"s processor\nreports as in-use)\n"
+                    "description": "Whether or not the room is currently available (calculated based on campus room scheduling and whether or not the room\"s processor reports as in-use)"
                 }
             }
         },
