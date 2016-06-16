@@ -5,6 +5,7 @@ import (
 
 	"github.com/byuoitav/av-api/controllers"
 	"github.com/byuoitav/hateoas"
+	"github.com/byuoitav/wso2jwt"
 	"github.com/jessemillar/health"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/engine/fasthttp"
@@ -27,32 +28,32 @@ func main() {
 
 	router.Get("/health", health.Check)
 
-	router.Get("/rooms", controllers.GetAllRooms)
-	router.Get("/rooms/:room", controllers.GetRoomByName)
+	router.Get("/rooms", controllers.GetAllRooms, wso2jwt.ValidateJWT())
+	router.Get("/rooms/:room", controllers.GetRoomByName, wso2jwt.ValidateJWT())
 
-	router.Get("/buildings", controllers.GetAllBuildings)
-	router.Get("/buildings/:building", controllers.GetBuildingByName)
-	router.Get("/buildings/:building/rooms", controllers.GetAllRoomsByBuilding)
-	router.Get("/buildings/:building/rooms/:room", controllers.GetRoomByNameAndBuilding)
-	router.Get("/buildings/:building/rooms/:room/signals", controllers.GetAllSignalsByRoomAndBuilding)
-	router.Get("/buildings/:building/rooms/:room/signals/:signal", controllers.GetSignalByRoomAndBuilding)
+	router.Get("/buildings", controllers.GetAllBuildings, wso2jwt.ValidateJWT())
+	router.Get("/buildings/:building", controllers.GetBuildingByName, wso2jwt.ValidateJWT())
+	router.Get("/buildings/:building/rooms", controllers.GetAllRoomsByBuilding, wso2jwt.ValidateJWT())
+	router.Get("/buildings/:building/rooms/:room", controllers.GetRoomByNameAndBuilding, wso2jwt.ValidateJWT())
+	router.Get("/buildings/:building/rooms/:room/signals", controllers.GetAllSignalsByRoomAndBuilding, wso2jwt.ValidateJWT())
+	router.Get("/buildings/:building/rooms/:room/signals/:signal", controllers.GetSignalByRoomAndBuilding, wso2jwt.ValidateJWT())
 
 	// POST requests
-	router.Post("/rooms", controllers.UnimplementedResponse)
-	router.Post("/buildings", controllers.UnimplementedResponse)
-	router.Post("/buildings/:building/rooms/:room/signals", controllers.UnimplementedResponse)
+	router.Post("/rooms", controllers.UnimplementedResponse, wso2jwt.ValidateJWT())
+	router.Post("/buildings", controllers.UnimplementedResponse, wso2jwt.ValidateJWT())
+	router.Post("/buildings/:building/rooms/:room/signals", controllers.UnimplementedResponse, wso2jwt.ValidateJWT())
 
 	// PUT requests
-	router.Put("/rooms/:room", controllers.UnimplementedResponse)
-	router.Put("/buildings/:building", controllers.UnimplementedResponse)
-	router.Put("/buildings/:building/rooms/:room", controllers.UnimplementedResponse)
-	router.Put("/buildings/:building/rooms/:room/signals/:signal", controllers.UnimplementedResponse)
+	router.Put("/rooms/:room", controllers.UnimplementedResponse, wso2jwt.ValidateJWT())
+	router.Put("/buildings/:building", controllers.UnimplementedResponse, wso2jwt.ValidateJWT())
+	router.Put("/buildings/:building/rooms/:room", controllers.UnimplementedResponse, wso2jwt.ValidateJWT())
+	router.Put("/buildings/:building/rooms/:room/signals/:signal", controllers.UnimplementedResponse, wso2jwt.ValidateJWT())
 
 	// DELETE requests
-	router.Delete("/rooms/:room", controllers.UnimplementedResponse)
-	router.Delete("/buildings/:building", controllers.UnimplementedResponse)
-	router.Delete("/buildings/:building/rooms/:room", controllers.UnimplementedResponse)
-	router.Delete("/buildings/:building/rooms/:room/signals/:signal", controllers.UnimplementedResponse)
+	router.Delete("/rooms/:room", controllers.UnimplementedResponse, wso2jwt.ValidateJWT())
+	router.Delete("/buildings/:building", controllers.UnimplementedResponse, wso2jwt.ValidateJWT())
+	router.Delete("/buildings/:building/rooms/:room", controllers.UnimplementedResponse, wso2jwt.ValidateJWT())
+	router.Delete("/buildings/:building/rooms/:room/signals/:signal", controllers.UnimplementedResponse, wso2jwt.ValidateJWT())
 
 	fmt.Printf("AV API is listening on %s\n", port)
 	server := fasthttp.New(port)
