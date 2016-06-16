@@ -56,6 +56,6 @@ func main() {
 
 	fmt.Printf("AV API is listening on %s\n", port)
 	server := fasthttp.New(port)
-	server.ReadBufferSize = 1024 * 10
+	server.ReadBufferSize = 1024 * 10 // Needed to interface properly with WSO2
 	router.Run(server)
 }
