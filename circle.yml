@@ -2,15 +2,17 @@ machine:
   services:
     - docker
 
-dependencies:
+test:
   post:
-    - docker build -t byuoitav/av-api:$CIRCLE_SHA1 .
-    - docker build -t byuoitav/av-api:latest .
+    - ./coverage.sh
+    - bash <(curl -s https://codecov.io/bash)
 
 deployment:
   production:
     branch: master
     commands:
+      - docker build -t byuoitav/av-api:$CIRCLE_SHA1 .
+      - docker build -t byuoitav/av-api:latest .
       - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
       - docker push byuoitav/av-api:$CIRCLE_SHA1
       - docker push byuoitav/av-api:latest
