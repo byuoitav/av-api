@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/byuoitav/av-api/controllers"
 	"github.com/byuoitav/hateoas"
@@ -13,10 +13,9 @@ import (
 )
 
 func main() {
-	err := hateoas.Load("https://raw.githubusercontent.com/byuoitav/av-api/master/swagger.yml")
+	err := hateoas.Load("https://raw.githubusercontent.com/byuoitav/av-api/master/swagger.json")
 	if err != nil {
-		fmt.Println("Could not load Swagger file")
-		panic(err)
+		log.Fatalln("Could not load swagger.json file. Error: " + err.Error())
 	}
 
 	port := ":8000"
@@ -55,7 +54,7 @@ func main() {
 	router.Delete("/buildings/:building/rooms/:room", controllers.UnimplementedResponse, wso2jwt.ValidateJWT())
 	router.Delete("/buildings/:building/rooms/:room/signals/:signal", controllers.UnimplementedResponse, wso2jwt.ValidateJWT())
 
-	fmt.Printf("AV API is listening on %s\n", port)
+	log.Println("AV API is listening on " + port)
 	server := fasthttp.New(port)
 	server.ReadBufferSize = 1024 * 10 // Needed to interface properly with WSO2
 	router.Run(server)
