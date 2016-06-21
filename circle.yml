@@ -7,10 +7,6 @@ test:
     - ./coverage.sh
     - bash <(curl -s https://codecov.io/bash)
 
-dependencies:
-  post:
-    - rm -r ~/.gradle
-
 deployment:
   production:
     branch: master
