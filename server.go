@@ -15,7 +15,7 @@ import (
 func main() {
 	err := hateoas.Load("https://raw.githubusercontent.com/byuoitav/av-api/master/swagger.json")
 	if err != nil {
-		log.Fatalln("Could not load swagger.json file. Error: " + err.Error())
+		log.Fatalln("Could not load Swagger file. Error: " + err.Error())
 	}
 
 	port := ":8000"
