@@ -11,6 +11,10 @@ deployment:
   production:
     branch: master
     commands:
+      - go get -d -v
+      - env GOOS=linux GOARCH=arm go build -v .
+      - docker build -f Dockerfile-ARM -t byuoitav/rpi-av-api:$CIRCLE_SHA1 .
+      - docker build -f Dockerfile-ARM -t byuoitav/rpi-av-api:latest .
       - docker build -t byuoitav/av-api:$CIRCLE_SHA1 .
       - docker build -t byuoitav/av-api:latest .
       - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
