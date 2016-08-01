@@ -21,6 +21,7 @@ func main() {
 	port := ":8000"
 	router := echo.New()
 	router.Pre(middleware.RemoveTrailingSlash())
+	router.Use(middleware.CORS())
 
 	// GET requests
 	router.Get("/", hateoas.RootResponse)
