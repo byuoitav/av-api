@@ -5,7 +5,7 @@
         "Key": ".dockercfg"
     },
     "Image": {
-        "Name": "byuoitav/av-api:latest",
+        "Name": "byuoitav/av-api:<TAG>",
         "Update": "true"
     },
     "Ports": [{
