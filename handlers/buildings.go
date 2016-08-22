@@ -1,35 +1,14 @@
-package controllers
+package handlers
 
 import (
 	"net/http"
 	"strings"
 
 	"github.com/byuoitav/av-api/helpers"
-	"github.com/byuoitav/av-api/packages/elastic"
 	"github.com/byuoitav/av-api/packages/fusion"
 	"github.com/byuoitav/hateoas"
 	"github.com/labstack/echo"
 )
-
-// GetAllBuildings returns a list of all known buildings
-func GetAllBuildings(context echo.Context) error {
-	allBuildings, err := elastic.GetAllBuildings()
-	if err != nil {
-		return context.JSON(http.StatusBadRequest, helpers.ReturnError(err))
-	}
-
-	// Add HATEOAS links
-	for i := range allBuildings.Buildings {
-		links, err := hateoas.AddLinks(context.Path(), []string{allBuildings.Buildings[i].Building})
-		if err != nil {
-			return context.JSON(http.StatusBadRequest, helpers.ReturnError(err))
-		}
-
-		allBuildings.Buildings[i].Links = links
-	}
-
-	return context.JSON(http.StatusOK, allBuildings)
-}
 
 // GetBuildingByName retrieves a specific building by name
 func GetBuildingByName(context echo.Context) error {
