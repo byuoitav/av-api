@@ -415,7 +415,7 @@
         "/buildings/{building}/rooms": {
             "get": {
                 "summary": "Get All Building Rooms",
-                "description": "Returns information about all TEC rooms in a specified buliding.",
+                "description": "Returns information about all TEC rooms in a specified building.",
                 "parameters": [{
                     "$ref": "#/parameters/building"
                 }],
@@ -448,7 +448,7 @@
         "/buildings/{building}/rooms/{room}": {
             "get": {
                 "summary": "Get a Specific Room",
-                "description": "Returns information about a specific TEC room in a specified buliding.",
+                "description": "Returns information about a specific TEC room in a specified building.",
                 "parameters": [{
                     "$ref": "#/parameters/building"
                 }, {

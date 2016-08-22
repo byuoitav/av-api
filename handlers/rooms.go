@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strings"
 
@@ -140,14 +141,15 @@ func getRoomByInfo(roomName string, buildingName string) (accessors.Room, error)
 
 func getDeviceByName(roomName string, buildingName string, deviceName string) (accessors.Device, error) {
 	var toReturn accessors.Device
-	err := getData(databaseLocation+"/buildings/"+buildingName+"/ "+roomName+"/devices/"+deviceName, &toReturn)
+
+	err := getData(databaseLocation+"/buildings/"+buildingName+"/rooms/"+roomName+"/devices/"+deviceName, &toReturn)
 	return toReturn, err
 }
 
 func getDevicesByRoom(roomName string, buildingName string) ([]accessors.Device, error) {
 	var toReturn []accessors.Device
 
-	resp, err := http.Get(databaseLocation + "/buildings/" + buildingName + "/ " + roomName + "/devices")
+	resp, err := http.Get(databaseLocation + "/buildings/" + buildingName + "/rooms/" + roomName + "/devices")
 
 	if err != nil {
 		return toReturn, err
@@ -190,8 +192,7 @@ type Display struct {
 }
 
 func getDevicesByBuildingAndRoomAndRole(room string, building string, roleName string) ([]accessors.Device, error) {
-
-	resp, err := http.Get(databaseLocation + "/buildings/" + building + "/rooms/" + room + "/devices/role/" + roleName)
+	resp, err := http.Get(databaseLocation + "/buildings/" + building + "/rooms/" + room + "/devices/roles/" + roleName)
 	if err != nil {
 		return []accessors.Device{}, err
 	}
@@ -211,27 +212,30 @@ func getDevicesByBuildingAndRoomAndRole(room string, building string, roleName s
 }
 
 func validateChangeInputSuppliedValue(deviceToCheck string, room string, building string, roleName string) (bool, error) {
-
 	if len(deviceToCheck) > 0 {
 		devices, err := getDevicesByBuildingAndRoomAndRole(room, building, roleName)
 		if err != nil {
 			return false, err
 		}
+
 		if len(devices) < 1 {
 			return false, errors.New("No " + roleName + " input devices in room.")
 		}
 
 		for _, val := range devices {
+			log.Printf("%+v\n", val)
+
 			if strings.EqualFold(deviceToCheck, val.Name) || strings.EqualFold(deviceToCheck, val.Type) {
 				return true, nil
 			}
 		}
 	}
-	return false, errors.New("Invalid " + roleName + " devices sepecified.")
+
+	return false, errors.New("Invalid " + roleName + " devices specified.")
 }
 
-/*PutRoomChanges is the handler to accept puts to /buildlings/:buildling/rooms/:room
-	with the json payload with one or more of the fields:
+/*
+PutRoomChanges is the handler to accept puts to /buildlings/:buildling/rooms/:room with the json payload with one or more of the fields:
 	{
     "currentInput": "computer",
     "displays": [{
@@ -264,7 +268,7 @@ func PutRoomChanges(context echo.Context) error {
 	}
 
 	//TODO: Have logic here that checks what was passed in and only changes what is necessary.
-	has, err := validateChangeInputSuppliedValue(roomInQuestion.CurrentAudioInput, room, building, "VideoIn")
+	has, err := validateChangeInputSuppliedValue(roomInQuestion.CurrentVideoInput, room, building, "VideoIn")
 	if err != nil {
 		return err
 	} else if has {
@@ -277,7 +281,6 @@ func PutRoomChanges(context echo.Context) error {
 }
 
 func changeCurrentVideoInput(room PublicRoom, roomName string, buildingName string) error {
-
 	//magic strings - we'll replace these in the endpoint path.
 	portToMatch := ":port"
 	commandName := "ChangeInput"
@@ -307,9 +310,10 @@ func changeCurrentVideoInput(room PublicRoom, roomName string, buildingName stri
 				portValue = val.Name
 			}
 		}
+
 		if len(portValue) <= 0 {
 			//TODO: figure out error reporting here.
-			continue
+			continue // BLEH
 		}
 
 		endpointPath := ReplaceIPAddressEndpoint(curCommand.Endpoint.Path, val.Address)
