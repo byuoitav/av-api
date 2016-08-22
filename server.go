@@ -31,7 +31,7 @@ func main() {
 	router.Get("/rooms", handlers.GetAllRooms, wso2jwt.ValidateJWT())
 	router.Get("/rooms/:room", handlers.GetRoomByName, wso2jwt.ValidateJWT())
 
-	router.Get("/buildings", handlers.GetAllBuildings, wso2jwt.ValidateJWT())
+	// router.Get("/buildings", handlers.GetAllBuildings, wso2jwt.ValidateJWT())
 	router.Get("/buildings/:building", handlers.GetBuildingByName, wso2jwt.ValidateJWT())
 	router.Get("/buildings/:building/rooms", handlers.GetAllRoomsByBuilding, wso2jwt.ValidateJWT())
 	router.Get("/buildings/:building/rooms/:room", handlers.GetRoomByNameAndBuilding, wso2jwt.ValidateJWT())
