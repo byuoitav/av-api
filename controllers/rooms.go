@@ -133,6 +133,22 @@ func getRoomByInfo(roomName string, buildingName string) (accessors.Room, error)
 func getDevicesByRoom(roomName string, buildingName string) ([]accessors.Device, error) {
 	var toReturn []accessors.Device
 
+	resp, err := http.Get("http://localhost:8006/buildings/ITB/1110/devices")
+
+	if err != nil {
+		return toReturn, err
+	}
+
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return toReturn, err
+	}
+
+	err = json.Unmarshal(b, &toReturn)
+	if err != nil {
+		return toReturn, err
+	}
+
 	return toReturn, nil
 }
 
