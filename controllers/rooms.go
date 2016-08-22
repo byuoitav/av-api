@@ -172,6 +172,23 @@ type Display struct {
 	Blanked bool
 }
 
+/*PutRoomChanges is the handler to accept puts to /buildlings/:buildling/rooms/:room
+	with the json payload with one or more of the fields:
+	{
+    "currentInput": "computer",
+    "displays": [{
+        "name": "dp1",
+        "power": "on",
+        "blanked": false
+    }],
+		"audioDeivices": [{
+		"muted": false,
+		"volume": 50
+		}]
+	}
+	Or the 'PublicRoom' struct defined in this package.
+}
+*/
 func PutRoomChanges(context echo.Context) error {
 	building, room := context.Param("building"), context.Param("room")
 

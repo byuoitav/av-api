@@ -35,8 +35,6 @@ func main() {
 	router.Get("/buildings/:building", controllers.GetBuildingByName, wso2jwt.ValidateJWT())
 	router.Get("/buildings/:building/rooms", controllers.GetAllRoomsByBuilding, wso2jwt.ValidateJWT())
 	router.Get("/buildings/:building/rooms/:room", controllers.GetRoomByNameAndBuilding, wso2jwt.ValidateJWT())
-	router.Get("/buildings/:building/rooms/:room/signals", controllers.GetAllSignalsByRoomAndBuilding, wso2jwt.ValidateJWT())
-	router.Get("/buildings/:building/rooms/:room/signals/:signal", controllers.GetSignalByRoomAndBuilding, wso2jwt.ValidateJWT())
 
 	// POST requests
 	router.Post("/rooms", controllers.UnimplementedResponse, wso2jwt.ValidateJWT())
