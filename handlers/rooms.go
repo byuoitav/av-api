@@ -290,8 +290,6 @@ func validateRoomDeviceByRole(deviceToCheck string, room string, building string
 		log.Printf("%v devices found.\n", len(devices))
 		log.Printf("Checking for %s.\n", deviceToCheck)
 		for _, val := range devices {
-			log.Printf("%+v\n", val)
-
 			if strings.EqualFold(deviceToCheck, val.Name) || strings.EqualFold(deviceToCheck, val.Type) {
 				log.Printf("Device validated.\n")
 				return val, true, nil
