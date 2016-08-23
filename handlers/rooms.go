@@ -282,6 +282,7 @@ func validateRoomDeviceByRole(deviceToCheck string, room string, building string
 			log.Printf("Error %s\n", err.Error())
 			return accessors.Device{}, false, err
 		}
+
 		if len(devices) < 1 {
 			log.Printf("Room has no input devices.\n")
 			return accessors.Device{}, false, errors.New("No " + roleName + " input devices in room.")
@@ -289,6 +290,8 @@ func validateRoomDeviceByRole(deviceToCheck string, room string, building string
 		log.Printf("%v devices found.\n", len(devices))
 		log.Printf("Checking for %s.\n", deviceToCheck)
 		for _, val := range devices {
+			log.Printf("%+v\n", val)
+
 			if strings.EqualFold(deviceToCheck, val.Name) || strings.EqualFold(deviceToCheck, val.Type) {
 				log.Printf("Device validated.\n")
 				return val, true, nil
@@ -300,8 +303,8 @@ func validateRoomDeviceByRole(deviceToCheck string, room string, building string
 	return accessors.Device{}, false, nil //there were no devices to check.
 }
 
-/*PutRoomChanges is the handler to accept puts to /buildlings/:buildling/rooms/:room
-	with the json payload with one or more of the fields:
+/*
+PutRoomChanges is the handler to accept puts to /buildlings/:buildling/rooms/:room with the json payload with one or more of the fields:
 	{
     "currentInput": "computer",
     "displays": [{
@@ -335,6 +338,7 @@ func PutRoomChanges(context echo.Context) error {
 	if len(roomInQuestion.CurrentAudioInput) > 0 && len(roomInQuestion.CurrentVideoInput) > 0 {
 		//forceAudioChange = false
 	}
+
 	log.Printf("Checking for input changes.\n")
 	//TODO: Have logic here that checks what was passed in and only changes what is necessary.
 	_, valid, err := validateRoomDeviceByRole(roomInQuestion.CurrentVideoInput, room, building, "VideoIn")
@@ -417,7 +421,6 @@ func changeCurrentPowerStateForMultipleDevices(roomInfo PublicRoom, room string,
 }
 
 func changeCurrentVideoInput(room PublicRoom, roomName string, buildingName string) error {
-
 	//magic strings - we'll replace these in the endpoint path.
 	portToMatch := ":port"
 	commandName := "ChangeInput"
@@ -459,6 +462,7 @@ func changeCurrentVideoInput(room PublicRoom, roomName string, buildingName stri
 				portValue = val.Name
 			}
 		}
+
 		if len(portValue) <= 0 {
 			//TODO: figure out error reporting here.
 			log.Printf("Port not found, continuing\n")
