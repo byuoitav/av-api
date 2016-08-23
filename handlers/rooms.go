@@ -373,8 +373,8 @@ func PutRoomChanges(context echo.Context) error {
 
 func changeCurrentPowerStateForMultipleDevices(roomInfo PublicRoom, room string, building string) error {
 	commandNames := make(map[string]string)
-	commandNames["On"] = "PowerOn"
-	commandNames["Standby"] = "Standby"
+	commandNames["on"] = "PowerOn"
+	commandNames["standby"] = "Standby"
 
 	//Do the Displays
 	for _, val := range roomInfo.Displays {
@@ -385,20 +385,28 @@ func changeCurrentPowerStateForMultipleDevices(roomInfo PublicRoom, room string,
 			continue
 		}
 
-		curCommandName := commandNames[val.Power]
+		curCommandName := commandNames[strings.ToLower(val.Power)]
+		log.Printf("Checking commands for command %s\n", curCommandName)
 		for _, command := range device.Commands {
 			if strings.EqualFold(command.Name, curCommandName) {
+				log.Printf("Command found.\n")
 				endpointPath := ReplaceIPAddressEndpoint(command.Endpoint.Path, device.Address)
+				log.Printf("sending Command\n")
 				_, err = http.Get("http://" + command.Microservice + endpointPath)
 				if err != nil {
-					return err
+					log.Printf("Error %s\n", err.Error())
+					break
 				}
+				log.Printf("Command Sent.\n")
+				break
 			}
+			log.Printf("Command not found.\n")
 		}
 	}
 
 	//Do the Audio Devices
 	for _, val := range roomInfo.AudioDevices {
+		log.Printf("Changing power states for display %s to %s.\n", val.Name, val.Power)
 		device, err := getDeviceByName(room, building, val.Name)
 		if err != nil {
 			//TODO: Figure out reporting here.
@@ -406,14 +414,20 @@ func changeCurrentPowerStateForMultipleDevices(roomInfo PublicRoom, room string,
 		}
 
 		curCommandName := commandNames[val.Power]
+		log.Printf("Checking commands for command %s\n", curCommandName)
 		for _, command := range device.Commands {
 			if strings.EqualFold(command.Name, curCommandName) {
+				log.Printf("Command found.\n")
 				endpointPath := ReplaceIPAddressEndpoint(command.Endpoint.Path, device.Address)
+				log.Printf("sending Command\n")
 				_, err = http.Get("http://" + command.Microservice + endpointPath)
 				if err != nil {
-					return err
+					log.Printf("Error %s\n", err.Error())
+					continue
 				}
+				log.Printf("Command Sent.\n")
 			}
+			log.Printf("Command not found.\n")
 		}
 	}
 
