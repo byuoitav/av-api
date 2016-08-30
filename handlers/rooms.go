@@ -222,14 +222,22 @@ func validateSuppliedValuesPowerChange(roomInfo PublicRoom, room string, buildin
 	if len(roomInfo.AudioDevices) <= 0 && len(roomInfo.Displays) <= 0 {
 		return toReturn, false, nil
 	}
+	needChange := false
 
 	for _, device := range roomInfo.Displays {
 		//validate that the device exists in the room
+		if device.Power == "" {
+			log.Printf("No power state specified for device %s.", device.Name)
+			continue
+		}
+		needChange = true
+
 		fullDevice, valid, err := validateRoomDeviceByRole(device.Name, room, building, "VideoOut")
 		if err != nil {
 			return []accessors.Device{}, false, err
 		}
 		if !valid {
+			log.Printf("Invalid device %s specified.", device.Name)
 			return []accessors.Device{}, false, errors.New("Invalid display " + device.Name + " specified.")
 		}
 		valid = false
@@ -241,12 +249,19 @@ func validateSuppliedValuesPowerChange(roomInfo PublicRoom, room string, buildin
 			}
 		}
 		if !valid {
+			log.Printf("Invalid power state %s specified.", device.Power)
 			return []accessors.Device{}, false, errors.New("Invalid power state " + device.Power + " specified.")
 		}
 		toReturn = append(toReturn, fullDevice)
 	}
 
 	for _, device := range roomInfo.AudioDevices {
+		if device.Power == "" {
+			log.Printf("No power state specified for device %s.", device.Name)
+			continue
+		}
+		needChange = true
+
 		fullDevice, valid, err := validateRoomDeviceByRole(device.Name, room, building, "AudioOut")
 		if err != nil {
 			return []accessors.Device{}, false, err
@@ -267,7 +282,7 @@ func validateSuppliedValuesPowerChange(roomInfo PublicRoom, room string, buildin
 		toReturn = append(toReturn, fullDevice)
 	}
 
-	return toReturn, true, nil
+	return toReturn, needChange, nil
 }
 
 /*
@@ -349,8 +364,8 @@ func PutRoomChanges(context echo.Context) error {
 			log.Printf("Error: %s.\n", err.Error())
 			return err
 		}
-		log.Printf("Done.\n")
 	}
+	log.Printf("Done.\n")
 
 	log.Printf("Checking for power changes.\n")
 	_, valid, err = validateSuppliedValuesPowerChange(roomInQuestion, room, building)
