@@ -1,5 +1,5 @@
 ## **tl;dr** ##
-The AV API makes decisions based on a user provided json payload information in a database to set devices to a desired state.
+The AV API makes decisions based on a user-provided JSON payload and information in a database to set devices to a desired state.
 
 ## Put definition ##
 
