@@ -28,7 +28,21 @@ PUT to the rooms endpoint, which has the *building*, and *room* as URL parameter
 Example PUT body:  
 ```
 {
-
+  "displays": [{
+    "name": "display3",
+    "input": "input2",
+    "blanked": true,
+    "power": "on"
+  }],
+  "audioDevices": [{
+    "name": "display3",
+    "input": "input2",
+    "muted": true,
+    "volume": 50,
+    "power": "on"
+  }],
+  "currentVideoInput": "cp1",
+  currentAudioInput: "roku"
 }
 ```
 
@@ -72,15 +86,13 @@ The mapping of PUT values to properties is included for the sake of completeness
 It is important to note that in addition the the fields defined in the payload the building and room are defined by the user via URL parameter (e.g. `http://hostname/buildings/ITB/rooms/1100A`).
 
 The required payload to change the video input is (at minimum):
-
 ```
 {
-  "currentVideoInput": "NameHere"
+  "currentVideoInput": "name"
 }
 ```
 
 However if more granular control is required the post body can define inputs on a display by display basis.
-
 ```
 {
   "displays" :[{
@@ -91,18 +103,17 @@ However if more granular control is required the post body can define inputs on 
 ```
 
 The two may be mixed, with the `input` defined in the devices array overriding the `currentVideoInput` field for the devices defined. So:
-
 ```
 {
-  "currentVideoInput": "Input1",
+  "currentVideoInput": "cp1",
   "displays" :[{
     "name": "display3",
-    "input": "input2"
+    "input": "roku"
   }]
 }
 ```
 
-Would result in `display3` being set to `input2`, with *all other displays* being set to `input1`.
+Would result in `display3` being set to `roku`, with *all other displays* being set to `cp1`.
 
 ##### Logical code flow
 Following the determination that a video input state has been set for one or more output devices, the API needs to validate the requested state and issue a command to the devices specified to set the state. As devices traditionally set their input based on physical ports (`hdmi1`, `hdmi2`, `HDBaseT`, etc.) rather than what device is plugged into that port (computer, BlueRay, Roku, etc.) the API needs to retrieve the following information from the database.
@@ -130,7 +141,7 @@ For each display specified in the displays array:
   * Microservice Endpoint
     * By convention the endpoint associated with the `changeInput` command will have two parameters:
       * `address`
-      * `port`.
+      * `port`
   * If the command is enabled.
 1. Validate that the command is enabled.  
 1. Replace the `address` and `port` URL parameters in the endpoint with the values retrieved earlier.
