@@ -1,9 +1,9 @@
 ## **tl;dr** ##
 The AV API makes decisions based on a user-provided JSON payload and information in a database to set devices to a desired state.
 
-## Put definition ##
+## PUT definition ##
 
-Put to the rooms endpoint, which has the *building*, and *room* as URL parameters
+PUT to the rooms endpoint, which has the *building*, and *room* as URL parameters
 and contains a payload containing a JSON document with one or more of the following
 options:
   * *CurrentVideoInput*: The desired video input (source) for all video output devices
@@ -34,7 +34,7 @@ options:
 ## Logical Flow of API ##
 
 ### Overview ###
- Essentially there are 6 properties of rooms that are mutable via the API, they are:
+Essentially there are 6 properties of rooms that can be changed via the API, they are:
 
 1. Video Input
 1. Audio Input
