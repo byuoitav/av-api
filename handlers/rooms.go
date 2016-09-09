@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/byuoitav/av-api/helpers"
@@ -180,7 +181,7 @@ type AudioDevice struct {
 	Name   string `json:"name"`
 	Power  string `json:"power"`
 	Muted  bool   `json:"muted"`
-	Volume int    `json:"volume"`
+	Volume *int   `json:"volume"`
 }
 
 //Display represents a display
@@ -209,6 +210,27 @@ func getDevicesByBuildingAndRoomAndRole(room string, building string, roleName s
 	}
 
 	return devices, nil
+}
+
+func validateSuppliedAudioStateChange(roomInfo PublicRoom, room string, building string) ([]accessors.Device, bool, error) {
+	toReturn := []accessors.Device{}
+
+	//validate that the list of devices are valid audio devices
+
+	for _, device := range roomInfo.AudioDevices {
+		fullDevice, valid, err := validateRoomDeviceByRole(device.Name, room, building, "AudioOut")
+		if err != nil {
+			return []accessors.Device{}, false, err
+		}
+		if !valid {
+			log.Printf("Invalid device %s specified.", device.Name)
+			return []accessors.Device{}, false, errors.New("Invalid audio device " + device.Name + " specified.")
+		}
+
+		toReturn = append(toReturn, fullDevice)
+	}
+
+	return toReturn, true, nil
 }
 
 /*validateChagnePowerSuppliedValues will go through each of the output devices
@@ -370,7 +392,7 @@ func PutRoomChanges(context echo.Context) error {
 	log.Printf("Checking for power changes.\n")
 	_, valid, err = validateSuppliedValuesPowerChange(roomInQuestion, room, building)
 	if err != nil {
-		return nil
+		return err
 	} else if valid {
 		log.Printf("Changing power states.\n")
 		err = changeCurrentPowerStateForMultipleDevices(roomInQuestion, room, building)
@@ -381,6 +403,72 @@ func PutRoomChanges(context echo.Context) error {
 	}
 	log.Printf("Done.\n")
 
+	log.Printf("Checking Audio-specific states.\n")
+	devices, valid, err := validateSuppliedAudioStateChange(roomInQuestion, room, building)
+	if err != nil {
+		return err
+	} else if valid {
+		err = changeAudioStateForMultipleDevices(roomInQuestion, room, building, devices)
+	}
+	log.Printf("Done.\n")
+
+	return nil
+}
+
+func changeAudioStateForMultipleDevices(roomInfo PublicRoom, room string, building string, devices []accessors.Device) error {
+	// Get command for set volume devices[0].Command
+	for _, desired := range roomInfo.AudioDevices {
+		log.Printf("Setting audio states for %s\n", desired.Name)
+
+		var current accessors.Device
+		//get accessorDevice for room Device
+		for _, val2 := range devices {
+			if strings.EqualFold(val2.Name, desired.Name) {
+				current = val2
+				break
+			}
+		}
+
+		if desired.Volume != nil {
+			log.Printf("Setting volume.")
+			for _, comm := range current.Commands {
+				if strings.EqualFold(comm.Name, "SetVolume") {
+					endpoint := comm.Endpoint.Path
+					endpoint = ReplaceIPAddressEndpoint(endpoint, current.Address)
+					//this is our difference
+					if strings.Contains(endpoint, "difference") {
+						difference := *current.Volume - *desired.Volume
+						strings.Replace(endpoint, ":difference", strconv.Itoa(difference), -1)
+					} else {
+						strings.Replace(endpoint, ":level", strconv.Itoa(*desired.Volume), -2)
+					}
+					_, err := http.Get(endpoint)
+					log.Printf("Error Setting volume for device %s: %s\n", desired.Name, err.Error())
+					continue
+				}
+			}
+		}
+
+		if desired.Muted {
+			//get the muted command
+			log.Printf("Setting muted.")
+			for _, comm := range current.Commands {
+				if strings.EqualFold(comm.Name, "Mute") {
+					_, err := http.Get(comm.Microservice + ReplaceIPAddressEndpoint(comm.Endpoint.Path, current.Address))
+					log.Printf("Error Muting device %s: %s\n", desired.Name, err.Error())
+					continue
+				}
+			}
+		} else {
+			for _, comm := range current.Commands {
+				if strings.EqualFold(comm.Name, "UnMute") {
+					_, err := http.Get(comm.Microservice + ReplaceIPAddressEndpoint(comm.Endpoint.Path, current.Address))
+					log.Printf("Error UnMuting device %s: %s\n", desired.Name, err.Error())
+					continue
+				}
+			}
+		}
+	}
 	return nil
 }
 
@@ -512,6 +600,9 @@ func changeCurrentVideoInput(room PublicRoom, roomName string, buildingName stri
 	return nil
 }
 
+/*
+ReplaceIPAddressEndpoint is a simple helper
+*/
 func ReplaceIPAddressEndpoint(path string, address string) string {
 	//magic strings
 	toReplace := ":address"
