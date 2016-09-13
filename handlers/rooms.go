@@ -461,6 +461,54 @@ func changeAudioStateForMultipleDevices(roomInfo PublicRoom, room string, buildi
 		}
 
 		if desired.Volume != nil {
+			if desired.Muted != nil {
+				return errors.New("Cannot set Muted and Volume in the same call.")
+			}
+			b := false
+			desired.Muted = &b
+		}
+
+		if desired.Muted != nil {
+			fmt.Printf("Desired: %v, Current: %v\n", *desired.Muted, *current.Muted)
+			if *desired.Muted && !*current.Muted {
+				//get the muted command
+				log.Printf("Setting muted.")
+				for _, comm := range current.Commands {
+					if strings.EqualFold(comm.Name, "Mute") {
+						_, err := http.Get("http://" + comm.Microservice + ReplaceIPAddressEndpoint(comm.Endpoint.Path, current.Address))
+						if err != nil {
+							log.Printf("Error Muting device %s: %s\n", desired.Name, err.Error())
+						} else {
+							//set the new volume in the DB.
+							*current.Muted = *desired.Muted
+							err = setAudioInDB(building, room, current)
+							if err != nil {
+								return err
+							}
+						}
+					}
+				}
+			} else if !*desired.Muted && *current.Muted {
+				for _, comm := range current.Commands {
+					if strings.EqualFold(comm.Name, "UnMute") {
+						_, err := http.Get("http://" + comm.Microservice + ReplaceIPAddressEndpoint(comm.Endpoint.Path, current.Address))
+						if err != nil {
+							log.Printf("Error UnMuting device %s: %s\n", desired.Name, err.Error())
+						} else {
+							//set the new volume in the DB.
+							*current.Muted = *desired.Muted
+							err = setAudioInDB(building, room, current)
+							if err != nil {
+								return err
+							}
+						}
+					}
+				}
+			}
+		}
+
+		//after setting the muted.
+		if desired.Volume != nil {
 			log.Printf("Setting volume.")
 			for _, comm := range current.Commands {
 				if strings.EqualFold(comm.Name, "SetVolume") {
@@ -483,42 +531,6 @@ func changeAudioStateForMultipleDevices(roomInfo PublicRoom, room string, buildi
 						//set the new volume in the DB.
 						*current.Muted = false
 						*current.Volume = *desired.Volume
-						err = setAudioInDB(building, room, current)
-						if err != nil {
-							return err
-						}
-					}
-				}
-			}
-		}
-		fmt.Printf("Desired: %v, Current: %v\n", *desired.Muted, *current.Muted)
-		if *desired.Muted && !*current.Muted {
-			//get the muted command
-			log.Printf("Setting muted.")
-			for _, comm := range current.Commands {
-				if strings.EqualFold(comm.Name, "Mute") {
-					_, err := http.Get("http://" + comm.Microservice + ReplaceIPAddressEndpoint(comm.Endpoint.Path, current.Address))
-					if err != nil {
-						log.Printf("Error Muting device %s: %s\n", desired.Name, err.Error())
-					} else {
-						//set the new volume in the DB.
-						*current.Muted = *desired.Muted
-						err = setAudioInDB(building, room, current)
-						if err != nil {
-							return err
-						}
-					}
-				}
-			}
-		} else if !*desired.Muted && *current.Muted {
-			for _, comm := range current.Commands {
-				if strings.EqualFold(comm.Name, "UnMute") {
-					_, err := http.Get("http://" + comm.Microservice + ReplaceIPAddressEndpoint(comm.Endpoint.Path, current.Address))
-					if err != nil {
-						log.Printf("Error UnMuting device %s: %s\n", desired.Name, err.Error())
-					} else {
-						//set the new volume in the DB.
-						*current.Muted = *desired.Muted
 						err = setAudioInDB(building, room, current)
 						if err != nil {
 							return err
@@ -560,7 +572,6 @@ func changeCurrentPowerStateForMultipleDevices(roomInfo PublicRoom, room string,
 				log.Printf("Command Sent.\n")
 				break
 			}
-			log.Printf("Command not found.\n")
 		}
 	}
 
@@ -648,6 +659,7 @@ func changeCurrentVideoInput(room PublicRoom, roomName string, buildingName stri
 		endpointPath = strings.Replace(endpointPath, portToMatch, portValue, -1)
 		//something to get the current port
 		log.Printf("Sending Command.\n")
+		fmt.Printf("%s\n", "http://"+curCommand.Microservice+endpointPath)
 		_, err = http.Get("http://" + curCommand.Microservice + endpointPath)
 		if err != nil {
 			log.Printf("Error: %s\n", err.Error())
