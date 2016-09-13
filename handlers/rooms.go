@@ -481,7 +481,7 @@ func changeAudioStateForMultipleDevices(roomInfo PublicRoom, room string, buildi
 						log.Printf("Error Setting volume for device %s: %s. May need to calibrate device.\n", desired.Name, err.Error())
 					} else {
 						//set the new volume in the DB.
-						*current.Mute = false
+						*current.Muted = false
 						*current.Volume = *desired.Volume
 						err = setAudioInDB(building, room, current)
 						if err != nil {
