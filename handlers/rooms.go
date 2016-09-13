@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -180,7 +181,7 @@ type PublicRoom struct {
 type AudioDevice struct {
 	Name   string `json:"name"`
 	Power  string `json:"power"`
-	Muted  bool   `json:"muted"`
+	Muted  *bool  `json:"muted"`
 	Volume *int   `json:"volume"`
 }
 
@@ -210,6 +211,36 @@ func getDevicesByBuildingAndRoomAndRole(room string, building string, roleName s
 	}
 
 	return devices, nil
+}
+
+func setAudioInDB(building string, room string, device accessors.Device) error {
+	log.Printf("Updating audio levels in DB.")
+
+	if device.Volume != nil {
+		url := databaseLocation + "/buildings/" + building + "/rooms/" + room + "/devices/" + device.Name + "/attributes/volume/" + strconv.Itoa(*device.Volume)
+		fmt.Printf(url + "\n")
+		request, err := http.NewRequest("PUT", url, nil)
+		client := &http.Client{}
+		_, err = client.Do(request)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	if device.Muted != nil {
+		url := databaseLocation + "/buildings/" + building + "/rooms/" + room + "/devices/" + device.Name + "/attributes/muted/" + strconv.FormatBool(*device.Muted)
+		fmt.Printf(url + "\n")
+		request, err := http.NewRequest("PUT", url, nil)
+		client := &http.Client{}
+		_, err = client.Do(request)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func validateSuppliedAudioStateChange(roomInfo PublicRoom, room string, building string) ([]accessors.Device, bool, error) {
@@ -321,8 +352,8 @@ func validateRoomDeviceByRole(deviceToCheck string, room string, building string
 		}
 
 		if len(devices) < 1 {
-			log.Printf("Room has no input devices.\n")
-			return accessors.Device{}, false, errors.New("No " + roleName + " input devices in room.")
+			log.Printf("Room has no %s devices.\n", roleName)
+			return accessors.Device{}, false, errors.New("No " + roleName + " devices in room.")
 		}
 		log.Printf("%v devices found.\n", len(devices))
 		log.Printf("Checking for %s.\n", deviceToCheck)
@@ -437,34 +468,62 @@ func changeAudioStateForMultipleDevices(roomInfo PublicRoom, room string, buildi
 					endpoint = ReplaceIPAddressEndpoint(endpoint, current.Address)
 					//this is our difference
 					if strings.Contains(endpoint, "difference") {
-						difference := *current.Volume - *desired.Volume
-						strings.Replace(endpoint, ":difference", strconv.Itoa(difference), -1)
+						fmt.Printf("Current: %v, Desired: %v\n", *current.Volume, *desired.Volume)
+						difference := *desired.Volume - *current.Volume
+						fmt.Printf("Difference: %v\n", difference)
+						endpoint = strings.Replace(endpoint, ":difference", strconv.Itoa(difference), -1)
+						fmt.Printf("New Endpoint: %s\n", endpoint)
 					} else {
-						strings.Replace(endpoint, ":level", strconv.Itoa(*desired.Volume), -2)
+						endpoint = strings.Replace(endpoint, ":level", strconv.Itoa(*desired.Volume), -1)
 					}
-					_, err := http.Get(endpoint)
-					log.Printf("Error Setting volume for device %s: %s\n", desired.Name, err.Error())
-					continue
+					_, err := http.Get("http://" + comm.Microservice + endpoint)
+					if err != nil {
+						log.Printf("Error Setting volume for device %s: %s. May need to calibrate device.\n", desired.Name, err.Error())
+					} else {
+						//set the new volume in the DB.
+						*current.Mute = false
+						*current.Volume = *desired.Volume
+						err = setAudioInDB(building, room, current)
+						if err != nil {
+							return err
+						}
+					}
 				}
 			}
 		}
-
-		if desired.Muted {
+		fmt.Printf("Desired: %v, Current: %v\n", *desired.Muted, *current.Muted)
+		if *desired.Muted && !*current.Muted {
 			//get the muted command
 			log.Printf("Setting muted.")
 			for _, comm := range current.Commands {
 				if strings.EqualFold(comm.Name, "Mute") {
-					_, err := http.Get(comm.Microservice + ReplaceIPAddressEndpoint(comm.Endpoint.Path, current.Address))
-					log.Printf("Error Muting device %s: %s\n", desired.Name, err.Error())
-					continue
+					_, err := http.Get("http://" + comm.Microservice + ReplaceIPAddressEndpoint(comm.Endpoint.Path, current.Address))
+					if err != nil {
+						log.Printf("Error Muting device %s: %s\n", desired.Name, err.Error())
+					} else {
+						//set the new volume in the DB.
+						*current.Muted = *desired.Muted
+						err = setAudioInDB(building, room, current)
+						if err != nil {
+							return err
+						}
+					}
 				}
 			}
-		} else {
+		} else if !*desired.Muted && *current.Muted {
 			for _, comm := range current.Commands {
 				if strings.EqualFold(comm.Name, "UnMute") {
-					_, err := http.Get(comm.Microservice + ReplaceIPAddressEndpoint(comm.Endpoint.Path, current.Address))
-					log.Printf("Error UnMuting device %s: %s\n", desired.Name, err.Error())
-					continue
+					_, err := http.Get("http://" + comm.Microservice + ReplaceIPAddressEndpoint(comm.Endpoint.Path, current.Address))
+					if err != nil {
+						log.Printf("Error UnMuting device %s: %s\n", desired.Name, err.Error())
+					} else {
+						//set the new volume in the DB.
+						*current.Muted = *desired.Muted
+						err = setAudioInDB(building, room, current)
+						if err != nil {
+							return err
+						}
+					}
 				}
 			}
 		}
