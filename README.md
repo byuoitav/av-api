@@ -17,7 +17,6 @@ Perform a PUT on `http://localhost:8000/buildings/ITB/rooms/1001D` with the foll
 		"blanked": false
 	}],
 	"audioDevices": [{
-		"muted": false,
 		"volume": 10
 	}]
 }
