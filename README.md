@@ -5,3 +5,20 @@
 
 ## Setup
 The `EMS_API_USERNAME` and `EMS_API_PASSWORD` environment variables need to be set in order to retrieve room availability data from the [Event Management System](https://emsweb.byu.edu/VirtualEMS/BrowseForSpace.aspx).
+
+## Usage
+Perform a PUT on `http://localhost:8000/buildings/ITB/rooms/1001D` with the following body:
+```
+{
+	"currentInput": "AppleTV",
+	"displays": [{
+		"name": "D1",
+		"power": "on",
+		"blanked": false
+	}],
+	"audioDevices": [{
+		"muted": false,
+		"volume": 10
+	}]
+}
+```

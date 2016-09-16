@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
@@ -16,8 +17,6 @@ import (
 	"github.com/byuoitav/hateoas"
 	"github.com/labstack/echo"
 )
-
-var databaseLocation = "http://localhost:8006"
 
 func isRoomAvailable(room fusion.Room) (fusion.Room, error) {
 	available, err := helpers.IsRoomAvailable(room)
@@ -135,7 +134,7 @@ func getData(url string, structToFill interface{}) error {
 }
 
 func getRoomByInfo(roomName string, buildingName string) (accessors.Room, error) {
-	url := databaseLocation + "/buildings/" + buildingName + "/rooms/" + roomName
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/buildings/" + buildingName + "/rooms/" + roomName
 	var toReturn accessors.Room
 	err := getData(url, &toReturn)
 	return toReturn, err
@@ -143,14 +142,14 @@ func getRoomByInfo(roomName string, buildingName string) (accessors.Room, error)
 
 func getDeviceByName(roomName string, buildingName string, deviceName string) (accessors.Device, error) {
 	var toReturn accessors.Device
-	err := getData(databaseLocation+"/buildings/"+buildingName+"/rooms/"+roomName+"/devices/"+deviceName, &toReturn)
+	err := getData(os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS")+"/buildings/"+buildingName+"/rooms/"+roomName+"/devices/"+deviceName, &toReturn)
 	return toReturn, err
 }
 
 func getDevicesByRoom(roomName string, buildingName string) ([]accessors.Device, error) {
 	var toReturn []accessors.Device
 
-	resp, err := http.Get(databaseLocation + "/buildings/" + buildingName + "/rooms/" + roomName + "/devices")
+	resp, err := http.Get(os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/buildings/" + buildingName + "/rooms/" + roomName + "/devices")
 
 	if err != nil {
 		return toReturn, err
@@ -194,7 +193,7 @@ type Display struct {
 
 func getDevicesByBuildingAndRoomAndRole(room string, building string, roleName string) ([]accessors.Device, error) {
 
-	resp, err := http.Get(databaseLocation + "/buildings/" + building + "/rooms/" + room + "/devices/roles/" + roleName)
+	resp, err := http.Get(os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/buildings/" + building + "/rooms/" + room + "/devices/roles/" + roleName)
 	if err != nil {
 		return []accessors.Device{}, err
 	}
@@ -217,7 +216,7 @@ func setAudioInDB(building string, room string, device accessors.Device) error {
 	log.Printf("Updating audio levels in DB.")
 
 	if device.Volume != nil {
-		url := databaseLocation + "/buildings/" + building + "/rooms/" + room + "/devices/" + device.Name + "/attributes/volume/" + strconv.Itoa(*device.Volume)
+		url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/buildings/" + building + "/rooms/" + room + "/devices/" + device.Name + "/attributes/volume/" + strconv.Itoa(*device.Volume)
 		fmt.Printf(url + "\n")
 		request, err := http.NewRequest("PUT", url, nil)
 		client := &http.Client{}
@@ -229,7 +228,7 @@ func setAudioInDB(building string, room string, device accessors.Device) error {
 	}
 
 	if device.Muted != nil {
-		url := databaseLocation + "/buildings/" + building + "/rooms/" + room + "/devices/" + device.Name + "/attributes/muted/" + strconv.FormatBool(*device.Muted)
+		url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/buildings/" + building + "/rooms/" + room + "/devices/" + device.Name + "/attributes/muted/" + strconv.FormatBool(*device.Muted)
 		fmt.Printf(url + "\n")
 		request, err := http.NewRequest("PUT", url, nil)
 		client := &http.Client{}
@@ -378,7 +377,7 @@ PutRoomChanges is the handler to accept puts to /buildlings/:buildling/rooms/:ro
         "power": "on",
         "blanked": false
     }],
-		"audioDeivices": [{
+		"audioDevices": [{
 		"muted": false,
 		"volume": 50
 		}]
