@@ -188,7 +188,7 @@ type AudioDevice struct {
 type Display struct {
 	Name    string `json:"name"`
 	Power   string `json:"power"`
-	Blanked bool   `json:"blanked"`
+	Blanked *bool  `json:"blanked"`
 }
 
 func getDevicesByBuildingAndRoomAndRole(room string, building string, roleName string) ([]accessors.Device, error) {
@@ -260,6 +260,24 @@ func validateSuppliedAudioStateChange(roomInfo PublicRoom, room string, building
 		toReturn = append(toReturn, fullDevice)
 	}
 
+	return toReturn, true, nil
+}
+
+func validateSuppliedVideoStateChange(roomInfo PublicRoom, room string, building string) ([]accessors.Device, bool, error) {
+	toReturn := []accessors.Device{}
+
+	//validate that the list of devices are valid audio devices
+	for _, device := range roomInfo.Displays {
+		fullDevice, valid, err := validateRoomDeviceByRole(device.Name, room, building, "VideoOut")
+		if err != nil {
+			return []accessors.Device{}, false, err
+		}
+		if !valid {
+			log.Printf("Invalid device %s specified.", device.Name)
+			return []accessors.Device{}, false, errors.New("Invalid video device " + device.Name + " specified.")
+		}
+		toReturn = append(toReturn, fullDevice)
+	}
 	return toReturn, true, nil
 }
 
@@ -404,14 +422,13 @@ func PutRoomChanges(context echo.Context) error {
 		//forceAudioChange = false
 	}
 
-	log.Printf("Checking for input changes.\n")
-	//TODO: Have logic here that checks what was passed in and only changes what is necessary.
-	_, valid, err := validateRoomDeviceByRole(roomInQuestion.CurrentVideoInput, room, building, "VideoIn")
+	log.Printf("Checking for power changes.\n")
+	_, valid, err := validateSuppliedValuesPowerChange(roomInQuestion, room, building)
 	if err != nil {
 		return err
 	} else if valid {
-		log.Printf("Changing current input\n")
-		err = changeCurrentVideoInput(roomInQuestion, room, building)
+		log.Printf("Changing power states.\n")
+		err = changeCurrentPowerStateForMultipleDevices(roomInQuestion, room, building)
 		if err != nil {
 			log.Printf("Error: %s.\n", err.Error())
 			return err
@@ -419,13 +436,14 @@ func PutRoomChanges(context echo.Context) error {
 	}
 	log.Printf("Done.\n")
 
-	log.Printf("Checking for power changes.\n")
-	_, valid, err = validateSuppliedValuesPowerChange(roomInQuestion, room, building)
+	log.Printf("Checking for input changes.\n")
+	//TODO: Have logic here that checks what was passed in and only changes what is necessary.
+	_, valid, err = validateRoomDeviceByRole(roomInQuestion.CurrentVideoInput, room, building, "VideoIn")
 	if err != nil {
 		return err
 	} else if valid {
-		log.Printf("Changing power states.\n")
-		err = changeCurrentPowerStateForMultipleDevices(roomInQuestion, room, building)
+		log.Printf("Changing current input\n")
+		err = changeCurrentVideoInput(roomInQuestion, room, building)
 		if err != nil {
 			log.Printf("Error: %s.\n", err.Error())
 			return err
@@ -442,6 +460,60 @@ func PutRoomChanges(context echo.Context) error {
 	}
 	log.Printf("Done.\n")
 
+	//Check Video Specific states.
+	log.Printf("Chacking video-specific states.\n")
+	devices, valid, err = validateSuppliedVideoStateChange(roomInQuestion, room, building)
+	if err != nil {
+		return err
+	} else if valid {
+		err = changeVideoStateForMultipleDevices(roomInQuestion, room, building, devices)
+	}
+	log.Printf("Done.\n")
+
+	return nil
+}
+
+func changeVideoStateForMultipleDevices(roomInfo PublicRoom, room string, building string, devices []accessors.Device) error {
+
+	for _, desired := range roomInfo.Displays {
+		log.Printf("Setting video state for %s\n", desired.Name)
+
+		var current accessors.Device
+
+		for _, val2 := range devices {
+			if strings.EqualFold(val2.Name, desired.Name) {
+				current = val2
+				break
+			}
+		}
+
+		if desired.Blanked != nil && len(current.Name) > 0 {
+			log.Printf("Setting video to blanked.\n")
+			command := ""
+			if *desired.Blanked {
+				command = "BlankScreen"
+			} else {
+				command = "UnblankScreen"
+			}
+			log.Printf("Getting command")
+			for _, comm := range current.Commands {
+				if strings.EqualFold(comm.Name, command) {
+					log.Printf("Command found.")
+					address := "http://" +
+						comm.Microservice +
+						ReplaceIPAddressEndpoint(comm.Endpoint.Path, current.Address)
+
+					log.Printf("Sending Command...")
+					_, err := http.Get(address)
+					if err != nil {
+						return err
+					}
+					log.Printf("Command Sent")
+					break
+				}
+			}
+		}
+	}
 	return nil
 }
 
@@ -468,7 +540,6 @@ func changeAudioStateForMultipleDevices(roomInfo PublicRoom, room string, buildi
 		}
 
 		if desired.Muted != nil {
-			fmt.Printf("Desired: %v, Current: %v\n", *desired.Muted, *current.Muted)
 			if *desired.Muted && !*current.Muted {
 				//get the muted command
 				log.Printf("Setting muted.")
