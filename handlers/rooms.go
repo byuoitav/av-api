@@ -109,13 +109,19 @@ func GetAllRoomsByBuilding(context echo.Context) error {
 	return context.JSON(http.StatusOK, allRooms)
 }
 
-// GetRoomByNameAndBuilding is almost identical to GetRoomByName
-func GetRoomByNameAndBuilding(context echo.Context) error {
-	//room, err := fusion.GetRoomByNameAndBuilding(context.Param("building"), context.Param("room"))
-	return nil
+//GetRoomByNameAndBuildingHandler is almost identical to GetRoomByName
+func GetRoomByNameAndBuildingHandler(context echo.Context) error {
+	log.Printf("Getting room...")
+	room, err := getRoomByInfo(context.Param("room"), context.Param("building"))
+	if err != nil {
+		return context.JSON(http.StatusBadRequest, helpers.ReturnError(err))
+	}
+	log.Printf("Done.\n")
+	return context.JSON(http.StatusOK, room)
 }
 
 func getData(url string, structToFill interface{}) error {
+	log.Printf("Getting data from URL: %s...", url)
 	resp, err := http.Get(url)
 	if err != nil {
 		return err
@@ -130,10 +136,12 @@ func getData(url string, structToFill interface{}) error {
 	if err != nil {
 		return err
 	}
+	log.Printf("Done.")
 	return nil
 }
 
 func getRoomByInfo(roomName string, buildingName string) (accessors.Room, error) {
+	log.Printf("Getting room %s in building %s...", roomName, buildingName)
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/buildings/" + buildingName + "/rooms/" + roomName
 	var toReturn accessors.Room
 	err := getData(url, &toReturn)
