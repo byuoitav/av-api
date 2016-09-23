@@ -180,6 +180,7 @@ func getDevicesByRoom(roomName string, buildingName string) ([]accessors.Device,
 type PublicRoom struct {
 	CurrentVideoInput string        `json:"currentVideoInput"`
 	CurrentAudioInput string        `json:"currentAudioInput"`
+	Power             string        `json:"power"`
 	Displays          []Display     `json:"displays"`
 	AudioDevices      []AudioDevice `json:"audioDevices"`
 }
@@ -294,13 +295,64 @@ func validateSuppliedVideoStateChange(roomInfo PublicRoom, room string, building
 a) valid devices for the room and
 b) valid power states for the device
 */
-func validateSuppliedValuesPowerChange(roomInfo PublicRoom, room string, building string) ([]accessors.Device, bool, error) {
+func validateSuppliedValuesPowerChange(roomInfo *PublicRoom, room string, building string) ([]accessors.Device, bool, error) {
 	toReturn := []accessors.Device{}
 
-	if len(roomInfo.AudioDevices) <= 0 && len(roomInfo.Displays) <= 0 {
+	if len(roomInfo.AudioDevices) <= 0 && len(roomInfo.Displays) <= 0 && len(roomInfo.Power) <= 0 {
 		return toReturn, false, nil
 	}
+
 	needChange := false
+
+	//check if room-wide power is being set.
+	if len(roomInfo.Power) >= 0 {
+		//So we can maintain the checking done below, we'll just add all the videoOut and AudioOut devices to the
+		//arrays in roomInfo, and allow them to get checked.
+		displays, err := getDevicesByBuildingAndRoomAndRole(room, building, "VideoOut")
+		if err != nil {
+			return []accessors.Device{}, false, err
+		}
+		audioDevices, err := getDevicesByBuildingAndRoomAndRole(room, building, "AudioOut")
+		if err != nil {
+			return []accessors.Device{}, false, err
+		}
+
+		for _, disp := range displays {
+			skip := false
+			//check if it's already in the roomInfo array.
+			for i, dispPresent := range roomInfo.Displays {
+				if strings.EqualFold(disp.Name, dispPresent.Name) {
+					skip = true
+					if len(dispPresent.Power) >= 0 {
+						break
+					}
+					roomInfo.Displays[i].Power = roomInfo.Power
+				}
+			}
+			if skip {
+				continue
+			}
+			roomInfo.Displays = append(roomInfo.Displays, Display{Name: disp.Name, Power: roomInfo.Power})
+		}
+
+		for _, audDev := range audioDevices {
+			skip := false
+
+			for i, audPresent := range roomInfo.AudioDevices {
+				if strings.EqualFold(audDev.Name, audPresent.Name) {
+					skip = true
+					if len(audPresent.Power) >= 0 {
+						break
+					}
+					roomInfo.AudioDevices[i].Power = roomInfo.Power
+				}
+			}
+			if skip {
+				continue
+			}
+			roomInfo.AudioDevices = append(roomInfo.AudioDevices, AudioDevice{Name: audDev.Name, Power: roomInfo.Power})
+		}
+	}
 
 	for _, device := range roomInfo.Displays {
 		//validate that the device exists in the room
@@ -431,7 +483,7 @@ func PutRoomChanges(context echo.Context) error {
 	}
 
 	log.Printf("Checking for power changes.\n")
-	_, valid, err := validateSuppliedValuesPowerChange(roomInQuestion, room, building)
+	_, valid, err := validateSuppliedValuesPowerChange(&roomInQuestion, room, building)
 	if err != nil {
 		return err
 	} else if valid {
