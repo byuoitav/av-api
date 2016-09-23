@@ -189,6 +189,7 @@ type PublicRoom struct {
 type AudioDevice struct {
 	Name   string `json:"name"`
 	Power  string `json:"power"`
+	Input  string `json:"input"`
 	Muted  *bool  `json:"muted"`
 	Volume *int   `json:"volume"`
 }
@@ -197,6 +198,7 @@ type AudioDevice struct {
 type Display struct {
 	Name    string `json:"name"`
 	Power   string `json:"power"`
+	Input   string `json:"input"`
 	Blanked *bool  `json:"blanked"`
 }
 
@@ -415,6 +417,37 @@ func validateSuppliedValuesPowerChange(roomInfo *PublicRoom, room string, buildi
 	return toReturn, needChange, nil
 }
 
+func validateSuppliedVideoChange(info PublicRoom, room string, building string) (bool, error) {
+
+	has := false
+	if info.CurrentVideoInput != "" {
+		_, valid, err := validateRoomDeviceByRole(info.CurrentVideoInput, room, building, "VideoIn")
+		if err != nil {
+			return false, err
+		} else if !valid {
+			return false, errors.New("Invalid room-wide input specified.\n")
+		}
+		has = true
+	}
+
+	for _, deviceForEvaluation := range info.Displays {
+		if deviceForEvaluation.Input != "" {
+			_, valid, err := validateRoomDeviceByRole(deviceForEvaluation.Input, room, building, "VideoIn")
+			if err != nil {
+				return false, err
+			} else if !valid {
+				return false, errors.New("Invalid Device specific input specified for device" + deviceForEvaluation.Name)
+			}
+			has = true
+		}
+	}
+
+	if has {
+		return true, nil
+	}
+	return false, nil
+}
+
 /*
 	validateRoomDeviceByRole validates that a room has a named device with the given role.
 */
@@ -485,6 +518,7 @@ func PutRoomChanges(context echo.Context) error {
 	log.Printf("Checking for power changes.\n")
 	_, valid, err := validateSuppliedValuesPowerChange(&roomInQuestion, room, building)
 	if err != nil {
+		log.Printf("Error: %s.\n", err.Error())
 		return err
 	} else if valid {
 		log.Printf("Changing power states.\n")
@@ -498,8 +532,9 @@ func PutRoomChanges(context echo.Context) error {
 
 	log.Printf("Checking for input changes.\n")
 	//TODO: Have logic here that checks what was passed in and only changes what is necessary.
-	_, valid, err = validateRoomDeviceByRole(roomInQuestion.CurrentVideoInput, room, building, "VideoIn")
+	valid, err = validateSuppliedVideoChange(roomInQuestion, room, building)
 	if err != nil {
+		log.Printf("Error: %s.\n", err.Error())
 		return err
 	} else if valid {
 		log.Printf("Changing current input\n")
@@ -514,6 +549,7 @@ func PutRoomChanges(context echo.Context) error {
 	log.Printf("Checking Audio-specific states.\n")
 	devices, valid, err := validateSuppliedAudioStateChange(roomInQuestion, room, building)
 	if err != nil {
+		log.Printf("Error: %s.\n", err.Error())
 		return err
 	} else if valid {
 		err = changeAudioStateForMultipleDevices(roomInQuestion, room, building, devices)
@@ -707,7 +743,7 @@ func changeCurrentPowerStateForMultipleDevices(roomInfo PublicRoom, room string,
 
 	//Do the Audio Devices
 	for _, val := range roomInfo.AudioDevices {
-		log.Printf("Changing power states for display %s to %s.\n", val.Name, val.Power)
+		log.Printf("Changing power states for AudioDevices %s to %s.\n", val.Name, val.Power)
 		device, err := getDeviceByName(room, building, val.Name)
 		if err != nil {
 			//TODO: Figure out reporting here.
@@ -727,6 +763,11 @@ func changeCurrentPowerStateForMultipleDevices(roomInfo PublicRoom, room string,
 					continue
 				}
 				log.Printf("Command Sent.\n")
+
+				//now we need to update the database so it definately says that it's not muted (assuming it was turned off).
+				m := false
+				device.Muted = &m
+				setAudioInDB(building, room, device)
 			}
 			log.Printf("Command not found.\n")
 		}
@@ -735,68 +776,100 @@ func changeCurrentPowerStateForMultipleDevices(roomInfo PublicRoom, room string,
 	return nil
 }
 
+type changeInputTuple struct {
+	Device accessors.Device
+	Input  string
+}
+
+/*
+First we'll esablish what devices need to be set to which input (allowing for
+device specific input settings as well as room-wide settings). We do this by
+populating a map - subsequently we send the appropriate commands.
+*/
 func changeCurrentVideoInput(room PublicRoom, roomName string, buildingName string) error {
 	//magic strings - we'll replace these in the endpoint path.
 	portToMatch := ":port"
 	commandName := "ChangeInput"
 	log.Printf("Changing video input.\n")
-	log.Printf("Getting all video out devices for room.\n")
+
+	//we correlate which device in the room.Displays go to which input.
+	deviceInputCorrelation := []changeInputTuple{}
+
 	devices, err := getDevicesByBuildingAndRoomAndRole(roomName, buildingName, "VideoOut")
 	if err != nil {
 		return err
 	}
 	log.Printf("%v devices found\n", len(devices))
 
-	log.Printf("Getting input device %s\n", room.CurrentVideoInput)
-	inputDevice, err := getDeviceByName(roomName, buildingName, room.CurrentVideoInput)
-	if err != nil {
-		return err
+	//We're gonna go through and see if devices have an indivudual input set. If
+	//not we set them to go to the default device, if specified.
+	for _, outDev1 := range devices {
+		found := false
+		for _, outDev2 := range room.Displays {
+			if strings.EqualFold(outDev1.Name, outDev2.Name) && len(outDev2.Input) > 0 {
+				log.Printf("Found a specific input %s specified for device %s.", outDev2.Input, outDev1.Name)
+				found = true
+				deviceInputCorrelation = append(deviceInputCorrelation, changeInputTuple{Device: outDev1, Input: outDev2.Input})
+				//break from inner loop
+				break
+			}
+		}
+		if !found && len(room.CurrentVideoInput) > 0 {
+			log.Printf("No sepcific input specified for %s. As a default was speficied will set to default %s", outDev1.Name, room.CurrentVideoInput)
+			deviceInputCorrelation = append(deviceInputCorrelation, changeInputTuple{Device: outDev1, Input: room.CurrentVideoInput})
+		}
 	}
 
-	for _, val := range devices {
-		log.Printf("Checking for command %s\n", commandName)
+	for _, tuple := range deviceInputCorrelation {
+		device := tuple.Device
+		input := tuple.Input
+
+		log.Printf("Setting input for %s to %s.", device.Name, input)
+
+		log.Printf("Checking for command %s.", commandName)
 		var curCommand accessors.Command
 
-		for _, val := range val.Commands {
-			if strings.EqualFold(val.Name, commandName) {
+		for _, command := range device.Commands {
+			if strings.EqualFold(command.Name, commandName) {
 				log.Printf("Found.")
-				curCommand = val
+				curCommand = command
+				break
 			}
 		}
 		if len(curCommand.Name) <= 0 {
-			log.Printf("Command not found, continuing\n")
+			log.Printf("Command not found, continuing.")
 			continue
 		}
 
-		log.Printf("Checking output device ports for input device %s.", inputDevice.Name)
+		log.Printf("Checking output device ports for input device %s.", input)
 		//placeholder to be replaced by the value we get down below.
 		var portValue string
-		for _, val := range val.Ports {
-			if strings.EqualFold(val.Source, inputDevice.Name) {
-				log.Printf("Found, input device into port %s\n", val.Name)
-				portValue = val.Name
+		for _, port := range device.Ports {
+			if strings.EqualFold(port.Source, input) {
+				log.Printf("Found, input device into port %s.", port.Name)
+				portValue = port.Name
 			}
 		}
 
 		if len(portValue) <= 0 {
 			//TODO: figure out error reporting here.
-			log.Printf("Port not found, continuing\n")
+			log.Printf("Port not found, continuing.")
 			continue
 		}
 
-		endpointPath := ReplaceIPAddressEndpoint(curCommand.Endpoint.Path, val.Address)
+		endpointPath := ReplaceIPAddressEndpoint(curCommand.Endpoint.Path, device.Address)
 
 		endpointPath = strings.Replace(endpointPath, portToMatch, portValue, -1)
 		//something to get the current port
 		log.Printf("Sending Command.\n")
-		fmt.Printf("%s\n", "http://"+curCommand.Microservice+endpointPath)
 		_, err = http.Get("http://" + curCommand.Microservice + endpointPath)
 		if err != nil {
-			log.Printf("Error: %s\n", err.Error())
+			log.Printf("Error: %s.", err.Error())
 			continue
 		}
-		log.Printf("Command send to device %s.\n", val.Name)
+		log.Printf("Command sent to device %s.", device.Name)
 	}
+	log.Printf("Done setting video inputs.")
 
 	return nil
 }
