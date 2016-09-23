@@ -181,6 +181,7 @@ type PublicRoom struct {
 	CurrentVideoInput string        `json:"currentVideoInput"`
 	CurrentAudioInput string        `json:"currentAudioInput"`
 	Power             string        `json:"power"`
+	Blanked           *bool         `json:"blanked"`
 	Displays          []Display     `json:"displays"`
 	AudioDevices      []AudioDevice `json:"audioDevices"`
 }
@@ -274,10 +275,39 @@ func validateSuppliedAudioStateChange(roomInfo PublicRoom, room string, building
 	return toReturn, true, nil
 }
 
-func validateSuppliedVideoStateChange(roomInfo PublicRoom, room string, building string) ([]accessors.Device, bool, error) {
+func validateSuppliedVideoStateChange(roomInfo *PublicRoom, room string, building string) ([]accessors.Device, bool, error) {
 	toReturn := []accessors.Device{}
 
-	//validate that the list of devices are valid audio devices
+	//check if we have room-wide blanking being set.
+	if roomInfo.Blanked != nil {
+		log.Printf("Room-wide blanking specified.")
+		displays, err := getDevicesByBuildingAndRoomAndRole(room, building, "VideoOut")
+		if err != nil {
+			return []accessors.Device{}, false, err
+		}
+
+		for _, disp := range displays {
+			skip := false
+			//check if it's already in the roomInfo array.
+			for i, dispPresent := range roomInfo.Displays {
+				if strings.EqualFold(disp.Name, dispPresent.Name) {
+					skip = true
+					if len(dispPresent.Power) >= 0 {
+						break
+					}
+					*roomInfo.Displays[i].Blanked = *roomInfo.Blanked
+				}
+			}
+
+			if skip {
+				continue
+			}
+			tempBlanked := *roomInfo.Blanked
+			roomInfo.Displays = append(roomInfo.Displays, Display{Name: disp.Name, Blanked: &tempBlanked})
+		}
+	}
+
+	//validate that the list of devices are valid video devices
 	for _, device := range roomInfo.Displays {
 		fullDevice, valid, err := validateRoomDeviceByRole(device.Name, room, building, "VideoOut")
 		if err != nil {
@@ -558,7 +588,7 @@ func PutRoomChanges(context echo.Context) error {
 
 	//Check Video Specific states.
 	log.Printf("Chacking video-specific states.\n")
-	devices, valid, err = validateSuppliedVideoStateChange(roomInQuestion, room, building)
+	devices, valid, err = validateSuppliedVideoStateChange(&roomInQuestion, room, building)
 	if err != nil {
 		return err
 	} else if valid {
