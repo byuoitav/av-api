@@ -43,7 +43,7 @@ func main() {
 	// PUT requests
 	router.Put("/rooms/:room", handlers.UnimplementedResponse, wso2jwt.ValidateJWT())
 	router.Put("/buildings/:building", handlers.UnimplementedResponse, wso2jwt.ValidateJWT())
-	router.Put("/buildings/:building/rooms/:room", handlers.PutRoomChanges, wso2jwt.ValidateJWT())
+	router.Put("/buildings/:building/rooms/:room", handlers.SetRoomState, wso2jwt.ValidateJWT())
 
 	// DELETE requests
 	router.Delete("/rooms/:room", handlers.UnimplementedResponse, wso2jwt.ValidateJWT())
