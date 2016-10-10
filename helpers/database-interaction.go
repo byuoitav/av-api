@@ -96,7 +96,6 @@ func setAudioInDB(building string, room string, device accessors.Device) error {
 
 	if device.Volume != nil {
 		url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/buildings/" + building + "/rooms/" + room + "/devices/" + device.Name + "/attributes/volume/" + strconv.Itoa(*device.Volume)
-		fmt.Printf(url + "\n")
 		request, err := http.NewRequest("PUT", url, nil)
 		client := &http.Client{}
 		_, err = client.Do(request)

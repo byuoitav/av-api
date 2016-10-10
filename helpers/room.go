@@ -2,7 +2,6 @@ package helpers
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -217,11 +216,11 @@ func changeAudioStateForMultipleDevices(roomInfo PublicRoom, room string, buildi
 					endpoint = ReplaceIPAddressEndpoint(endpoint, current.Address)
 					//this is our difference
 					if strings.Contains(endpoint, "difference") {
-						fmt.Printf("Current: %v, Desired: %v\n", *current.Volume, *desired.Volume)
+						log.Printf("Current: %v, Desired: %v\n", *current.Volume, *desired.Volume)
 						difference := *desired.Volume - *current.Volume
-						fmt.Printf("Difference: %v\n", difference)
+						log.Printf("Difference: %v\n", difference)
 						endpoint = strings.Replace(endpoint, ":difference", strconv.Itoa(difference), -1)
-						fmt.Printf("New Endpoint: %s\n", endpoint)
+						log.Printf("New Endpoint: %s\n", endpoint)
 					} else {
 						endpoint = strings.Replace(endpoint, ":level", strconv.Itoa(*desired.Volume), -1)
 					}
@@ -304,7 +303,6 @@ func changeCurrentPowerStateForMultipleDevices(roomInfo PublicRoom, room string,
 				device.Muted = &m
 				setAudioInDB(building, room, device)
 			}
-			log.Printf("Command not found.\n")
 		}
 	}
 
