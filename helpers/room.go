@@ -2,8 +2,10 @@ package helpers
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -35,6 +37,65 @@ type Display struct {
 	Power   string `json:"power"`
 	Input   string `json:"input"`
 	Blanked *bool  `json:"blanked"`
+}
+
+//actionStructure is the internal struct we use to pass commands around once
+//they've been evaluated.
+type actionStructure struct {
+	Action    string            `json:"action"`
+	Device    *accessors.Device `json:"device"`
+	Parameter string            `json:"parameter"`
+}
+
+//EditRoomStateNew is just a placeholder
+func EditRoomStateNew(roomInQuestion PublicRoom, building string, room string) error {
+
+	log.Printf("Room: %v\n", roomInQuestion)
+
+	//Evaluate commands
+	evaluateCommands(roomInQuestion, building, room)
+	return nil
+}
+
+/*
+	Note that is is important to add a command to this list and set the rules surounding that command (functionally mapping) property -> command
+	here.
+*/
+func evaluateCommands(roomInQuestion PublicRoom, building string, room string) (actions []actionStructure, err error) {
+
+	//getAllCommands
+	log.Printf("Getting command orders.")
+	commands, err := GetAllRawCommands()
+
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+		return
+	}
+
+	//order commands by priority
+	commands = orderCommands(commands)
+	fmt.Printf("%+v", commands)
+	//Switch on each command.
+
+	for _, c := range commands {
+		switch c.Name {
+		case "PowerOn":
+			break
+		case "Standby":
+			break
+		case "ChangeInput":
+			break
+
+		}
+	}
+
+	return
+}
+
+func orderCommands(commands []accessors.RawCommand) []accessors.RawCommand {
+	sorter := accessors.CommandSorterByPriority{Commands: commands}
+	sort.Sort(&sorter)
+	return sorter.Commands
 }
 
 //EditRoomState actually carries out the room

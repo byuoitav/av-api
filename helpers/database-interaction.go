@@ -31,6 +31,21 @@ func getData(url string, structToFill interface{}) error {
 	return nil
 }
 
+//GetAllRawCommands retrieves all the commands
+func GetAllRawCommands() (commands []accessors.RawCommand, err error) {
+	log.Printf("Getting all commands.")
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/commands"
+	err = getData(url, &commands)
+
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+		return
+	}
+
+	log.Printf("Done.")
+	return
+}
+
 //GetRoomByInfo simply retrieves a device's information from the databse.
 func GetRoomByInfo(roomName string, buildingName string) (accessors.Room, error) {
 	log.Printf("Getting room %s in building %s...", roomName, buildingName)
