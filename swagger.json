@@ -136,16 +136,24 @@
 				}
 			}
 		},
-		"DNS": {
+		"RoomRequest": {
 			"type": "object",
 			"properties": {
-				"address": {
+				"name": {
 					"type": "string",
-					"description": "The IP address of a DNS server"
+					"description": "The human-readable name of the room"
+				},
+				"roomID": {
+					"type": "string",
+					"description": "The room number"
+				},
+				"description": {
+					"type": "string",
+					"description": "A human-readable description of the room"
 				}
 			}
 		},
-		"Room": {
+		"RoomResponse": {
 			"type": "object",
 			"properties": {
 				"links": {
@@ -167,7 +175,7 @@
 					"description": "The current power state"
 				},
 				"blanked": {
-					"type": "bool",
+					"type": "boolean",
 					"description": "Whether or not the display is blanked"
 				},
 				"displays": {
@@ -200,11 +208,11 @@
 					"description": "The name of the current input to the audio device"
 				},
 				"muted": {
-					"type": "bool",
+					"type": "boolean",
 					"description": "Whether or not the audio device is currently muted"
 				},
 				"volume": {
-					"type": "int",
+					"type": "integer",
 					"description": "The volume of the audio device (usually between 0 and 100)"
 				}
 			}
@@ -225,7 +233,7 @@
 					"description": "The name of the current input to the audio device"
 				},
 				"muted": {
-					"type": "bool",
+					"type": "boolean",
 					"description": "Whether or not the audio device is currently muted"
 				}
 			}
