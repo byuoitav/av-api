@@ -11,9 +11,10 @@ import (
 //ActionStructure is the internal struct we use to pass commands around once
 //they've been evaluated.
 type ActionStructure struct {
-	Action    string            `json:"action"`
-	Device    *accessors.Device `json:"device"`
-	Parameter string            `json:"parameter"`
+	Action         string            `json:"action"`
+	Device         *accessors.Device `json:"device"`
+	Parameter      string            `json:"parameter"`
+	DeviceSpecific bool              `json:"deviceSpecific, omitempty"`
 }
 
 /*

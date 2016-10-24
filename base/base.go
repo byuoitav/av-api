@@ -12,19 +12,22 @@ type PublicRoom struct {
 	AudioDevices      []AudioDevice `json:"audioDevices"`
 }
 
+//Device is a struct for inheriting
+type Device struct {
+	Name  string `json:"name"`
+	Power string `json:"power"`
+	Input string `json:"input"`
+}
+
 //AudioDevice represents an audio device
 type AudioDevice struct {
-	Name   string `json:"name"`
-	Power  string `json:"power"`
-	Input  string `json:"input"`
-	Muted  *bool  `json:"muted"`
-	Volume *int   `json:"volume"`
+	Device
+	Muted  *bool `json:"muted"`
+	Volume *int  `json:"volume"`
 }
 
 //Display represents a display
 type Display struct {
-	Name    string `json:"name"`
-	Power   string `json:"power"`
-	Input   string `json:"input"`
-	Blanked *bool  `json:"blanked"`
+	Device
+	Blanked *bool `json:"blanked"`
 }

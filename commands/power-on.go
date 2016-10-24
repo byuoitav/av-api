@@ -25,7 +25,7 @@ func (p *PowerOn) Evaluate(room base.PublicRoom) (actions []ActionStructure, err
 		//Currently we only check for output devices.
 		for _, device := range devices {
 			if device.Output {
-				actions = append(actions, ActionStructure{Action: "PowerOn", Device: &device})
+				actions = append(actions, ActionStructure{Action: "PowerOn", Device: &device, DeviceSpecific: false})
 			}
 		}
 	}
@@ -45,7 +45,7 @@ func (p *PowerOn) Evaluate(room base.PublicRoom) (actions []ActionStructure, err
 				if err != nil {
 					return
 				}
-				actions = append(actions, ActionStructure{Action: "PowerOn", Device: dev})
+				actions = append(actions, ActionStructure{Action: "PowerOn", Device: dev, DeviceSpecific: true})
 			}
 		}
 	}
@@ -62,12 +62,15 @@ func (p *PowerOn) Evaluate(room base.PublicRoom) (actions []ActionStructure, err
 				if err != nil {
 					return
 				}
-				actions = append(actions, ActionStructure{Action: "PowerOn", Device: dev})
+				actions = append(actions, ActionStructure{Action: "PowerOn", Device: dev, DeviceSpecific: true})
 			}
 		}
 	}
 	return
 }
+
+//Work on the going though audio and video devices base device class. 
+func (*powerOn) 8
 
 //Validate fulfills the Fulfill requirement on the command interface
 func (p *PowerOn) Validate(actions []ActionStructure) (b bool, err error) {

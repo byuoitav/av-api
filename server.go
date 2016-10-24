@@ -30,7 +30,7 @@ func main() {
 
 	// router.Get("/buildings", handlers.GetAllBuildings, wso2jwt.ValidateJWT())
 	router.Get("/buildings/:building/rooms/:room", handlers.GetRoomByNameAndBuildingHandler, wso2jwt.ValidateJWT())
-	router.Get("/test", handlers.Test)
+	router.Put("/test/:building/:room", handlers.Test)
 
 	// PUT requests
 	router.Put("/buildings/:building/rooms/:room", handlers.SetRoomState, wso2jwt.ValidateJWT())
