@@ -7,7 +7,7 @@
                                              |
        +------------------------------------ +
        |
-       V                             
+       V
     +-----------+       +------------+
     | Reconcile | ----> |  Execute   |
     | Actions   |       |  actions   |
@@ -15,9 +15,9 @@
 
 +-------------------------Evalutate Command------------------------------+
 
-This will require mapping              
+This will require mapping
 properties to commands.                                Performed by the
-         |                                            /   "validate" function on  
+         |                                            /   "validate" function on
          |                                           /       the command struct.
          V                                          /
 +---------------+      +-------------+       +------------+
@@ -30,7 +30,7 @@ properties to commands.                                Performed by the
               \      /                             |
                \    /                              |
          Performed by the               Need to know properties
-        Evalute function on              required of a device
+        Evaluate function on              required of a device
        on the Command struct              for a given action.
 
 
@@ -42,14 +42,12 @@ properties to commands.                                Performed by the
 | based on building | --------------> |  based on property |
 | room and name.    |                 |                    |
 +-------------------+                 +--------------------+
-                                              |             
-         +----------------------------------- +             
-         |                                                  
-         V                                                  
-+-------------------+ 
+                                              |
+         +----------------------------------- +
+         |
+         V
++-------------------+
 |   If needed add   |
 |   property value  |
 |   as parameter.   |
 +-------------------+
-                                                             
-                                                            

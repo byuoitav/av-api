@@ -1,8 +1,10 @@
-package helpers
+package commands
 
 import (
 	"strings"
 
+	"github.com/byuoitav/av-api/base"
+	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/configuration-database-microservice/accessors"
 )
 
@@ -23,7 +25,7 @@ type CommandEvaluation interface {
 		 	Evalute takes a public room struct, scans the struct and builds any needed
 			actions based on the contents of the struct.
 	*/
-	Evaluate(PublicRoom) ([]ActionStructure, error)
+	Evaluate(base.PublicRoom) ([]ActionStructure, error)
 	/*
 		  Validate takes an action structure (for the command) and validates that the
 			device and parameter are valid for the comamnd.
@@ -36,67 +38,6 @@ type CommandEvaluation interface {
 	GetIncompatableActions() []string
 }
 
-//PowerOn is struct that implements the CommandEvaluation struct
-type PowerOn struct {
-}
-
-//Evaluate fulfills the CommmandEvaluation evaluate requirement.
-func (p *PowerOn) Evaluate(room PublicRoom) (actions []ActionStructure, err error) {
-	var devices []accessors.Device
-	if strings.EqualFold(room.Power, "on") {
-		//Get all devices.
-		devices, err = getDevicesByRoom(room.Room, room.Building)
-		if err != nil {
-			return
-		}
-
-		//Currently we only check for output devices.
-		for _, device := range devices {
-			if device.Output {
-				actions = append(actions, ActionStructure{Action: "PowerOn", Device: &device})
-			}
-		}
-	}
-
-	var dev *accessors.Device
-
-	//now we go through and check if power 'on' was set for any other device.
-	for _, device := range room.Displays {
-		if strings.EqualFold(device.Power, "on") {
-			//check if we already added it
-			index := checkActionListForDevice(actions, device.Name, room.Room, room.Building)
-			if index == -1 {
-
-				//Get the device, check the list of already retreived devices first, if not there,
-				//hit the DB up for it.
-				dev, err = getDevice(devices, device.Name, room.Room, room.Building)
-				if err != nil {
-					return
-				}
-				actions = append(actions, ActionStructure{Action: "PowerOn", Device: dev})
-			}
-		}
-	}
-
-	for _, device := range room.AudioDevices {
-		if strings.EqualFold(device.Power, "on") {
-			//check if we already added it
-			index := checkActionListForDevice(actions, device.Name, room.Room, room.Building)
-			if index == -1 {
-
-				//Get the device, check the list of already retreived devices first, if not there,
-				//hit the DB up for it.
-				dev, err = getDevice(devices, device.Name, room.Room, room.Building)
-				if err != nil {
-					return
-				}
-				actions = append(actions, ActionStructure{Action: "PowerOn", Device: dev})
-			}
-		}
-	}
-	return
-}
-
 func getDevice(devs []accessors.Device, d string, room string, building string) (dev *accessors.Device, err error) {
 	for i, curDevice := range devs {
 		if checkDevicesEqual(&curDevice, d, room, building) {
@@ -106,7 +47,7 @@ func getDevice(devs []accessors.Device, d string, room string, building string) 
 	}
 	var device accessors.Device
 
-	device, err = GetDeviceByName(room, building, d)
+	device, err = dbo.GetDeviceByName(room, building, d)
 	if err != nil {
 		return
 	}

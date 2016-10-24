@@ -4,6 +4,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/byuoitav/av-api/base"
+	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/av-api/helpers"
 	"github.com/labstack/echo"
 )
@@ -11,7 +13,7 @@ import (
 //GetRoomByNameAndBuildingHandler is almost identical to GetRoomByName
 func GetRoomByNameAndBuildingHandler(context echo.Context) error {
 	log.Printf("Getting room...")
-	room, err := helpers.GetRoomByInfo(context.Param("room"), context.Param("building"))
+	room, err := dbo.GetRoomByInfo(context.Param("room"), context.Param("building"))
 	if err != nil {
 		return context.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 	}
@@ -46,7 +48,7 @@ func SetRoomState(context echo.Context) error {
 	building, room := context.Param("building"), context.Param("room")
 	log.Printf("Putting room changes.\n")
 
-	var roomInQuestion helpers.PublicRoom
+	var roomInQuestion base.PublicRoom
 	err := context.Bind(&roomInQuestion)
 	if err != nil {
 		return context.JSON(http.StatusBadRequest, helpers.ReturnError(err))
@@ -64,7 +66,7 @@ func Test(context echo.Context) error {
 	building, room := context.Param("building"), context.Param("room")
 	log.Printf("Putting room changes.\n")
 
-	var roomInQuestion helpers.PublicRoom
+	var roomInQuestion base.PublicRoom
 	err := context.Bind(&roomInQuestion)
 	if err != nil {
 		return context.JSON(http.StatusBadRequest, helpers.ReturnError(err))
