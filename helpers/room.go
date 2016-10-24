@@ -14,6 +14,8 @@ import (
 
 //PublicRoom is the struct that is returned (or put) as part of the public API
 type PublicRoom struct {
+	Building          string        `json:"building, omitempty"`
+	Room              string        `json:"room, omitempty"`
 	CurrentVideoInput string        `json:"currentVideoInput"`
 	CurrentAudioInput string        `json:"currentAudioInput"`
 	Power             string        `json:"power"`
@@ -39,21 +41,13 @@ type Display struct {
 	Blanked *bool  `json:"blanked"`
 }
 
-//actionStructure is the internal struct we use to pass commands around once
-//they've been evaluated.
-type actionStructure struct {
-	Action    string            `json:"action"`
-	Device    *accessors.Device `json:"device"`
-	Parameter string            `json:"parameter"`
-}
-
 //EditRoomStateNew is just a placeholder
-func EditRoomStateNew(roomInQuestion PublicRoom, building string, room string) error {
+func EditRoomStateNew(roomInQuestion PublicRoom) error {
 
 	log.Printf("Room: %v\n", roomInQuestion)
 
 	//Evaluate commands
-	evaluateCommands(roomInQuestion, building, room)
+	evaluateCommands(roomInQuestion)
 	return nil
 }
 
@@ -61,7 +55,7 @@ func EditRoomStateNew(roomInQuestion PublicRoom, building string, room string) e
 	Note that is is important to add a command to this list and set the rules surounding that command (functionally mapping) property -> command
 	here.
 */
-func evaluateCommands(roomInQuestion PublicRoom, building string, room string) (actions []actionStructure, err error) {
+func evaluateCommands(roomInQuestion PublicRoom) (actions []ActionStructure, err error) {
 
 	//getAllCommands
 	log.Printf("Getting command orders.")
@@ -79,12 +73,6 @@ func evaluateCommands(roomInQuestion PublicRoom, building string, room string) (
 
 	for _, c := range commands {
 		switch c.Name {
-		case "PowerOn":
-			break
-		case "Standby":
-			break
-		case "ChangeInput":
-			break
 
 		}
 	}

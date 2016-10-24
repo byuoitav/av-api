@@ -70,5 +70,8 @@ func Test(context echo.Context) error {
 		return context.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 	}
 
-	return helpers.EditRoomStateNew(roomInQuestion, building, room)
+	roomInQuestion.Building = building
+	roomInQuestion.Room = room
+
+	return helpers.EditRoomStateNew(roomInQuestion)
 }
