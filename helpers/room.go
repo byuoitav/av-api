@@ -73,7 +73,7 @@ func EditRoomState(roomInQuestion base.PublicRoom) error {
 	}
 
 	//Reconcile actions
-	err = commands.ReconcileActions(actions)
+	err = commands.ReconcileActions(&actions)
 	if err != nil {
 		return err
 	}

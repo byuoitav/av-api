@@ -15,8 +15,9 @@ import (
 type ActionStructure struct {
 	Action         string            `json:"action"`
 	Device         *accessors.Device `json:"device"`
-	Parameter      string            `json:"parameter"`
+	Parameters     []string          `json:"parameters"`
 	DeviceSpecific bool              `json:"deviceSpecific, omitempty"`
+	overridden     bool
 }
 
 /*
@@ -81,13 +82,13 @@ func ExecuteActions(actions []ActionStructure) (err error) {
 }
 
 //ReconcileActions checks for incompatable actions within the structure passed in.
-func ReconcileActions(actions []ActionStructure) (err error) {
+func ReconcileActions(actions *[]ActionStructure) (err error) {
 	log.Printf("Reconciling actions.")
 	deviceActionMap := make(map[int][]ActionStructure)
 
 	log.Printf("Generating device action set.")
 	//generate a set of actions for each device.
-	for _, a := range actions {
+	for _, a := range *actions {
 		if _, has := deviceActionMap[a.Device.ID]; has {
 			deviceActionMap[a.Device.ID] = append(deviceActionMap[a.Device.ID], a)
 		} else {
@@ -98,32 +99,49 @@ func ReconcileActions(actions []ActionStructure) (err error) {
 	log.Printf("Checking for incompatable actions.")
 	for devID, v := range deviceActionMap {
 		//for each device, construct set of actions
-		actions := make(map[string]bool)
-		incompat := make(map[string]string)
+		actions := make(map[string]*ActionStructure)
+		incompat := make(map[string]*ActionStructure)
 
 		for _, action := range v {
-			actions[action.Action] = true
+			actions[action.Action] = &action
 			//for each device, construct set of incompatable actions
+			//Value is the action that generated the incompatable action.
 			incompatableActions := CommandMap[action.Action].GetIncompatableActions()
 			for _, incompatAct := range incompatableActions {
-				incompat[incompatAct] = action.Action
+				incompat[incompatAct] = &action
 			}
 		}
 
 		//find intersection of sets.
-		for k := range actions {
-			for incompatableAction, baseAction := range incompat {
+		for k, baseAction := range actions {
+			if baseAction.overridden {
+				continue
+			}
+
+			for incompatableAction, baseAction1 := range incompat {
+				if baseAction1.overridden {
+					continue
+				}
+
 				if strings.EqualFold(k, incompatableAction) {
-					errorString := incompatableAction + " is an incompatable action with " + baseAction + " for device with ID: " +
-						string(devID)
-					log.Printf("%s", errorString)
-					err = errors.New(errorString)
-					return
+
+					// if one of them is room wide and the other is override the room-wide
+					// action.
+					if !baseAction.DeviceSpecific && baseAction.DeviceSpecific {
+						baseAction.overridden = true
+					} else if baseAction.DeviceSpecific && !baseAction.DeviceSpecific {
+						baseAction1.overridden = true
+					} else {
+						errorString := incompatableAction + " is an incompatable action with " + baseAction1.Action + " for device with ID: " +
+							string(devID)
+						log.Printf("%s", errorString)
+						err = errors.New(errorString)
+						return
+					}
 				}
 			}
 		}
 	}
-
 	log.Printf("Done.")
 	return
 }
@@ -134,13 +152,13 @@ func checkDevicesEqual(dev *accessors.Device, name string, room string, building
 		strings.EqualFold(dev.Building.Shortname, building)
 }
 
-func checkCommands(commands []accessors.Command, commandName string) bool {
+func checkCommands(commands []accessors.Command, commandName string) (bool, accessors.Command) {
 	for _, c := range commands {
 		if strings.EqualFold(c.Name, commandName) {
-			return true
+			return true, c
 		}
 	}
-	return false
+	return false, accessors.Command{}
 }
 
 //Init adds the commands to the commandMap here.
