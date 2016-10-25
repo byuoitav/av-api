@@ -14,11 +14,20 @@ import (
 //ActionStructure is the internal struct we use to pass commands around once
 //they've been evaluated.
 type ActionStructure struct {
-	Action         string            `json:"action"`
-	Device         *accessors.Device `json:"device"`
-	Parameters     []string          `json:"parameters"`
-	DeviceSpecific bool              `json:"deviceSpecific, omitempty"`
+	Action         string           `json:"action"`
+	Device         accessors.Device `json:"device"`
+	Parameters     []string         `json:"parameters"`
+	DeviceSpecific bool             `json:"deviceSpecific, omitempty"`
 	overridden     bool
+}
+
+//CommandExecutionReporting is a struct we use to keep track of command execution
+//for reporting to the user.
+type CommandExecutionReporting struct {
+	Success bool   `json:"success"`
+	Action  string `json:"action"`
+	Device  string `json:"device"`
+	Err     string `json:"error"`
 }
 
 /*
@@ -48,10 +57,10 @@ type CommandEvaluation interface {
 var CommandMap = make(map[string]CommandEvaluation)
 var commandMapInitialized = false
 
-func getDevice(devs []accessors.Device, d string, room string, building string) (dev *accessors.Device, err error) {
+func getDevice(devs []accessors.Device, d string, room string, building string) (dev accessors.Device, err error) {
 	for i, curDevice := range devs {
-		if checkDevicesEqual(&curDevice, d, room, building) {
-			dev = &devs[i]
+		if checkDevicesEqual(curDevice, d, room, building) {
+			dev = devs[i]
 			return
 		}
 	}
@@ -61,7 +70,7 @@ func getDevice(devs []accessors.Device, d string, room string, building string) 
 	if err != nil {
 		return
 	}
-	dev = &device
+	dev = device
 	return
 }
 
@@ -77,8 +86,7 @@ func checkActionListForDevice(a []ActionStructure, d string, room string, buildi
 }
 
 //ExecuteActions carries out the actions defined in the struct
-func ExecuteActions(actions []ActionStructure) (err error) {
-
+func ExecuteActions(actions []ActionStructure) (status []CommandExecutionReporting, err error) {
 	for _, a := range actions {
 		if a.overridden {
 			continue
@@ -89,7 +97,8 @@ func ExecuteActions(actions []ActionStructure) (err error) {
 			errorStr := "There was an error retrieving the command " + a.Action +
 				" for device " + a.Device.Name
 			log.Printf("%s", errorStr)
-			return errors.New(errorStr)
+			err = errors.New(errorStr)
+			return
 		}
 
 		//replace the address
@@ -105,6 +114,7 @@ func ExecuteActions(actions []ActionStructure) (err error) {
 				log.Printf("%s", errorString)
 
 				err = errors.New(errorString)
+				return
 			}
 			end := strings.Index(endpoint[:indx], "/")
 			if end == -1 {
@@ -115,7 +125,26 @@ func ExecuteActions(actions []ActionStructure) (err error) {
 		}
 
 		//Execute the command.
-		http.Get(cmd.Microservice + endpoint)
+		_, er := http.Get(cmd.Microservice + endpoint)
+
+		//iff error, record it
+		if er != nil {
+			log.Printf("ERROR: %s. Continuing.", er.Error())
+			status = append(status, CommandExecutionReporting{
+				Success: false,
+				Action:  a.Action,
+				Device:  a.Device.Name,
+				Err:     er.Error(),
+			})
+		} else {
+			log.Printf("Successfully sent command %s to device %s.", a.Action, a.Device.Name)
+			status = append(status, CommandExecutionReporting{
+				Success: true,
+				Action:  a.Action,
+				Device:  a.Device.Name,
+				Err:     "",
+			})
+		}
 	}
 
 	return
@@ -186,7 +215,7 @@ func ReconcileActions(actions *[]ActionStructure) (err error) {
 	return
 }
 
-func checkDevicesEqual(dev *accessors.Device, name string, room string, building string) bool {
+func checkDevicesEqual(dev accessors.Device, name string, room string, building string) bool {
 	return strings.EqualFold(dev.Name, name) &&
 		strings.EqualFold(dev.Room.Name, room) &&
 		strings.EqualFold(dev.Building.Shortname, building)

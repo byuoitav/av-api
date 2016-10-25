@@ -1,7 +1,6 @@
 package helpers
 
 import (
-	"fmt"
 	"log"
 	"sort"
 	"strings"
@@ -29,14 +28,18 @@ func evaluateCommands(roomInQuestion base.PublicRoom) (actions []commands.Action
 
 	//order commands by priority
 	rawCommands = orderCommands(rawCommands)
-	fmt.Printf("%+v", rawCommands)
 
 	//Switch on each command.
 	var tempActions []commands.ActionStructure
 	for _, c := range rawCommands {
+		log.Printf("Evaluating command %v.", c.Name)
 
 		//go through map and call evaluate, and then validate. Add them to action list.
-		curCommand := commands.CommandMap[c.Name]
+		curCommand, has := commands.CommandMap[c.Name]
+		if !has {
+			log.Printf("ERROR: No entry for command %s. Skipping.", c.Name)
+			continue
+		}
 
 		tempActions, err = curCommand.Evaluate(roomInQuestion)
 		if err != nil {
@@ -49,6 +52,7 @@ func evaluateCommands(roomInQuestion base.PublicRoom) (actions []commands.Action
 		}
 
 		actions = append(actions, tempActions...)
+		log.Printf("Done evaluating command %v.", c.Name)
 	}
 
 	return
@@ -61,7 +65,7 @@ func orderCommands(commands []accessors.RawCommand) []accessors.RawCommand {
 }
 
 //EditRoomState actually carries out the room
-func EditRoomState(roomInQuestion base.PublicRoom) error {
+func EditRoomState(roomInQuestion base.PublicRoom) (report []commands.CommandExecutionReporting, er error) {
 
 	//Initialize
 	commands.Init()
@@ -69,19 +73,21 @@ func EditRoomState(roomInQuestion base.PublicRoom) error {
 	//Evaluate commands
 	actions, err := evaluateCommands(roomInQuestion)
 	if err != nil {
-		return err
+		er = err
+		return
 	}
 
 	//Reconcile actions
 	err = commands.ReconcileActions(&actions)
 	if err != nil {
-		return err
+		er = err
+		return
 	}
 
 	//execute actions.
-	err = commands.ExecuteActions(actions)
+	report, er = commands.ExecuteActions(actions)
 
-	return err
+	return
 }
 
 /*

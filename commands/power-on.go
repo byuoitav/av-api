@@ -27,9 +27,10 @@ func (p *PowerOn) Evaluate(room base.PublicRoom) (actions []ActionStructure, err
 		}
 		log.Printf("Setting power 'on' state for all output devices.")
 		//Currently we only check for output devices.
-		for _, device := range devices {
-			if device.Output {
-				actions = append(actions, ActionStructure{Action: "PowerOn", Device: &device, DeviceSpecific: false})
+		for i := range devices {
+			if devices[i].Output {
+				log.Printf("Adding device %+v", devices[i].Name)
+				actions = append(actions, ActionStructure{Action: "PowerOn", Device: devices[i], DeviceSpecific: false})
 			}
 		}
 	}
@@ -50,7 +51,7 @@ func (p *PowerOn) Evaluate(room base.PublicRoom) (actions []ActionStructure, err
 			return
 		}
 	}
-	log.Printf("Actions generated: %+v.", actions)
+	log.Printf("%v actions generated.", len(actions))
 	log.Printf("Evaluation complete.")
 
 	return
@@ -83,7 +84,7 @@ func (p *PowerOn) evaluateDevice(device base.Device,
 	actions []ActionStructure,
 	devices []accessors.Device,
 	room string,
-	building string) (toReturn []ActionStructure, err error) {
+	building string) ([]ActionStructure, error) {
 
 	//Check if we even need to start anything
 	if strings.EqualFold(device.Power, "on") {
@@ -93,13 +94,18 @@ func (p *PowerOn) evaluateDevice(device base.Device,
 
 			//Get the device, check the list of already retreived devices first, if not there,
 			//hit the DB up for it.
-			var dev *accessors.Device
-			dev, err = getDevice(devices, device.Name, room, building)
+			dev, err := getDevice(devices, device.Name, room, building)
 			if err != nil {
-				return
+				return actions, err
 			}
-			toReturn = append(actions, ActionStructure{Action: "PowerOn", Device: dev, DeviceSpecific: true})
+			actions = append(actions, ActionStructure{Action: "PowerOn", Device: dev, DeviceSpecific: true})
 		}
 	}
-	return
+	return actions, nil
+}
+
+func logActions(a []ActionStructure) {
+	for _, v := range a {
+		log.Printf("%s: %v: %v", v.Action, v.Device.Name, v.Device)
+	}
 }
