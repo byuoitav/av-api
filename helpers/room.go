@@ -29,7 +29,7 @@ func evaluateCommands(roomInQuestion base.PublicRoom) (actions []commands.Action
 	//order commands by priority
 	rawCommands = orderCommands(rawCommands)
 
-	//Switch on each command.
+	//iterate through all commands
 	var tempActions []commands.ActionStructure
 	for _, c := range rawCommands {
 		log.Printf("Evaluating command %v.", c.Name)

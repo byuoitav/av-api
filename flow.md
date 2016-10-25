@@ -1,4 +1,3 @@
-'''
 +----------------------------Overview-----------------------------------+
 
 +------------+      +----------+       +------------+
@@ -14,7 +13,9 @@
     | Actions   |       |  actions   |
     +---------- +       +------------+
 
-+-------------------------Evalutate Command------------------------------+
++-------------------------Evaluate Command------------------------------+
+* An action is simply a struct in the Go source code that is passed
+  between functions
 
 This will require mapping
 properties to commands.                                Performed by the
@@ -56,7 +57,8 @@ properties to commands.                                Performed by the
 
 
 +-------------------------Reconcile Actions------------------------------+
-
+* Reconciling actions makes sure that commands are not executed in
+  conflicting order
 
 +------------------+       +------------------+      +---------------+
 |  Build set of    |       | For each action  |      | Intersect sets|
@@ -73,4 +75,3 @@ properties to commands.                                Performed by the
 | are room-wide. If yes|       | Return error.    |
 | override it.         |       |                  |
 +----------------------+       +------------------+
-'''
