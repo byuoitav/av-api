@@ -3,6 +3,7 @@ package commands
 import (
 	"errors"
 	"log"
+	"net/http"
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
@@ -77,6 +78,45 @@ func checkActionListForDevice(a []ActionStructure, d string, room string, buildi
 
 //ExecuteActions carries out the actions defined in the struct
 func ExecuteActions(actions []ActionStructure) (err error) {
+
+	for _, a := range actions {
+		if a.overridden {
+			continue
+		}
+
+		has, cmd := checkCommands(a.Device.Commands, a.Action)
+		if !has {
+			errorStr := "There was an error retrieving the command " + a.Action +
+				" for device " + a.Device.Name
+			log.Printf("%s", errorStr)
+			return errors.New(errorStr)
+		}
+
+		//replace the address
+		endpoint := ReplaceIPAddressEndpoint(cmd.Endpoint.Path, a.Device.Address)
+
+		//go through and replace the parameters with the parameters in the actions
+		for i := range a.Parameters {
+			indx := strings.Index(endpoint, ":")
+			if indx == -1 {
+				errorString := "Not enough parameter locations in endpoint string for command " +
+					cmd.Name + " for device " + a.Device.Name + ". Expected " + string(len(a.Parameters))
+
+				log.Printf("%s", errorString)
+
+				err = errors.New(errorString)
+			}
+			end := strings.Index(endpoint[:indx], "/")
+			if end == -1 {
+				endpoint = endpoint[:indx] + a.Parameters[i]
+			} else {
+				endpoint = endpoint[:indx] + a.Parameters[i] + endpoint[end:]
+			}
+		}
+
+		//Execute the command.
+		http.Get(cmd.Microservice + endpoint)
+	}
 
 	return
 }
@@ -170,4 +210,15 @@ func Init() *map[string]CommandEvaluation {
 	}
 
 	return &CommandMap
+}
+
+/*
+ReplaceIPAddressEndpoint is a simple helper
+*/
+func ReplaceIPAddressEndpoint(path string, address string) string {
+	//magic strings
+	toReplace := ":address"
+
+	return strings.Replace(path, toReplace, address, -1)
+
 }
