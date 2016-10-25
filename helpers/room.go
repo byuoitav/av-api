@@ -12,16 +12,6 @@ import (
 	"github.com/byuoitav/configuration-database-microservice/accessors"
 )
 
-//EditRoomStateNew is just a placeholder
-func EditRoomStateNew(roomInQuestion base.PublicRoom) error {
-
-	log.Printf("Room: %v\n", roomInQuestion)
-
-	//Evaluate commands
-	evaluateCommands(roomInQuestion)
-	return nil
-}
-
 /*
 	Note that is is important to add a command to this list and set the rules surounding that command (functionally mapping) property -> command
 	here.
@@ -30,7 +20,7 @@ func evaluateCommands(roomInQuestion base.PublicRoom) (actions []commands.Action
 
 	//getAllCommands
 	log.Printf("Getting command orders.")
-	commands, err := dbo.GetAllRawCommands()
+	rawCommands, err := dbo.GetAllRawCommands()
 
 	if err != nil {
 		log.Printf("Error: %s", err.Error())
@@ -38,14 +28,27 @@ func evaluateCommands(roomInQuestion base.PublicRoom) (actions []commands.Action
 	}
 
 	//order commands by priority
-	commands = orderCommands(commands)
-	fmt.Printf("%+v", commands)
+	rawCommands = orderCommands(rawCommands)
+	fmt.Printf("%+v", rawCommands)
+
 	//Switch on each command.
+	var tempActions []commands.ActionStructure
+	for _, c := range rawCommands {
 
-	for _, c := range commands {
-		switch c.Name {
+		//go through map and call evaluate, and then validate. Add them to action list.
+		curCommand := commands.CommandMap[c.Name]
 
+		tempActions, err = curCommand.Evaluate(roomInQuestion)
+		if err != nil {
+			return
 		}
+
+		err = curCommand.Validate(tempActions)
+		if err != nil {
+			return
+		}
+
+		actions = append(actions, tempActions...)
 	}
 
 	return
@@ -58,9 +61,27 @@ func orderCommands(commands []accessors.RawCommand) []accessors.RawCommand {
 }
 
 //EditRoomState actually carries out the room
-func EditRoomState(roomInQuestion base.PublicRoom, building string, room string) error {
+func EditRoomState(roomInQuestion base.PublicRoom) error {
 
-	return nil
+	//Initialize
+	commands.Init()
+
+	//Evaluate commands
+	actions, err := evaluateCommands(roomInQuestion)
+	if err != nil {
+		return err
+	}
+
+	//Reconcile actions
+	err = commands.ReconcileActions(actions)
+	if err != nil {
+		return err
+	}
+
+	//execute actions.
+	err = commands.ExecuteActions(actions)
+
+	return err
 }
 
 /*

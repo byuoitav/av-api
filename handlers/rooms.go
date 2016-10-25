@@ -53,27 +53,11 @@ func SetRoomState(context echo.Context) error {
 	if err != nil {
 		return context.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 	}
+	roomInQuestion.Room = room
+	roomInQuestion.Building = building
 
-	helpers.EditRoomState(roomInQuestion, building, room)
+	helpers.EditRoomState(roomInQuestion)
 
 	log.Printf("Done.\n")
 	return context.JSON(http.StatusOK, "Success")
-}
-
-//Test is a test endpoint
-//TODO: REMOVE
-func Test(context echo.Context) error {
-	building, room := context.Param("building"), context.Param("room")
-	log.Printf("Putting room changes.\n")
-
-	var roomInQuestion base.PublicRoom
-	err := context.Bind(&roomInQuestion)
-	if err != nil {
-		return context.JSON(http.StatusBadRequest, helpers.ReturnError(err))
-	}
-
-	roomInQuestion.Building = building
-	roomInQuestion.Room = room
-
-	return helpers.EditRoomStateNew(roomInQuestion)
 }

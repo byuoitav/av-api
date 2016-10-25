@@ -1,6 +1,8 @@
 package commands
 
 import (
+	"errors"
+	"log"
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
@@ -28,16 +30,21 @@ type CommandEvaluation interface {
 	*/
 	Evaluate(base.PublicRoom) ([]ActionStructure, error)
 	/*
-		  Validate takes an action structure (for the command) and validates that the
-			device and parameter are valid for the comamnd.
+		  Validate takes a set of action structures (for the command) and validates
+			that the device and parameter are valid for the comamnd.
 	*/
-	Validate(ActionStructure) (bool, error)
+	Validate([]ActionStructure) error
 	/*
 			   GetIncompatableActions returns A list of commands that are incompatable
 		     with this one (i.e. 'standby' and 'power on', or 'mute' and 'volume up')
 	*/
 	GetIncompatableActions() []string
 }
+
+//CommandMap is a singleton that
+//maps known commands to their evaluation structure. init will return a pointer to this.
+var CommandMap = make(map[string]CommandEvaluation)
+var commandMapInitialized = false
 
 func getDevice(devs []accessors.Device, d string, room string, building string) (dev *accessors.Device, err error) {
 	for i, curDevice := range devs {
@@ -67,6 +74,60 @@ func checkActionListForDevice(a []ActionStructure, d string, room string, buildi
 	return -1
 }
 
+//ExecuteActions carries out the actions defined in the struct
+func ExecuteActions(actions []ActionStructure) (err error) {
+
+	return
+}
+
+//ReconcileActions checks for incompatable actions within the structure passed in.
+func ReconcileActions(actions []ActionStructure) (err error) {
+	log.Printf("Reconciling actions.")
+	deviceActionMap := make(map[int][]ActionStructure)
+
+	log.Printf("Generating device action set.")
+	//generate a set of actions for each device.
+	for _, a := range actions {
+		if _, has := deviceActionMap[a.Device.ID]; has {
+			deviceActionMap[a.Device.ID] = append(deviceActionMap[a.Device.ID], a)
+		} else {
+			deviceActionMap[a.Device.ID] = []ActionStructure{a}
+		}
+	}
+
+	log.Printf("Checking for incompatable actions.")
+	for devID, v := range deviceActionMap {
+		//for each device, construct set of actions
+		actions := make(map[string]bool)
+		incompat := make(map[string]string)
+
+		for _, action := range v {
+			actions[action.Action] = true
+			//for each device, construct set of incompatable actions
+			incompatableActions := CommandMap[action.Action].GetIncompatableActions()
+			for _, incompatAct := range incompatableActions {
+				incompat[incompatAct] = action.Action
+			}
+		}
+
+		//find intersection of sets.
+		for k := range actions {
+			for incompatableAction, baseAction := range incompat {
+				if strings.EqualFold(k, incompatableAction) {
+					errorString := incompatableAction + " is an incompatable action with " + baseAction + " for device with ID: " +
+						string(devID)
+					log.Printf("%s", errorString)
+					err = errors.New(errorString)
+					return
+				}
+			}
+		}
+	}
+
+	log.Printf("Done.")
+	return
+}
+
 func checkDevicesEqual(dev *accessors.Device, name string, room string, building string) bool {
 	return strings.EqualFold(dev.Name, name) &&
 		strings.EqualFold(dev.Room.Name, room) &&
@@ -80,4 +141,15 @@ func checkCommands(commands []accessors.Command, commandName string) bool {
 		}
 	}
 	return false
+}
+
+//Init adds the commands to the commandMap here.
+func Init() *map[string]CommandEvaluation {
+	if !commandMapInitialized {
+		CommandMap["PowerOn"] = &PowerOn{}
+
+		commandMapInitialized = true
+	}
+
+	return &CommandMap
 }

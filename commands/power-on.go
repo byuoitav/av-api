@@ -56,6 +56,27 @@ func (p *PowerOn) Evaluate(room base.PublicRoom) (actions []ActionStructure, err
 	return
 }
 
+//Validate fulfills the Fulfill requirement on the command interface
+func (p *PowerOn) Validate(actions []ActionStructure) (err error) {
+	log.Printf("Validating action list for command PowerOn.")
+	for _, action := range actions {
+		if !checkCommands(action.Device.Commands, "PowerOn") || !strings.EqualFold(action.Action, "PowerOn") {
+			log.Printf("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
+			return errors.New(action.Action + " is an invalid command for" + action.Device.Name)
+		}
+	}
+	log.Printf("Done.")
+	return
+}
+
+//GetIncompatableActions keeps track of actions that are incompatable (on the same device)
+func (p *PowerOn) GetIncompatableActions() (incompatableActions []string) {
+	incompatableActions = []string{
+		"PowerOff",
+	}
+	return
+}
+
 //Evaluate devices just pulls out the process we do with the audio-devices and
 //displays into one function.
 func (p *PowerOn) evaluateDevice(device base.Device,
@@ -79,17 +100,4 @@ func (p *PowerOn) evaluateDevice(device base.Device,
 		}
 	}
 	return nil
-}
-
-//Validate fulfills the Fulfill requirement on the command interface
-func (p *PowerOn) Validate(actions []ActionStructure) (err error) {
-	log.Printf("Validating action list.")
-	for _, action := range actions {
-		if !checkCommands(action.Device.Commands, "PowerOn") {
-			log.Printf("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
-			return errors.New("%s is an invalid command for %s", action.Action, action.Device.Name)
-		}
-	}
-	log.Printf("Done.")
-	return
 }

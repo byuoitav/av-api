@@ -1,3 +1,4 @@
+'''
 +----------------------------Overview-----------------------------------+
 
 +------------+      +----------+       +------------+
@@ -19,13 +20,13 @@ This will require mapping
 properties to commands.                                Performed by the
          |                                            /   "validate" function on
          |                                           /       the command struct.
-         V                                          /
+         |                                          /
 +---------------+      +-------------+       +------------+
 |Check struct   | ---> |  Generate   | ----> |  validate  |
 |for properties |      |  Actions    |       |  Action(s) |
 |relating to cmd|      |             |       |            |
 +---------------+      +-------------+       +------------+
-            \          /                           ^
+            \          /                           |
              \        /                            |
               \      /                             |
                \    /                              |
@@ -51,3 +52,24 @@ properties to commands.                                Performed by the
 |   property value  |
 |   as parameter.   |
 +-------------------+
+
+
+
++-------------------------Reconcile Actions------------------------------+
+
+
++------------------+       +------------------+      +---------------+
+|  Build set of    |       | For each action  |      | Intersect sets|
+| actions for each | ----> | get incompatable | ---> | if not empty, |
+|      device      |       | commands.        |      | return error  |
++------------------+       +------------------+      +---------------+
+                                                              |
+        +-----------If incompatable found---------------------+
+        |
+        V
++------------------+
+| Find which were  |
+| incompatable.    |
+| Return error.    |
++------------------+
+'''
