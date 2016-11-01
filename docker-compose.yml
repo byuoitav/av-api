@@ -1,8 +1,71 @@
-version: '2'
-services:
-  av-api:
+av-api:
     build: .
     ports:
-     - "8000:8000"
-    volumes:
-     - .:/code
+        - "8000"
+    links:
+        - configuration-database-microservice
+    environment:
+        - LOCAL_ENVIRONMENT="true"
+        - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS 
+        - EMS_API_USERNAME=$EMS_API_USERNAME 
+        - EMS_API_PASSWORD=$EMS_API_PASSWORD
+telnet-microservice:
+    image: byuoitav/telnet-microservice:latest
+    ports:
+        - "8001"
+    environment:
+        - LOCAL_ENVIRONMENT="true"
+ftp-microservice:
+    image: byuoitav/ftp-microservice:latest
+    ports:
+        - "8002"
+    environment:
+        - LOCAL_ENVIRONMENT="true"
+wait-for-restart-microservice:
+    image: byuoitav/wait-for-restart-microservice:latest
+    ports:
+        - "8003"
+    environment:
+        - LOCAL_ENVIRONMENT="true"
+pjlink-microservice:
+    image: byuoitav/pjlink-microservice:latest
+    ports:
+        - "8005"
+    environment:
+        - LOCAL_ENVIRONMENT="true"
+        - PJLINK_PORT=$PJLINK_PORT 
+        - PJLINK_PASS=$PJLINK_PASS
+configuration-database-microservice:
+    image: byuoitav/configuration-database-microservice:latest
+    ports:
+        - "8006"
+    environment:
+        - LOCAL_ENVIRONMENT="true"
+        - CONFIGURATION_DATABASE_USERNAME=$CONFIGURATION_DATABASE_USERNAME 
+        - CONFIGURATION_DATABASE_PASSWORD=$CONFIGURATION_DATABASE_PASSWORD 
+        - CONFIGURATION_DATABASE_HOST=$CONFIGURATION_DATABASE_HOST 
+        - CONFIGURATION_DATABASE_PORT=$CONFIGURATION_DATABASE_PORT 
+        - CONFIGURATION_DATABASE_NAME=$CONFIGURATION_DATABASE_NAME
+sony-control-microservice:
+    image: byuoitav/sony-control-microservice:latest
+    ports:
+        - "8007"
+    environment:
+        - LOCAL_ENVIRONMENT="true"
+        - SONY_TV_PSK=$SONY_TV_PSK
+raspi-deployment-microservice:
+    image: byuoitav/raspi-deployment-microservice:latest
+    ports:
+        - "8008"
+    environment:
+        - LOCAL_ENVIRONMENT="true"
+        - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
+        - ELK_ADDRESS=$ELK_ADDRESS
+        - PI_SSH_PASSWORD=$PI_SSH_PASSWORD
+        - PI_SSH_USERNAME=$PI_SSH_USERNAME
+london-audio-microservice:
+    image: byuoitav/london-audio-microservice:latest
+    ports:
+        - "8009"
+    environment:
+        - LOCAL_ENVIRONMENT="true"
