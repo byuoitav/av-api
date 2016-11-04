@@ -1,7 +1,9 @@
 package commands
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -18,7 +20,7 @@ type ActionStructure struct {
 	Device         accessors.Device `json:"device"`
 	Parameters     []string         `json:"parameters"`
 	DeviceSpecific bool             `json:"deviceSpecific, omitempty"`
-	overridden     bool
+	Overridden     bool             `json:"overridden"`
 }
 
 //CommandExecutionReporting is a struct we use to keep track of command execution
@@ -88,7 +90,9 @@ func checkActionListForDevice(a []ActionStructure, d string, room string, buildi
 //ExecuteActions carries out the actions defined in the struct
 func ExecuteActions(actions []ActionStructure) (status []CommandExecutionReporting, err error) {
 	for _, a := range actions {
-		if a.overridden {
+		if a.Overridden {
+			log.Printf("Action %s on device %s have been overriden. Continuing.",
+				a.Action, a.Device.Name)
 			continue
 		}
 
@@ -168,40 +172,58 @@ func ReconcileActions(actions *[]ActionStructure) (err error) {
 	log.Printf("Checking for incompatable actions.")
 	for devID, v := range deviceActionMap {
 		//for each device, construct set of actions
-		actions := make(map[string]*ActionStructure)
-		incompat := make(map[string]*ActionStructure)
+		actionsForEvaluation := make(map[string]ActionStructure)
+		incompat := make(map[string]ActionStructure)
 
-		for _, action := range v {
-			actions[action.Action] = &action
+		for i := 0; i < len(v); i++ {
+			actionsForEvaluation[v[i].Action] = v[i]
 			//for each device, construct set of incompatable actions
 			//Value is the action that generated the incompatable action.
-			incompatableActions := CommandMap[action.Action].GetIncompatableActions()
+			incompatableActions := CommandMap[v[i].Action].GetIncompatableActions()
 			for _, incompatAct := range incompatableActions {
-				incompat[incompatAct] = &action
+				incompat[incompatAct] = v[i]
 			}
 		}
 
 		//find intersection of sets.
-		for k, baseAction := range actions {
-			if baseAction.overridden {
+
+		//baseAction is the actionStructure generating the action (for cur action)
+		//incompatableBaseAction is the actionStructure that generated the incompatable action.
+		for curAction, baseAction := range actionsForEvaluation {
+			fmt.Printf("%v: %+v\n", curAction, baseAction)
+			if baseAction.Overridden {
 				continue
 			}
 
-			for incompatableAction, baseAction1 := range incompat {
-				if baseAction1.overridden {
+			for incompatableAction, incompatableBaseAction := range incompat {
+				if incompatableBaseAction.Overridden {
 					continue
 				}
 
-				if strings.EqualFold(k, incompatableAction) {
-
-					// if one of them is room wide and the other is override the room-wide
+				if strings.EqualFold(curAction, incompatableAction) {
+					log.Printf("%s is incompatable with %s.", incompatableAction, incompatableBaseAction.Action)
+					// if one of them is room wide and the other is not override the room-wide
 					// action.
-					if !baseAction.DeviceSpecific && baseAction.DeviceSpecific {
-						baseAction.overridden = true
-					} else if baseAction.DeviceSpecific && !baseAction.DeviceSpecific {
-						baseAction1.overridden = true
+
+					if !baseAction.DeviceSpecific && incompatableBaseAction.DeviceSpecific {
+						log.Printf("%s is a device specific command. Overriding %s in favor of device-specific command %s.",
+							incompatableBaseAction.Action, baseAction.Action, incompatableBaseAction.Action)
+						baseAction.Overridden = true
+
+					} else if baseAction.DeviceSpecific && !incompatableBaseAction.DeviceSpecific {
+						log.Printf("%s is a device specific command. Overriding %s in favor of device-specific command %s.",
+							baseAction.Action, incompatableBaseAction.Action, baseAction.Action)
+						/*
+							We have to mark it as incompatable in three places, incompat (so it doesn't cause problems for other commands),
+							actionsForEvaluation for the same reason, and in actions so the action won't get sent. We were using pointers, but
+							for simplicity and readability in code, we pulled them out.
+
+							Don't judge. :D
+						*/
+						//markAsOverridden(incompatableBaseAction, &incompat, &actionsForEvaluation, actions)
+						incompatableBaseAction.Overridden = true
 					} else {
-						errorString := incompatableAction + " is an incompatable action with " + baseAction1.Action + " for device with ID: " +
+						errorString := incompatableAction + " is an incompatable action with " + incompatableBaseAction.Action + " for device with ID: " +
 							string(devID)
 						log.Printf("%s", errorString)
 						err = errors.New(errorString)
@@ -211,6 +233,9 @@ func ReconcileActions(actions *[]ActionStructure) (err error) {
 			}
 		}
 	}
+
+	b, _ := json.Marshal(&actions)
+	fmt.Printf("%s", b)
 	log.Printf("Done.")
 	return
 }
@@ -234,11 +259,22 @@ func checkCommands(commands []accessors.Command, commandName string) (bool, acce
 func Init() *map[string]CommandEvaluation {
 	if !commandMapInitialized {
 		CommandMap["PowerOn"] = &PowerOn{}
+		CommandMap["Standby"] = &Standby{}
 
 		commandMapInitialized = true
 	}
 
 	return &CommandMap
+}
+
+func markAsOverridden(action ActionStructure, structs ...*[]ActionStructure) {
+	for i := 0; i < len(structs); i++ {
+		for j := 0; j < len(structs[i]); j++ {
+			if structs[i][j].equals(action) {
+				structs[i][j].Overridden = true
+			}
+		}
+	}
 }
 
 /*
@@ -250,4 +286,24 @@ func ReplaceIPAddressEndpoint(path string, address string) string {
 
 	return strings.Replace(path, toReplace, address, -1)
 
+}
+
+func (a *ActionStructure) equals(b ActionStructure) bool {
+	return a.Action == b.Action &&
+		a.Device.ID == b.Device.ID &&
+		a.Device.Address == b.Device.Address &&
+		a.DeviceSpecific == b.DeviceSpecific &&
+		a.Overridden == b.Overridden && checkStringSliceEqual(a.Parameters, b.Parameters)
+}
+
+func checkStringSliceEqual(a []string, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := 0; i < len(a); i++ {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
 }
