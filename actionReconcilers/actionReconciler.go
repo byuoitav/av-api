@@ -22,9 +22,13 @@ type actionReconciler interface {
 var reconcilerMap = make(map[string]actionReconciler)
 var reconcilerMapInitialized = false
 
-//Init adds the commands to the commandMap here.
+//Init adds the reconcilers to the reconcilerMap.
 func Init() *map[string]actionReconciler {
 	if !reconcilerMapInitialized {
+		//-------------------------------
+		//Add reconcilers to the map here
+		//-------------------------------
+		reconcilerMap["Default"] = &DefaultReconciler{}
 
 		reconcilerMapInitialized = true
 	}

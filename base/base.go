@@ -37,11 +37,11 @@ type Display struct {
 //ActionStructure is the internal struct we use to pass commands around once
 //they've been evaluated.
 type ActionStructure struct {
-	Action         string           `json:"action"`
-	Device         accessors.Device `json:"device"`
-	Parameters     []string         `json:"parameters"`
-	DeviceSpecific bool             `json:"deviceSpecific, omitempty"`
-	Overridden     bool             `json:"overridden"`
+	Action         string            `json:"action"`
+	Device         accessors.Device  `json:"device"`
+	Parameters     map[string]string `json:"parameters"`
+	DeviceSpecific bool              `json:"deviceSpecific, omitempty"`
+	Overridden     bool              `json:"overridden"`
 }
 
 func (a *ActionStructure) equals(b ActionStructure) bool {

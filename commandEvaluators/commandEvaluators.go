@@ -86,31 +86,40 @@ func ExecuteActions(actions []ActionStructure) (status []CommandExecutionReporti
 		endpoint := ReplaceIPAddressEndpoint(cmd.Endpoint.Path, a.Device.Address)
 
 		//go through and replace the parameters with the parameters in the actions
-		for i := range a.Parameters {
-			indx := strings.Index(endpoint, ":")
-			if indx == -1 {
-				errorString := "Not enough parameter locations in endpoint string for command " +
-					cmd.Name + " for device " + a.Device.Name + ". Expected " + string(len(a.Parameters))
+		for k, v := range a.Parameters {
+
+			toReplace := ":" + k
+			if !strings.Contains(cmd.Endpoint.Path, toReplace) {
+				errorString := "The parameter " + toReplace + " was not found in the command " +
+					cmd.Name + " for device " + a.Device.Name + "."
 
 				log.Printf("%s", errorString)
 
 				err = errors.New(errorString)
 				return
 			}
-			end := strings.Index(endpoint[:indx], "/")
-			if end == -1 {
-				endpoint = endpoint[:indx] + a.Parameters[i]
-			} else {
-				endpoint = endpoint[:indx] + a.Parameters[i] + endpoint[end:]
-			}
+
+			strings.Replace(cmd.Endpoint.Path, toReplace, v, -1)
+		}
+
+		if strings.Contains(cmd.Endpoint.Path, ":") {
+			errorString := "Not enough parameters provided for command " +
+				cmd.Name + " for device " + a.Device.Name + "." + " After evaluation " +
+				"endpoint was " + cmd.Endpoint.Path + "."
+
+			log.Printf("%s", errorString)
+
+			err = errors.New(errorString)
+			return
 		}
 
 		//Execute the command.
 		_, er := http.Get(cmd.Microservice + endpoint)
 
-		//iff error, record it
+		//if error, record it
 		if er != nil {
 			log.Printf("ERROR: %s. Continuing.", er.Error())
+			//TODO: log to ELK
 			status = append(status, CommandExecutionReporting{
 				Success: false,
 				Action:  a.Action,
@@ -119,6 +128,7 @@ func ExecuteActions(actions []ActionStructure) (status []CommandExecutionReporti
 			})
 		} else {
 			log.Printf("Successfully sent command %s to device %s.", a.Action, a.Device.Name)
+			//TODO: log to ELK
 			status = append(status, CommandExecutionReporting{
 				Success: true,
 				Action:  a.Action,
