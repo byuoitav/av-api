@@ -1,91 +1,60 @@
 package helpers
 
 import (
-	"log"
-	"sort"
+	"fmt"
 	"strings"
 
+	"github.com/byuoitav/av-api/actionReconcilers"
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/commandEvaluators"
 	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/accessors"
 )
 
-/*
-	Note that is is important to add a command to this list and set the rules surounding that command (functionally mapping) property -> command
-	here.
-*/
-func evaluateCommands(roomInQuestion base.PublicRoom) (actions []commands.ActionStructure, err error) {
-
-	//getAllCommands
-	log.Printf("Getting command orders.")
-	rawCommands, err := dbo.GetAllRawCommands()
-
-	if err != nil {
-		log.Printf("Error: %s", err.Error())
-		return
-	}
-
-	//order commands by priority
-	rawCommands = orderCommands(rawCommands)
-
-	//iterate through all commands
-	var tempActions []base.ActionStructure
-	for _, c := range rawCommands {
-		log.Printf("Evaluating command %v.", c.Name)
-
-		//go through map and call evaluate, and then validate. Add them to action list.
-		curCommand, has := commandEvaluators.CommandMap[c.Name]
-		if !has {
-			log.Printf("ERROR: No entry for command %s. Skipping.", c.Name)
-			continue
-		}
-
-		tempActions, err = curCommand.Evaluate(roomInQuestion)
-		if err != nil {
-			return
-		}
-
-		err = curCommand.Validate(tempActions)
-		if err != nil {
-			return
-		}
-
-		actions = append(actions, tempActions...)
-		log.Printf("Done evaluating command %v.", c.Name)
-	}
-
-	return
-}
-
-func orderCommands(commands []accessors.RawCommand) []accessors.RawCommand {
-	sorter := accessors.CommandSorterByPriority{Commands: commands}
-	sort.Sort(&sorter)
-	return sorter.Commands
-}
-
-//EditRoomState actually carries out the room
-func EditRoomState(roomInQuestion base.PublicRoom) (report []commands.CommandExecutionReporting, er error) {
+//EditRoomState actually carries out the room state changes
+func EditRoomState(roomInQuestion base.PublicRoom) (report []commandEvaluators.CommandExecutionReporting, err error) {
 
 	//Initialize
-	commands.Init()
+	evaluators := commandEvaluators.Init()
+	reconcilers := actionReconcilers.Init()
 
-	//Evaluate commands
-	actions, err := evaluateCommands(roomInQuestion)
-	if err != nil {
-		er = err
+	//get our room
+	room := dbo.GetRoomByInfo(roomInQuestion.Room, roomInQuestion.Building)
+
+	actionList := []base.ActionStructure{}
+
+	//for each command in the configuration, evaluate and validate.
+	for c := range room.Configuration.Commands {
+		curEvaluator := evaluators[c.CommandKey]
+		subList := []string{}
+
+		//Evaluate
+		subList, err = curEvaluator.Evaluate(roomInQuestion)
+		if err != nil {
+			return
+		}
+
+		//Validate
+		for action := range subList {
+			if !curEvaluator.Validate(action) {
+				err = errors.new(fmt.Sprintf("Could not validate action %+v", action))
+				return
+			}
+			actionList = append(actionList, action)
+		}
+
 		return
 	}
 
 	//Reconcile actions
-	err = commands.ReconcileActions(&actions)
+	curReconciler := reconcilers[room.Configuration.RoomKey]
+
+	actionList, err = curReconciler.Reconcile(actionList)
 	if err != nil {
-		er = err
 		return
 	}
 
 	//execute actions.
-	report, er = commands.ExecuteActions(actions)
+	report, err = commands.ExecuteActions(actionList)
 
 	return
 }
