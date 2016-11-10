@@ -17,3 +17,17 @@ type actionReconciler interface {
 	*/
 	Reconcile([]ActionStructure) ([]ActionStructure, error)
 }
+
+//reconcilerMap is a singleton that maps known keys to their reconciler struct.
+var reconcilerMap = make(map[string]actionReconciler)
+var reconcilerMapInitialized = false
+
+//Init adds the commands to the commandMap here.
+func Init() *map[string]actionReconciler {
+	if !reconcilerMapInitialized {
+
+		reconcilerMapInitialized = true
+	}
+
+	return &reconcilerMap
+}
