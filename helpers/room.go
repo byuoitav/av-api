@@ -1,7 +1,6 @@
 package helpers
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/byuoitav/av-api/actionReconcilers"
@@ -18,14 +17,17 @@ func EditRoomState(roomInQuestion base.PublicRoom) (report []commandEvaluators.C
 	reconcilers := actionReconcilers.Init()
 
 	//get our room
-	room := dbo.GetRoomByInfo(roomInQuestion.Room, roomInQuestion.Building)
+	room, err := dbo.GetRoomByInfo(roomInQuestion.Room, roomInQuestion.Building)
+	if err != nil {
+		return
+	}
 
 	actionList := []base.ActionStructure{}
 
 	//for each command in the configuration, evaluate and validate.
-	for c := range room.Configuration.Commands {
+	for _, c := range room.Configuration.Commands {
 		curEvaluator := evaluators[c.CommandKey]
-		subList := []string{}
+		subList := []base.ActionStructure{}
 
 		//Evaluate
 		subList, err = curEvaluator.Evaluate(roomInQuestion)
@@ -34,9 +36,9 @@ func EditRoomState(roomInQuestion base.PublicRoom) (report []commandEvaluators.C
 		}
 
 		//Validate
-		for action := range subList {
-			if !curEvaluator.Validate(action) {
-				err = errors.new(fmt.Sprintf("Could not validate action %+v", action))
+		for _, action := range subList {
+			err = curEvaluator.Validate(action)
+			if err != nil {
 				return
 			}
 			actionList = append(actionList, action)
@@ -54,7 +56,7 @@ func EditRoomState(roomInQuestion base.PublicRoom) (report []commandEvaluators.C
 	}
 
 	//execute actions.
-	report, err = commands.ExecuteActions(actionList)
+	report, err = commandEvaluators.ExecuteActions(actionList)
 
 	return
 }

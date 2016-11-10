@@ -6,37 +6,44 @@ import (
 	"fmt"
 	"log"
 	"strings"
+
+	"github.com/byuoitav/av-api/base"
+	"github.com/byuoitav/av-api/commandEvaluators"
 )
 
 //DefaultReconciler is the Default Reconciler
 type DefaultReconciler struct{}
 
 //Reconcile fulfills the requirement to be a Reconciler.
-func (d *DefaultReconciler) Reconcile(actions []ActionStructure) (actionsNew []ActionStructure, err error) {
+func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure) (actionsNew []base.ActionStructure, err error) {
+
+	CommandMap := commandEvaluators.Init()
+
 	log.Printf("Reconciling actions.")
-	deviceActionMap := make(map[int][]ActionStructure)
+	deviceActionMap := make(map[int][]base.ActionStructure)
 
 	log.Printf("Generating device action set.")
 	//generate a set of actions for each device.
-	for _, a := range *actions {
+	for _, a := range actions {
 		if _, has := deviceActionMap[a.Device.ID]; has {
 			deviceActionMap[a.Device.ID] = append(deviceActionMap[a.Device.ID], a)
 		} else {
-			deviceActionMap[a.Device.ID] = []ActionStructure{a}
+			deviceActionMap[a.Device.ID] = []base.ActionStructure{a}
 		}
 	}
 
 	log.Printf("Checking for incompatable actions.")
 	for devID, v := range deviceActionMap {
 		//for each device, construct set of actions
-		actionsForEvaluation := make(map[string]ActionStructure)
-		incompat := make(map[string]ActionStructure)
+		actionsForEvaluation := make(map[string]base.ActionStructure)
+		incompat := make(map[string]base.ActionStructure)
 
 		for i := 0; i < len(v); i++ {
 			actionsForEvaluation[v[i].Action] = v[i]
 			//for each device, construct set of incompatable actions
 			//Value is the action that generated the incompatable action.
 			incompatableActions := CommandMap[v[i].Action].GetIncompatableCommands()
+
 			for _, incompatAct := range incompatableActions {
 				incompat[incompatAct] = v[i]
 			}
@@ -70,14 +77,7 @@ func (d *DefaultReconciler) Reconcile(actions []ActionStructure) (actionsNew []A
 					} else if baseAction.DeviceSpecific && !incompatableBaseAction.DeviceSpecific {
 						log.Printf("%s is a device specific command. Overriding %s in favor of device-specific command %s.",
 							baseAction.Action, incompatableBaseAction.Action, baseAction.Action)
-						/*
-							We have to mark it as incompatable in three places, incompat (so it doesn't cause problems for other commands),
-							actionsForEvaluation for the same reason, and in actions so the action won't get sent. We were using pointers, but
-							for simplicity and readability in code, we pulled them out.
 
-							Don't judge. :D
-						*/
-						//markAsOverridden(incompatableBaseAction, &incompat, &actionsForEvaluation, actions)
 						incompatableBaseAction.Overridden = true
 					} else {
 						errorString := incompatableAction + " is an incompatable action with " + incompatableBaseAction.Action + " for device with ID: " +
@@ -97,5 +97,6 @@ func (d *DefaultReconciler) Reconcile(actions []ActionStructure) (actionsNew []A
 	//END Debug
 
 	log.Printf("Done.")
+	actionsNew = actions
 	return
 }

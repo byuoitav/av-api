@@ -1,8 +1,6 @@
 package helpers
 
-import (
-	"github.com/byuoitav/av-api/commands"
-)
+import "github.com/byuoitav/av-api/commandEvaluators"
 
 // Error represents the API's method of returning errors to the user
 type Error struct {
@@ -25,7 +23,7 @@ func ReturnError(err error) Error {
 
 //CheckReport checks a commands.CommandExecutionReporting array to see if any
 //have failed
-func CheckReport(report []commands.CommandExecutionReporting) bool {
+func CheckReport(report []commandEvaluators.CommandExecutionReporting) bool {
 	for _, r := range report {
 		if !r.Success {
 			return true

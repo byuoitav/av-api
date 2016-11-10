@@ -15,7 +15,7 @@ type Standby struct {
 }
 
 //Evaluate fulfills the CommmandEvaluation evaluate requirement.
-func (s *Standby) Evaluate(room base.PublicRoom) (actions []ActionStructure, err error) {
+func (s *Standby) Evaluate(room base.PublicRoom) (actions []base.ActionStructure, err error) {
 	log.Printf("Evaluating for Standby Command.")
 	var devices []accessors.Device
 	if strings.EqualFold(room.Power, "standby") {
@@ -30,7 +30,7 @@ func (s *Standby) Evaluate(room base.PublicRoom) (actions []ActionStructure, err
 		for i := range devices {
 			if devices[i].Output {
 				log.Printf("Adding device %+v", devices[i].Name)
-				actions = append(actions, ActionStructure{Action: "Standby", Device: devices[i], DeviceSpecific: false})
+				actions = append(actions, base.ActionStructure{Action: "Standby", Device: devices[i], DeviceSpecific: false})
 			}
 		}
 	}
@@ -58,20 +58,20 @@ func (s *Standby) Evaluate(room base.PublicRoom) (actions []ActionStructure, err
 }
 
 //Validate fulfills the Fulfill requirement on the command interface
-func (s *Standby) Validate(actions []ActionStructure) (err error) {
-	log.Printf("Validating action list for command Standby.")
-	for _, action := range actions {
-		if ok, _ := checkCommands(action.Device.Commands, "Standby"); !ok || !strings.EqualFold(action.Action, "Standby") {
-			log.Printf("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
-			return errors.New(action.Action + " is an invalid command for" + action.Device.Name)
-		}
+func (s *Standby) Validate(action base.ActionStructure) (err error) {
+	log.Printf("Validating action for command Standby.")
+
+	if ok, _ := checkCommands(action.Device.Commands, "Standby"); !ok || !strings.EqualFold(action.Action, "Standby") {
+		log.Printf("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
+		return errors.New(action.Action + " is an invalid command for" + action.Device.Name)
 	}
+
 	log.Printf("Done.")
 	return
 }
 
-//GetIncompatableActions keeps track of actions that are incompatable (on the same device)
-func (s *Standby) GetIncompatableActions() (incompatableActions []string) {
+//GetIncompatableCommands keeps track of actions that are incompatable (on the same device)
+func (s *Standby) GetIncompatableCommands() (incompatableActions []string) {
 	incompatableActions = []string{
 		"PowerOn",
 	}
@@ -81,10 +81,10 @@ func (s *Standby) GetIncompatableActions() (incompatableActions []string) {
 //Evaluate devices just pulls out the process we do with the audio-devices and
 //displays into one function.
 func (s *Standby) evaluateDevice(device base.Device,
-	actions []ActionStructure,
+	actions []base.ActionStructure,
 	devices []accessors.Device,
 	room string,
-	building string) ([]ActionStructure, error) {
+	building string) ([]base.ActionStructure, error) {
 
 	//Check if we even need to start anything
 	if strings.EqualFold(device.Power, "standby") {
@@ -98,7 +98,7 @@ func (s *Standby) evaluateDevice(device base.Device,
 			if err != nil {
 				return actions, err
 			}
-			actions = append(actions, ActionStructure{Action: "Standby", Device: dev, DeviceSpecific: true})
+			actions = append(actions, base.ActionStructure{Action: "Standby", Device: dev, DeviceSpecific: true})
 		}
 	}
 	return actions, nil

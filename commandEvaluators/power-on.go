@@ -15,7 +15,7 @@ type PowerOn struct {
 }
 
 //Evaluate fulfills the CommmandEvaluation evaluate requirement.
-func (p *PowerOn) Evaluate(room base.PublicRoom) (actions []ActionStructure, err error) {
+func (p *PowerOn) Evaluate(room base.PublicRoom) (actions []base.ActionStructure, err error) {
 	log.Printf("Evaluating for PowerOn Command.")
 	var devices []accessors.Device
 	if strings.EqualFold(room.Power, "on") {
@@ -30,7 +30,7 @@ func (p *PowerOn) Evaluate(room base.PublicRoom) (actions []ActionStructure, err
 		for i := range devices {
 			if devices[i].Output {
 				log.Printf("Adding device %+v", devices[i].Name)
-				actions = append(actions, ActionStructure{Action: "PowerOn", Device: devices[i], DeviceSpecific: false})
+				actions = append(actions, base.ActionStructure{Action: "PowerOn", Device: devices[i], DeviceSpecific: false})
 			}
 		}
 	}
@@ -58,7 +58,7 @@ func (p *PowerOn) Evaluate(room base.PublicRoom) (actions []ActionStructure, err
 }
 
 //Validate fulfills the Fulfill requirement on the command interface
-func (p *PowerOn) Validate(action ActionStructure) (err error) {
+func (p *PowerOn) Validate(action base.ActionStructure) (err error) {
 
 	log.Printf("Validating action for comand PowerOn")
 
@@ -82,10 +82,10 @@ func (p *PowerOn) GetIncompatableCommands() (incompatableActions []string) {
 //Evaluate devices just pulls out the process we do with the audio-devices and
 //displays into one function.
 func (p *PowerOn) evaluateDevice(device base.Device,
-	actions []ActionStructure,
+	actions []base.ActionStructure,
 	devices []accessors.Device,
 	room string,
-	building string) ([]ActionStructure, error) {
+	building string) ([]base.ActionStructure, error) {
 
 	//Check if we even need to start anything
 	if strings.EqualFold(device.Power, "on") {
@@ -99,7 +99,7 @@ func (p *PowerOn) evaluateDevice(device base.Device,
 			if err != nil {
 				return actions, err
 			}
-			actions = append(actions, ActionStructure{Action: "PowerOn", Device: dev, DeviceSpecific: true})
+			actions = append(actions, base.ActionStructure{Action: "PowerOn", Device: dev, DeviceSpecific: true})
 		}
 	}
 	return actions, nil

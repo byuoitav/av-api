@@ -29,12 +29,12 @@ type CommandEvaluator interface {
 		 	Evalute takes a public room struct, scans the struct and builds any needed
 			actions based on the contents of the struct.
 	*/
-	Evaluate(base.PublicRoom) ([]ActionStructure, error)
+	Evaluate(base.PublicRoom) ([]base.ActionStructure, error)
 	/*
 		  Validate takes an action structure (for the command) and validates
 			that the device and parameter are valid for the comamnd.
 	*/
-	Validate(ActionStructure) error
+	Validate(base.ActionStructure) error
 	/*
 			   GetIncompatableActions returns A list of commands that are incompatable
 		     with this one (i.e. 'standby' and 'power on', or 'mute' and 'volume up')
@@ -65,7 +65,7 @@ func getDevice(devs []accessors.Device, d string, room string, building string) 
 }
 
 //ExecuteActions carries out the actions defined in the struct
-func ExecuteActions(actions []ActionStructure) (status []CommandExecutionReporting, err error) {
+func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionReporting, err error) {
 	for _, a := range actions {
 		if a.Overridden {
 			log.Printf("Action %s on device %s have been overriden. Continuing.",
@@ -153,7 +153,7 @@ func ReplaceIPAddressEndpoint(path string, address string) string {
 }
 
 //Init adds the commands to the commandMap here.
-func Init() *map[string]CommandEvaluation {
+func Init() map[string]CommandEvaluator {
 	if !commandMapInitialized {
 		CommandMap["PowerOn-Default"] = &PowerOn{}
 		CommandMap["Standby-Default"] = &Standby{}
@@ -161,5 +161,5 @@ func Init() *map[string]CommandEvaluation {
 		commandMapInitialized = true
 	}
 
-	return &CommandMap
+	return CommandMap
 }
