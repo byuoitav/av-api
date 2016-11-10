@@ -28,17 +28,17 @@ SetRoomState is the handler to accept puts to /buildlings/:buildling/rooms/:room
 		"currentAudioInput": "comptuer",
 		"power": "on",
     "displays": [{
-        "name": "dp1",
-        "power": "on",
-				"input": "roku",
-        "blanked": false
+      "name": "dp1",
+      "power": "on",
+			"input": "roku",
+      "blanked": false
     }],
 		"audioDevices": [{
-		"name": "audio1",
-		"power": "standby",
-		"input": "roku",
-		"muted": false,
-		"volume": 50
+			"name": "audio1",
+			"power": "standby",
+			"input": "roku",
+			"muted": false,
+			"volume": 50
 		}]
 	}
 	Or the 'helpers.PublicRoom' struct.

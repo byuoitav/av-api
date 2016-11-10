@@ -1,4 +1,4 @@
-package commands
+package commandEvaluators
 
 import (
 	"encoding/json"
@@ -13,16 +13,6 @@ import (
 	"github.com/byuoitav/configuration-database-microservice/accessors"
 )
 
-//ActionStructure is the internal struct we use to pass commands around once
-//they've been evaluated.
-type ActionStructure struct {
-	Action         string           `json:"action"`
-	Device         accessors.Device `json:"device"`
-	Parameters     []string         `json:"parameters"`
-	DeviceSpecific bool             `json:"deviceSpecific, omitempty"`
-	Overridden     bool             `json:"overridden"`
-}
-
 //CommandExecutionReporting is a struct we use to keep track of command execution
 //for reporting to the user.
 type CommandExecutionReporting struct {
@@ -33,30 +23,30 @@ type CommandExecutionReporting struct {
 }
 
 /*
-CommandEvaluation is an interface that must be implemented for each command to be
+CommandEvaluator is an interface that must be implemented for each command to be
 evaluated.
 */
-type CommandEvaluation interface {
+type CommandEvaluator interface {
 	/*
 		 	Evalute takes a public room struct, scans the struct and builds any needed
 			actions based on the contents of the struct.
 	*/
 	Evaluate(base.PublicRoom) ([]ActionStructure, error)
 	/*
-		  Validate takes a set of action structures (for the command) and validates
+		  Validate takes an action structure (for the command) and validates
 			that the device and parameter are valid for the comamnd.
 	*/
-	Validate([]ActionStructure) error
+	Validate(ActionStructure) error
 	/*
 			   GetIncompatableActions returns A list of commands that are incompatable
 		     with this one (i.e. 'standby' and 'power on', or 'mute' and 'volume up')
 	*/
-	GetIncompatableActions() []string
+	GetIncompatableCommands() []string
 }
 
 //CommandMap is a singleton that
 //maps known commands to their evaluation structure. init will return a pointer to this.
-var CommandMap = make(map[string]CommandEvaluation)
+var CommandMap = make(map[string]CommandEvaluator)
 var commandMapInitialized = false
 
 func getDevice(devs []accessors.Device, d string, room string, building string) (dev accessors.Device, err error) {
@@ -74,17 +64,6 @@ func getDevice(devs []accessors.Device, d string, room string, building string) 
 	}
 	dev = device
 	return
-}
-
-//Checks an action list to see if it has a device (by name, room, and building) already in it,
-//if so, it returns the index of the device, if not -1.
-func checkActionListForDevice(a []ActionStructure, d string, room string, building string) (index int) {
-	for i, curDevice := range a {
-		if checkDevicesEqual(curDevice.Device, d, room, building) {
-			return i
-		}
-	}
-	return -1
 }
 
 //ExecuteActions carries out the actions defined in the struct
@@ -155,7 +134,7 @@ func ExecuteActions(actions []ActionStructure) (status []CommandExecutionReporti
 }
 
 //ReconcileActions checks for incompatable actions within the structure passed in.
-func ReconcileActions(actions *[]ActionStructure) (err error) {
+func ReconcileActions(actions []ActionStructure) (actionsNew []ActionStructure, err error) {
 	log.Printf("Reconciling actions.")
 	deviceActionMap := make(map[int][]ActionStructure)
 
@@ -179,7 +158,7 @@ func ReconcileActions(actions *[]ActionStructure) (err error) {
 			actionsForEvaluation[v[i].Action] = v[i]
 			//for each device, construct set of incompatable actions
 			//Value is the action that generated the incompatable action.
-			incompatableActions := CommandMap[v[i].Action].GetIncompatableActions()
+			incompatableActions := CommandMap[v[i].Action].GetIncompatableCommands()
 			for _, incompatAct := range incompatableActions {
 				incompat[incompatAct] = v[i]
 			}
@@ -240,19 +219,15 @@ func ReconcileActions(actions *[]ActionStructure) (err error) {
 	return
 }
 
-func checkDevicesEqual(dev accessors.Device, name string, room string, building string) bool {
-	return strings.EqualFold(dev.Name, name) &&
-		strings.EqualFold(dev.Room.Name, room) &&
-		strings.EqualFold(dev.Building.Shortname, building)
-}
+/*
+ReplaceIPAddressEndpoint is a simple helper
+*/
+func ReplaceIPAddressEndpoint(path string, address string) string {
+	//magic strings
+	toReplace := ":address"
 
-func checkCommands(commands []accessors.Command, commandName string) (bool, accessors.Command) {
-	for _, c := range commands {
-		if strings.EqualFold(c.Name, commandName) {
-			return true, c
-		}
-	}
-	return false, accessors.Command{}
+	return strings.Replace(path, toReplace, address, -1)
+
 }
 
 //Init adds the commands to the commandMap here.
@@ -265,45 +240,4 @@ func Init() *map[string]CommandEvaluation {
 	}
 
 	return &CommandMap
-}
-
-func markAsOverridden(action ActionStructure, structs ...*[]ActionStructure) {
-	for i := 0; i < len(structs); i++ {
-		for j := 0; j < len(structs[i]); j++ {
-			if structs[i][j].equals(action) {
-				structs[i][j].Overridden = true
-			}
-		}
-	}
-}
-
-/*
-ReplaceIPAddressEndpoint is a simple helper
-*/
-func ReplaceIPAddressEndpoint(path string, address string) string {
-	//magic strings
-	toReplace := ":address"
-
-	return strings.Replace(path, toReplace, address, -1)
-
-}
-
-func (a *ActionStructure) equals(b ActionStructure) bool {
-	return a.Action == b.Action &&
-		a.Device.ID == b.Device.ID &&
-		a.Device.Address == b.Device.Address &&
-		a.DeviceSpecific == b.DeviceSpecific &&
-		a.Overridden == b.Overridden && checkStringSliceEqual(a.Parameters, b.Parameters)
-}
-
-func checkStringSliceEqual(a []string, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := 0; i < len(a); i++ {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
 }

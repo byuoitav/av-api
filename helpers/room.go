@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/commands"
+	"github.com/byuoitav/av-api/commandEvaluators"
 	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/configuration-database-microservice/accessors"
 )
@@ -30,12 +30,12 @@ func evaluateCommands(roomInQuestion base.PublicRoom) (actions []commands.Action
 	rawCommands = orderCommands(rawCommands)
 
 	//iterate through all commands
-	var tempActions []commands.ActionStructure
+	var tempActions []base.ActionStructure
 	for _, c := range rawCommands {
 		log.Printf("Evaluating command %v.", c.Name)
 
 		//go through map and call evaluate, and then validate. Add them to action list.
-		curCommand, has := commands.CommandMap[c.Name]
+		curCommand, has := commandEvaluators.CommandMap[c.Name]
 		if !has {
 			log.Printf("ERROR: No entry for command %s. Skipping.", c.Name)
 			continue
