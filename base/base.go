@@ -37,11 +37,12 @@ type Display struct {
 //ActionStructure is the internal struct we use to pass commands around once
 //they've been evaluated.
 type ActionStructure struct {
-	Action         string            `json:"action"`
-	Device         accessors.Device  `json:"device"`
-	Parameters     map[string]string `json:"parameters"`
-	DeviceSpecific bool              `json:"deviceSpecific, omitempty"`
-	Overridden     bool              `json:"overridden"`
+	Action              string            `json:"action"`
+	GeneratingEvaluator string            `json:"generatingEvaluator"`
+	Device              accessors.Device  `json:"device"`
+	Parameters          map[string]string `json:"parameters"`
+	DeviceSpecific      bool              `json:"deviceSpecific, omitempty"`
+	Overridden          bool              `json:"overridden"`
 }
 
 //Equals checks if the action structures are equal

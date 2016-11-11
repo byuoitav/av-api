@@ -1,6 +1,8 @@
 package helpers
 
 import (
+	"errors"
+	"log"
 	"strings"
 
 	"github.com/byuoitav/av-api/actionReconcilers"
@@ -26,7 +28,14 @@ func EditRoomState(roomInQuestion base.PublicRoom) (report []commandEvaluators.C
 
 	//for each command in the configuration, evaluate and validate.
 	for _, c := range room.Configuration.Commands {
+		log.Printf("Evaluating command %s.", c.CommandName)
+
 		curEvaluator := evaluators[c.CommandKey]
+		if curEvaluator == nil {
+			err = errors.New("No evaluator corresponding to key " + c.CommandKey)
+			return
+		}
+
 		subList := []base.ActionStructure{}
 
 		//Evaluate
@@ -41,14 +50,20 @@ func EditRoomState(roomInQuestion base.PublicRoom) (report []commandEvaluators.C
 			if err != nil {
 				return
 			}
+
+			// Provide a map from the generating evaluator to the generated action in
+			// case they want to use the Incompatable actions in the reconcilers.
+			action.GeneratingEvaluator = c.CommandKey
 			actionList = append(actionList, action)
 		}
-
-		return
 	}
 
 	//Reconcile actions
 	curReconciler := reconcilers[room.Configuration.RoomKey]
+	if curReconciler == nil {
+		err = errors.New("No reconciler corresponding to key " + room.Configuration.RoomKey)
+		return
+	}
 
 	actionList, err = curReconciler.Reconcile(actionList)
 	if err != nil {

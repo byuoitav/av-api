@@ -89,7 +89,7 @@ func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionRe
 		for k, v := range a.Parameters {
 
 			toReplace := ":" + k
-			if !strings.Contains(cmd.Endpoint.Path, toReplace) {
+			if !strings.Contains(endpoint, toReplace) {
 				errorString := "The parameter " + toReplace + " was not found in the command " +
 					cmd.Name + " for device " + a.Device.Name + "."
 
@@ -99,13 +99,13 @@ func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionRe
 				return
 			}
 
-			strings.Replace(cmd.Endpoint.Path, toReplace, v, -1)
+			strings.Replace(endpoint, toReplace, v, -1)
 		}
 
-		if strings.Contains(cmd.Endpoint.Path, ":") {
+		if strings.Contains(endpoint, ":") {
 			errorString := "Not enough parameters provided for command " +
 				cmd.Name + " for device " + a.Device.Name + "." + " After evaluation " +
-				"endpoint was " + cmd.Endpoint.Path + "."
+				"endpoint was " + endpoint + "."
 
 			log.Printf("%s", errorString)
 
@@ -155,8 +155,8 @@ func ReplaceIPAddressEndpoint(path string, address string) string {
 //Init adds the commands to the commandMap here.
 func Init() map[string]CommandEvaluator {
 	if !commandMapInitialized {
-		CommandMap["PowerOn-Default"] = &PowerOn{}
-		CommandMap["Standby-Default"] = &Standby{}
+		CommandMap["PowerOnDefault"] = &PowerOn{}
+		CommandMap["StandbyDefault"] = &Standby{}
 
 		commandMapInitialized = true
 	}

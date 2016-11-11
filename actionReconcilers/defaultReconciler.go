@@ -42,7 +42,7 @@ func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure) (actionsNe
 			actionsForEvaluation[v[i].Action] = v[i]
 			//for each device, construct set of incompatable actions
 			//Value is the action that generated the incompatable action.
-			incompatableActions := CommandMap[v[i].Action].GetIncompatableCommands()
+			incompatableActions := CommandMap[v[i].GeneratingEvaluator].GetIncompatableCommands()
 
 			for _, incompatAct := range incompatableActions {
 				incompat[incompatAct] = v[i]
