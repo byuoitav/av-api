@@ -2,13 +2,12 @@ package main
 
 import (
 	"log"
+	"net/http"
 
 	"github.com/byuoitav/av-api/handlers"
 	"github.com/byuoitav/hateoas"
-	"github.com/byuoitav/wso2jwt"
 	"github.com/jessemillar/health"
 	"github.com/labstack/echo"
-	"github.com/labstack/echo/engine/fasthttp"
 	"github.com/labstack/echo/middleware"
 )
 
@@ -24,18 +23,20 @@ func main() {
 	router.Use(middleware.CORS())
 
 	// GET requests
-	router.Get("/", hateoas.RootResponse)
+	router.GET("/", echo.WrapHandler(http.HandlerFunc(hateoas.RootResponse)))
 
-	router.Get("/health", health.Check)
+	router.GET("/health", echo.WrapHandler(http.HandlerFunc(health.Check)))
 
 	// router.Get("/buildings", handlers.GetAllBuildings, wso2jwt.ValidateJWT())
-	router.Get("/buildings/:building/rooms/:room", handlers.GetRoomByNameAndBuildingHandler, wso2jwt.ValidateJWT())
+	router.GET("/buildings/:building/rooms/:room", handlers.GetRoomByNameAndBuildingHandler)
 
 	// PUT requests
-	router.Put("/buildings/:building/rooms/:room", handlers.SetRoomState, wso2jwt.ValidateJWT())
+	router.PUT("/buildings/:building/rooms/:room", handlers.SetRoomState)
 
-	log.Println("AV API is listening on " + port)
-	server := fasthttp.New(port)
-	server.ReadBufferSize = 1024 * 10 // Needed to interface properly with WSO2
-	router.Run(server)
+	server := http.Server{
+		Addr:           port,
+		MaxHeaderBytes: 1024 * 10,
+	}
+
+	router.StartServer(&server)
 }
