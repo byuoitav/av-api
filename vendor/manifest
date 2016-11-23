@@ -23,7 +23,7 @@
 			"vcs": "git",
 			"revision": "ba14da1f827188454a4591717fff29999010887f",
 			"branch": "master",
-			"path": "/binutil",
+			"path": "binutil",
 			"notests": true
 		},
 		{
@@ -32,7 +32,7 @@
 			"vcs": "git",
 			"revision": "ba14da1f827188454a4591717fff29999010887f",
 			"branch": "master",
-			"path": "coff",
+			"path": "/coff",
 			"notests": true
 		},
 		{
@@ -115,7 +115,7 @@
 			"repository": "https://github.com/jessemillar/jsonresp",
 			"vcs": "git",
 			"revision": "f6268670ca1a1b59f4e6503eb55e273576877eaf",
-			"branch": "master",
+			"branch": "HEAD",
 			"notests": true
 		},
 		{
@@ -148,7 +148,7 @@
 			"vcs": "git",
 			"revision": "9a43ff0d261e0e65594422e9eee08cf301aabbe7",
 			"branch": "master",
-			"path": "/bytes",
+			"path": "bytes",
 			"notests": true
 		},
 		{
@@ -157,7 +157,7 @@
 			"vcs": "git",
 			"revision": "9a43ff0d261e0e65594422e9eee08cf301aabbe7",
 			"branch": "master",
-			"path": "color",
+			"path": "/color",
 			"notests": true
 		},
 		{
@@ -190,7 +190,7 @@
 			"importpath": "github.com/mattn/go-isatty",
 			"repository": "https://github.com/mattn/go-isatty",
 			"vcs": "git",
-			"revision": "66b8e73f3f5cda9f96b69efd03dd3d7fc4a5cdb8",
+			"revision": "30a891c33c7cde7b02a981314b4228ec99380cca",
 			"branch": "master",
 			"notests": true
 		},
@@ -257,7 +257,7 @@
 			"importpath": "golang.org/x/sys/unix",
 			"repository": "https://go.googlesource.com/sys",
 			"vcs": "git",
-			"revision": "b699b7032584f0953262cb2788a0ca19bb494703",
+			"revision": "30237cf4eefd639b184d1f2cb77a581ea0be8947",
 			"branch": "master",
 			"path": "/unix",
 			"notests": true

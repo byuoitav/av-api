@@ -6,6 +6,7 @@ import (
 
 	"github.com/byuoitav/av-api/handlers"
 	"github.com/byuoitav/hateoas"
+	"github.com/byuoitav/wso2jwt"
 	"github.com/jessemillar/health"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
@@ -22,16 +23,19 @@ func main() {
 	router.Pre(middleware.RemoveTrailingSlash())
 	router.Use(middleware.CORS())
 
+	// Use the `secure` routing group to require authentication
+	secure := router.Group("", echo.WrapMiddleware(wso2jwt.ValidateJWT))
+
 	// GET requests
 	router.GET("/", echo.WrapHandler(http.HandlerFunc(hateoas.RootResponse)))
 
 	router.GET("/health", echo.WrapHandler(http.HandlerFunc(health.Check)))
 
 	// router.Get("/buildings", handlers.GetAllBuildings, wso2jwt.ValidateJWT())
-	router.GET("/buildings/:building/rooms/:room", handlers.GetRoomByNameAndBuildingHandler)
+	secure.GET("/buildings/:building/rooms/:room", handlers.GetRoomByNameAndBuildingHandler)
 
 	// PUT requests
-	router.PUT("/buildings/:building/rooms/:room", handlers.SetRoomState)
+	secure.PUT("/buildings/:building/rooms/:room", handlers.SetRoomState)
 
 	server := http.Server{
 		Addr:           port,
