@@ -1,8 +1,82 @@
-version: '2'
-services:
-  av-api:
+# This file is meant for use during development, NOT production deployment
+
+av-api:
     build: .
     ports:
-     - "8000:8000"
-    volumes:
-     - .:/code
+        - "8000:8000"
+    links:
+        - configuration-database-microservice
+    environment:
+        - LOCAL_ENVIRONMENT="true"
+        - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS 
+        - EMS_API_USERNAME=$EMS_API_USERNAME 
+        - EMS_API_PASSWORD=$EMS_API_PASSWORD
+    restart: always
+telnet-microservice:
+    build: ../telnet-microservice
+    ports:
+        - "8001:8001"
+    environment:
+        - LOCAL_ENVIRONMENT="true"
+    restart: always
+ftp-microservice:
+    build: ../ftp-microservice
+    ports:
+        - "8002:8002"
+    environment:
+        - LOCAL_ENVIRONMENT="true"
+    restart: always
+wait-for-restart-microservice:
+    build: ../wait-for-restart-microservice
+    ports:
+        - "8003:8003"
+    environment:
+        - LOCAL_ENVIRONMENT="true"
+    restart: always
+pjlink-microservice:
+    build: ../pjlink-microservice
+    ports:
+        - "8005:8005"
+    environment:
+        - LOCAL_ENVIRONMENT="true"
+        - PJLINK_PORT=$PJLINK_PORT 
+        - PJLINK_PASS=$PJLINK_PASS
+    restart: always
+configuration-database-microservice:
+    build: ../configuration-database-microservice
+    ports:
+        - "8006:8006"
+    environment:
+        - LOCAL_ENVIRONMENT="true"
+        - CONFIGURATION_DATABASE_USERNAME=$CONFIGURATION_DATABASE_USERNAME 
+        - CONFIGURATION_DATABASE_PASSWORD=$CONFIGURATION_DATABASE_PASSWORD 
+        - CONFIGURATION_DATABASE_HOST=$CONFIGURATION_DATABASE_HOST 
+        - CONFIGURATION_DATABASE_PORT=$CONFIGURATION_DATABASE_PORT 
+        - CONFIGURATION_DATABASE_NAME=$CONFIGURATION_DATABASE_NAME
+    restart: always
+sony-control-microservice:
+    build: ../sony-control-microservice
+    ports:
+        - "8007:8007"
+    environment:
+        - LOCAL_ENVIRONMENT="true"
+        - SONY_TV_PSK=$SONY_TV_PSK
+    restart: always
+raspi-deployment-microservice:
+    build: ../raspi-deployment-microservice
+    ports:
+        - "8008:8008"
+    environment:
+        - LOCAL_ENVIRONMENT="true"
+        - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
+        - ELK_ADDRESS=$ELK_ADDRESS
+        - PI_SSH_PASSWORD=$PI_SSH_PASSWORD
+        - PI_SSH_USERNAME=$PI_SSH_USERNAME
+    restart: always
+london-audio-microservice:
+    build: ../london-audio-microservice
+    ports:
+        - "8009:8009"
+    environment:
+        - LOCAL_ENVIRONMENT="true"
+    restart: always

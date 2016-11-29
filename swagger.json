@@ -1,1105 +1,308 @@
 {
-    "swagger": "2.0",
-    "info": {
-        "title": "AV API",
-        "description": "Manage various AV systems across the BYU campus",
-        "version": "0.4"
-    },
-    "host": "api.byu.edu:443",
-    "basePath": "/byuoitav-av-api/0.4",
-    "schemes": [
-        "https"
-    ],
-    "produces": [
-        "application/json"
-    ],
-    "paths": {
-        "/health": {
-            "get": {
-                "summary": "Check Service Health",
-                "description": "Returns information about the microservice's health.",
-                "tags": [
-                    "Health"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "A health message",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/Response"
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/responses/401"
-                    },
-                    "500": {
-                        "$ref": "#/responses/500"
-                    },
-                    "503": {
-                        "$ref": "#/responses/503"
-                    },
-                    "default": {
-                        "$ref": "#/responses/default"
-                    }
-                }
-            }
-        },
-        "/rooms": {
-            "get": {
-                "summary": "All Rooms",
-                "description": "Returns information about all the TEC rooms across campus.",
-                "tags": [
-                    "Rooms"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "An array of rooms",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/RoomResponse"
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/responses/401"
-                    },
-                    "500": {
-                        "$ref": "#/responses/500"
-                    },
-                    "503": {
-                        "$ref": "#/responses/503"
-                    },
-                    "default": {
-                        "$ref": "#/responses/default"
-                    }
-                }
-            },
-            "post": {
-                "summary": "Make a Room",
-                "description": "Make a new room and add it to the Crestron Fusion database.",
-                "parameters": [{
-                    "name": "body",
-                    "description": "The new room to created",
-                    "in": "body",
-                    "required": true,
-                    "schema": {
-                        "$ref": "#/definitions/RoomRequest"
-                    }
-                }],
-                "tags": [
-                    "Rooms"
-                ],
-                "responses": {
-                    "201": {
-                        "description": "All went well",
-                        "schema": {
-                            "$ref": "#/definitions/RoomResponse"
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/responses/401"
-                    },
-                    "500": {
-                        "$ref": "#/responses/500"
-                    },
-                    "503": {
-                        "$ref": "#/responses/503"
-                    },
-                    "default": {
-                        "$ref": "#/responses/default"
-                    }
-                }
-            }
-        },
-        "/rooms/{room}": {
-            "get": {
-                "summary": "Get a Specific Room",
-                "description": "Returns information about the various AV products offered across campus. The response includes the display name and other details about each product.",
-                "parameters": [{
-                    "$ref": "#/parameters/room"
-                }],
-                "tags": [
-                    "Rooms"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "A room object",
-                        "schema": {
-                            "$ref": "#/definitions/RoomResponse"
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/responses/401"
-                    },
-                    "500": {
-                        "$ref": "#/responses/500"
-                    },
-                    "503": {
-                        "$ref": "#/responses/503"
-                    },
-                    "default": {
-                        "$ref": "#/responses/default"
-                    }
-                }
-            },
-            "put": {
-                "summary": "Update a Room",
-                "description": "Update information about a room in the Crestron Fusion database.",
-                "parameters": [{
-                    "$ref": "#/parameters/room"
-                }, {
-                    "name": "body",
-                    "description": "The updated room information",
-                    "in": "body",
-                    "required": true,
-                    "schema": {
-                        "$ref": "#/definitions/RoomRequest"
-                    }
-                }],
-                "tags": [
-                    "Rooms"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "All went well",
-                        "schema": {
-                            "$ref": "#/definitions/RoomResponse"
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/responses/401"
-                    },
-                    "500": {
-                        "$ref": "#/responses/500"
-                    },
-                    "503": {
-                        "$ref": "#/responses/503"
-                    },
-                    "default": {
-                        "$ref": "#/responses/default"
-                    }
-                }
-            },
-            "delete": {
-                "summary": "Delete a Room",
-                "description": "Delete a room from the Crestron Fusion database.",
-                "parameters": [{
-                    "$ref": "#/parameters/room"
-                }],
-                "tags": [
-                    "Rooms"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "All went well"
-                    },
-                    "401": {
-                        "$ref": "#/responses/401"
-                    },
-                    "500": {
-                        "$ref": "#/responses/500"
-                    },
-                    "503": {
-                        "$ref": "#/responses/503"
-                    },
-                    "default": {
-                        "$ref": "#/responses/default"
-                    }
-                }
-            }
-        },
-        "/devices/{hostname}": {
-            "get": {
-                "summary": "Device Information",
-                "description": "Returns information about a device whose hostname is specified.",
-                "parameters": [{
-                    "$ref": "#/parameters/hostname"
-                }],
-                "tags": [
-                    "Devices"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Device information",
-                        "schema": {
-                            "$ref": "#/definitions/DeviceResponse"
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/responses/401"
-                    },
-                    "500": {
-                        "$ref": "#/responses/500"
-                    },
-                    "503": {
-                        "$ref": "#/responses/503"
-                    },
-                    "default": {
-                        "$ref": "#/responses/default"
-                    }
-                }
-            }
-        },
-        "/buildings": {
-            "get": {
-                "summary": "All Buildings",
-                "description": "Returns information about all the buildings with TEC capability across campus.",
-                "tags": [
-                    "Buildings"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "An array of buildings",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/BuildingResponse"
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/responses/401"
-                    },
-                    "500": {
-                        "$ref": "#/responses/500"
-                    },
-                    "503": {
-                        "$ref": "#/responses/503"
-                    },
-                    "default": {
-                        "$ref": "#/responses/default"
-                    }
-                }
-            },
-            "post": {
-                "summary": "Make a Building",
-                "description": "Make a new building and add it to the database.",
-                "parameters": [{
-                    "name": "body",
-                    "description": "The new building to create",
-                    "in": "body",
-                    "required": true,
-                    "schema": {
-                        "$ref": "#/definitions/BuildingRequest"
-                    }
-                }],
-                "tags": [
-                    "Buildings"
-                ],
-                "responses": {
-                    "201": {
-                        "description": "All went well",
-                        "schema": {
-                            "$ref": "#/definitions/BuildingResponse"
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/responses/401"
-                    },
-                    "500": {
-                        "$ref": "#/responses/500"
-                    },
-                    "503": {
-                        "$ref": "#/responses/503"
-                    },
-                    "default": {
-                        "$ref": "#/responses/default"
-                    }
-                }
-            }
-        },
-        "/buildings/{building}": {
-            "get": {
-                "summary": "All Rooms",
-                "description": "Returns information about rooms with TEC capability in the given building.",
-                "parameters": [{
-                    "$ref": "#/parameters/building"
-                }],
-                "tags": [
-                    "Rooms",
-                    "Buildings"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "An array of rooms",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/RoomResponse"
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/responses/401"
-                    },
-                    "500": {
-                        "$ref": "#/responses/500"
-                    },
-                    "503": {
-                        "$ref": "#/responses/503"
-                    },
-                    "default": {
-                        "$ref": "#/responses/default"
-                    }
-                }
-            },
-            "put": {
-                "summary": "Update a Building",
-                "description": "Update a building and add it to the Crestron Fusion database.",
-                "parameters": [{
-                    "$ref": "#/parameters/building"
-                }, {
-                    "name": "body",
-                    "description": "The updated building information",
-                    "in": "body",
-                    "schema": {
-                        "$ref": "#/definitions/BuildingRequest"
-                    }
-                }],
-                "tags": [
-                    "Rooms",
-                    "Buildings"
-                ],
-                "responses": {
-                    "201": {
-                        "description": "All went well",
-                        "schema": {
-                            "$ref": "#/definitions/RoomResponse"
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/responses/401"
-                    },
-                    "500": {
-                        "$ref": "#/responses/500"
-                    },
-                    "503": {
-                        "$ref": "#/responses/503"
-                    },
-                    "default": {
-                        "$ref": "#/responses/default"
-                    }
-                }
-            },
-            "delete": {
-                "summary": "Delete a Building",
-                "description": "Delete a building from the Crestron Fusion database.",
-                "parameters": [{
-                    "$ref": "#/parameters/building"
-                }],
-                "tags": [
-                    "Buildings"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "All went well"
-                    },
-                    "401": {
-                        "$ref": "#/responses/401"
-                    },
-                    "500": {
-                        "$ref": "#/responses/500"
-                    },
-                    "503": {
-                        "$ref": "#/responses/503"
-                    },
-                    "default": {
-                        "$ref": "#/responses/default"
-                    }
-                }
-            }
-        },
-        "/buildings/{building}/rooms": {
-            "get": {
-                "summary": "Get All Building Rooms",
-                "description": "Returns information about all TEC rooms in a specified building.",
-                "parameters": [{
-                    "$ref": "#/parameters/building"
-                }],
-                "tags": [
-                    "Rooms",
-                    "Buildings"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "An array of rooms",
-                        "schema": {
-                            "$ref": "#/definitions/RoomResponse"
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/responses/401"
-                    },
-                    "500": {
-                        "$ref": "#/responses/500"
-                    },
-                    "503": {
-                        "$ref": "#/responses/503"
-                    },
-                    "default": {
-                        "$ref": "#/responses/default"
-                    }
-                }
-            }
-        },
-        "/buildings/{building}/rooms/{room}": {
-            "get": {
-                "summary": "Get a Specific Room",
-                "description": "Returns information about a specific TEC room in a specified building.",
-                "parameters": [{
-                    "$ref": "#/parameters/building"
-                }, {
-                    "$ref": "#/parameters/room"
-                }],
-                "tags": [
-                    "Rooms",
-                    "Buildings"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "A room object",
-                        "schema": {
-                            "$ref": "#/definitions/RoomResponse"
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/responses/401"
-                    },
-                    "500": {
-                        "$ref": "#/responses/500"
-                    },
-                    "503": {
-                        "$ref": "#/responses/503"
-                    },
-                    "default": {
-                        "$ref": "#/responses/default"
-                    }
-                }
-            },
-            "put": {
-                "summary": "Make a Signal",
-                "description": "Update information about a room for a specific building and add it to the Crestron Fusion database.",
-                "parameters": [{
-                    "$ref": "#/parameters/building"
-                }, {
-                    "$ref": "#/parameters/room"
-                }, {
-                    "name": "body",
-                    "description": "The updated room information",
-                    "in": "body",
-                    "schema": {
-                        "$ref": "#/definitions/RoomRequest"
-                    }
-                }],
-                "tags": [
-                    "Rooms",
-                    "Buildings"
-                ],
-                "responses": {
-                    "201": {
-                        "description": "All went well",
-                        "schema": {
-                            "$ref": "#/definitions/RoomResponse"
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/responses/401"
-                    },
-                    "500": {
-                        "$ref": "#/responses/500"
-                    },
-                    "503": {
-                        "$ref": "#/responses/503"
-                    },
-                    "default": {
-                        "$ref": "#/responses/default"
-                    }
-                }
-            },
-            "delete": {
-                "summary": "Delete a Room",
-                "description": "Delete a room from the Crestron Fusion database.",
-                "parameters": [{
-                    "$ref": "#/parameters/building"
-                }, {
-                    "$ref": "#/parameters/room"
-                }],
-                "tags": [
-                    "Buildings",
-                    "Rooms"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "All went well"
-                    },
-                    "401": {
-                        "$ref": "#/responses/401"
-                    },
-                    "500": {
-                        "$ref": "#/responses/500"
-                    },
-                    "503": {
-                        "$ref": "#/responses/503"
-                    },
-                    "default": {
-                        "$ref": "#/responses/default"
-                    }
-                }
-            }
-        },
-        "/buildings/{building}/rooms/{room}/signals": {
-            "get": {
-                "summary": "All Room Signals",
-                "description": "Return information about all signals available in a specific TEC room.",
-                "parameters": [{
-                    "$ref": "#/parameters/building"
-                }, {
-                    "$ref": "#/parameters/room"
-                }],
-                "tags": [
-                    "Rooms",
-                    "Buildings",
-                    "Signals"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "An array of signals",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/SignalResponse"
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/responses/401"
-                    },
-                    "500": {
-                        "$ref": "#/responses/500"
-                    },
-                    "503": {
-                        "$ref": "#/responses/503"
-                    },
-                    "default": {
-                        "$ref": "#/responses/default"
-                    }
-                }
-            },
-            "post": {
-                "summary": "Make a Signal",
-                "description": "Make a new signal and add it to the Crestron Fusion database for the specified building and room.",
-                "parameters": [{
-                    "$ref": "#/parameters/building"
-                }, {
-                    "$ref": "#/parameters/room"
-                }, {
-                    "name": "body",
-                    "description": "The new signal to create",
-                    "in": "body",
-                    "schema": {
-                        "$ref": "#/definitions/SignalRequest"
-                    }
-                }],
-                "tags": [
-                    "Rooms",
-                    "Buildings",
-                    "Signals"
-                ],
-                "responses": {
-                    "201": {
-                        "description": "All went well",
-                        "schema": {
-                            "$ref": "#/definitions/SignalResponse"
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/responses/401"
-                    },
-                    "500": {
-                        "$ref": "#/responses/500"
-                    },
-                    "503": {
-                        "$ref": "#/responses/503"
-                    },
-                    "default": {
-                        "$ref": "#/responses/default"
-                    }
-                }
-            }
-        },
-        "/buildings/{building}/rooms/{room}/signals/{signal}": {
-            "get": {
-                "summary": "Get a Specific Signal",
-                "description": "Return information about a specified signal in a specific room and building.",
-                "parameters": [{
-                    "$ref": "#/parameters/building"
-                }, {
-                    "$ref": "#/parameters/room"
-                }, {
-                    "$ref": "#/parameters/signal"
-                }],
-                "tags": [
-                    "Rooms",
-                    "Buildings",
-                    "Signals"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "An array of signals",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/SignalResponse"
-                            }
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/responses/401"
-                    },
-                    "500": {
-                        "$ref": "#/responses/500"
-                    },
-                    "503": {
-                        "$ref": "#/responses/503"
-                    },
-                    "default": {
-                        "$ref": "#/responses/default"
-                    }
-                }
-            },
-            "put": {
-                "summary": "Update a Signal",
-                "description": "Update information about a signal and add the changes to the Creston Fusion database.",
-                "parameters": [{
-                    "$ref": "#/parameters/building"
-                }, {
-                    "$ref": "#/parameters/room"
-                }, {
-                    "$ref": "#/parameters/signal"
-                }, {
-                    "name": "body",
-                    "description": "The updated signal information",
-                    "in": "body",
-                    "schema": {
-                        "$ref": "#/definitions/SignalRequest"
-                    }
-                }],
-                "tags": [
-                    "Rooms",
-                    "Buildings",
-                    "Signals"
-                ],
-                "responses": {
-                    "201": {
-                        "description": "All went well",
-                        "schema": {
-                            "$ref": "#/definitions/RoomResponse"
-                        }
-                    },
-                    "401": {
-                        "$ref": "#/responses/401"
-                    },
-                    "500": {
-                        "$ref": "#/responses/500"
-                    },
-                    "503": {
-                        "$ref": "#/responses/503"
-                    },
-                    "default": {
-                        "$ref": "#/responses/default"
-                    }
-                }
-            },
-            "delete": {
-                "summary": "Delete a Signal",
-                "description": "Delete a specific signal from the Crestron Fusion database.",
-                "parameters": [{
-                    "$ref": "#/parameters/building"
-                }, {
-                    "$ref": "#/parameters/room"
-                }, {
-                    "$ref": "#/parameters/signal"
-                }],
-                "tags": [
-                    "Rooms",
-                    "Buildings",
-                    "Signals"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "All went well"
-                    },
-                    "401": {
-                        "$ref": "#/responses/401"
-                    },
-                    "500": {
-                        "$ref": "#/responses/500"
-                    },
-                    "503": {
-                        "$ref": "#/responses/503"
-                    },
-                    "default": {
-                        "$ref": "#/responses/default"
-                    }
-                }
-            }
-        }
-    },
-    "definitions": {
-        "HATEOAS": {
-            "type": "object",
-            "properties": {
-                "rel": {
-                    "type": "string",
-                    "description": "A human-readable name for what the link represents"
-                },
-                "href": {
-                    "type": "string",
-                    "description": "The link to the endpoint"
-                }
-            }
-        },
-        "DNS": {
-            "type": "object",
-            "properties": {
-                "address": {
-                    "type": "string",
-                    "description": "The IP address of a DNS server"
-                }
-            }
-        },
-        "Room": {
-            "type": "object",
-            "properties": {
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/HATEOAS"
-                    }
-                },
-                "name": {
-                    "type": "string",
-                    "description": "The human-readable name of the room"
-                },
-                "ID": {
-                    "type": "string",
-                    "description": "The GUID of the room"
-                },
-                "roomID": {
-                    "type": "string",
-                    "description": "The room number"
-                },
-                "description": {
-                    "type": "string",
-                    "description": "A human-readable description of the room"
-                },
-                "address": {
-                    "type": "string",
-                    "description": "The IP address of the processor"
-                },
-                "signals": {
-                    "type": "array",
-                    "description": "The available signals attached to this processor",
-                    "items": {
-                        "$ref": "#/definitions/SignalRequest"
-                    }
-                },
-                "available": {
-                    "type": "boolean",
-                    "description": "Whether or not the room is currently available (calculated based on campus room scheduling and whether or not the room\"s processor reports as in-use)"
-                }
-            }
-        },
-        "Response": {
-            "type": "object",
-            "properties": {
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/HATEOAS"
-                    }
-                },
-                "message": {
-                    "type": "string",
-                    "description": "A human-readable message about what just happened"
-                }
-            }
-        },
-        "RoomResponse": {
-            "type": "object",
-            "properties": {
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/HATEOAS"
-                    }
-                },
-                "rooms": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/Room"
-                    }
-                }
-            }
-        },
-        "RoomRequest": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string",
-                    "description": "The human-readable name of the room"
-                },
-                "roomID": {
-                    "type": "string",
-                    "description": "The room number"
-                },
-                "description": {
-                    "type": "string",
-                    "description": "A human-readable description of the room"
-                }
-            }
-        },
-        "Device": {
-            "type": "object",
-            "properties": {
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/HATEOAS"
-                    }
-                },
-                "hostname": {
-                    "type": "string",
-                    "description": "The hostname of the device"
-                },
-                "description": {
-                    "type": "string",
-                    "description": "A human-readable description of the device"
-                },
-                "room": {
-                    "$ref": "#/definitions/Room"
-                },
-                "address": {
-                    "type": "string",
-                    "description": "The IP address of the processor"
-                },
-                "subnet": {
-                    "type": "string",
-                    "description": "The IP subnet mask of the device"
-                },
-                "gateway": {
-                    "type": "string",
-                    "description": "The device's default gateway"
-                },
-                "serial": {
-                    "type": "string",
-                    "description": "The serial number of the device"
-                },
-                "MAC": {
-                    "type": "string",
-                    "description": "The MAC address of the device"
-                },
-                "DNS": {
-                    "type": "array",
-                    "description": "The DNS servers declared for the device",
-                    "items": {
-                        "$ref": "#/definitions/DNS"
-                    }
-                }
-            }
-        },
-        "DeviceResponse": {
-            "type": "object",
-            "properties": {
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/HATEOAS"
-                    }
-                },
-                "device": {
-                    "$ref": "#/definitions/Device"
-                }
-            }
-        },
-        "Building": {
-            "type": "object",
-            "properties": {
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/HATEOAS"
-                    }
-                },
-                "name": {
-                    "type": "string",
-                    "description": "The human-readable name of the building"
-                },
-                "ID": {
-                    "type": "string",
-                    "description": "The GUID of the building"
-                },
-                "shortname": {
-                    "type": "string",
-                    "description": "The building shortname"
-                },
-                "description": {
-                    "type": "string",
-                    "description": "A human-readable description of the building"
-                }
-            }
-        },
-        "BuildingResponse": {
-            "type": "object",
-            "properties": {
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/HATEOAS"
-                    }
-                },
-                "buildings": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/Building"
-                    }
-                }
-            }
-        },
-        "BuildingRequest": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string",
-                    "description": "The human-readable name of the room"
-                },
-                "roomID": {
-                    "type": "string",
-                    "description": "The room number"
-                },
-                "description": {
-                    "type": "string",
-                    "description": "A human-readable description of the room"
-                }
-            }
-        },
-        "Signal": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string",
-                    "description": "The human-readable name of the signal"
-                },
-                "ID": {
-                    "type": "string",
-                    "description": "The GUID of the signal"
-                },
-                "type": {
-                    "type": "integer",
-                    "description": "Crestron-defined signal type"
-                },
-                "modified": {
-                    "type": "string",
-                    "description": "The date this signal was last modified"
-                }
-            }
-        },
-        "SignalResponse": {
-            "type": "object",
-            "properties": {
-                "links": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/HATEOAS"
-                    }
-                },
-                "signals": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/Signal"
-                    }
-                }
-            }
-        },
-        "SignalRequest": {
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string",
-                    "description": "The human-readable name of the signal"
-                },
-                "type": {
-                    "type": "integer",
-                    "description": "Crestron-defined signal type"
-                }
-            }
-        },
-        "Error": {
-            "type": "object",
-            "properties": {
-                "message": {
-                    "type": "string"
-                }
-            }
-        }
-    },
-    "parameters": {
-        "building": {
-            "name": "building",
-            "in": "path",
-            "description": "Building shortname",
-            "required": true,
-            "type": "string"
-        },
-        "room": {
-            "name": "room",
-            "in": "path",
-            "description": "Room name",
-            "required": true,
-            "type": "string"
-        },
-        "hostname": {
-            "name": "hostname",
-            "in": "path",
-            "description": "Device hostname",
-            "required": true,
-            "type": "string"
-        },
-        "signal": {
-            "name": "signal",
-            "in": "path",
-            "description": "Signal ID",
-            "required": true,
-            "type": "string"
-        }
-    },
-    "responses": {
-        "401": {
-            "description": "You are not authorized to make that request",
-            "schema": {
-                "$ref": "#/definitions/Error"
-            }
-        },
-        "500": {
-            "description": "There was a problem with the server on our end",
-            "schema": {
-                "$ref": "#/definitions/Error"
-            }
-        },
-        "503": {
-            "description": "The server is overloaded, is under maintenance, or is otherwise unavailable",
-            "schema": {
-                "$ref": "#/definitions/Error"
-            }
-        },
-        "default": {
-            "description": "Unexpected error",
-            "schema": {
-                "$ref": "#/definitions/Error"
-            }
-        }
-    }
+	"swagger": "2.0",
+	"info": {
+		"title": "AV API",
+		"description": "Manage various AV systems across the BYU campus",
+		"version": "0.4"
+	},
+	"host": "api.byu.edu:443",
+	"basePath": "/byuoitav-av-api/0.4",
+	"schemes": [
+		"https"
+	],
+	"produces": [
+		"application/json"
+	],
+	"paths": {
+		"/health": {
+			"get": {
+				"summary": "Check Service Health",
+				"description": "Returns information about the microservice's health",
+				"tags": [
+					"Health"
+				],
+				"responses": {
+					"200": {
+						"description": "A health message",
+						"schema": {
+							"type": "array",
+							"items": {
+								"$ref": "#/definitions/Response"
+							}
+						}
+					},
+					"401": {
+						"$ref": "#/responses/401"
+					},
+					"500": {
+						"$ref": "#/responses/500"
+					},
+					"503": {
+						"$ref": "#/responses/503"
+					},
+					"default": {
+						"$ref": "#/responses/default"
+					}
+				}
+			}
+		},
+		"/buildings/{building}/rooms/{room}": {
+			"get": {
+				"summary": "Get a Specific Room",
+				"description": "Returns information about a specific room in a specified building",
+				"parameters": [{
+					"$ref": "#/parameters/building"
+				}, {
+				"$ref": "#/parameters/room"
+				}],
+				"tags": [
+					"Rooms",
+					"Buildings"
+				],
+				"responses": {
+					"200": {
+						"description": "A room object",
+						"schema": {
+							"$ref": "#/definitions/RoomResponse"
+						}
+					},
+					"401": {
+						"$ref": "#/responses/401"
+					},
+					"500": {
+						"$ref": "#/responses/500"
+					},
+					"503": {
+						"$ref": "#/responses/503"
+					},
+					"default": {
+						"$ref": "#/responses/default"
+					}
+				}
+			},
+			"put": {
+				"summary": "Modify a Room",
+				"description": "Update various qualities about a room",
+				"parameters": [{
+					"$ref": "#/parameters/building"
+				}, {
+				"$ref": "#/parameters/room"
+				}, {
+				"name": "body",
+				"description": "The updated room information",
+				"in": "body",
+				"schema": {
+					"$ref": "#/definitions/RoomRequest"
+				}
+				}],
+				"tags": [
+					"Rooms",
+					"Buildings"
+				],
+				"responses": {
+					"201": {
+						"description": "All went well",
+						"schema": {
+							"$ref": "#/definitions/RoomResponse"
+						}
+					},
+					"401": {
+						"$ref": "#/responses/401"
+					},
+					"500": {
+						"$ref": "#/responses/500"
+					},
+					"503": {
+						"$ref": "#/responses/503"
+					},
+					"default": {
+						"$ref": "#/responses/default"
+					}
+				}
+			}
+		}
+	},
+	"definitions": {
+		"HATEOAS": {
+			"type": "object",
+			"properties": {
+				"rel": {
+					"type": "string",
+					"description": "A human-readable name for what the link represents"
+				},
+				"href": {
+					"type": "string",
+					"description": "The link to the endpoint"
+				}
+			}
+		},
+		"RoomRequest": {
+			"type": "object",
+			"properties": {
+				"name": {
+					"type": "string",
+					"description": "The human-readable name of the room"
+				},
+				"roomID": {
+					"type": "string",
+					"description": "The room number"
+				},
+				"description": {
+					"type": "string",
+					"description": "A human-readable description of the room"
+				}
+			}
+		},
+		"RoomResponse": {
+			"type": "object",
+			"properties": {
+				"links": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/HATEOAS"
+					}
+				},
+				"currentVideoInput": {
+					"type": "string",
+					"description": "The human-readable name of the current video input"
+				},
+				"currentAudioInput": {
+					"type": "string",
+					"description": "The human-readable name of the current audio input"
+				},
+				"power": {
+					"type": "string",
+					"description": "The current power state"
+				},
+				"blanked": {
+					"type": "boolean",
+					"description": "Whether or not the display is blanked"
+				},
+				"displays": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/Display"
+					}
+				},
+				"audioDevices": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/AudioDevice"
+					}
+				}
+			}
+		},
+		"AudioDevice": {
+			"type": "object",
+			"properties": {
+				"name": {
+					"type": "string",
+					"description": "The name of the audio device"
+				},
+				"power": {
+					"type": "string",
+					"description": "The power state of the audio device"
+				},
+				"input": {
+					"type": "string",
+					"description": "The name of the current input to the audio device"
+				},
+				"muted": {
+					"type": "boolean",
+					"description": "Whether or not the audio device is currently muted"
+				},
+				"volume": {
+					"type": "integer",
+					"description": "The volume of the audio device (usually between 0 and 100)"
+				}
+			}
+		},
+		"Display": {
+			"type": "object",
+			"properties": {
+				"name": {
+					"type": "string",
+					"description": "The name of the audio device"
+				},
+				"power": {
+					"type": "string",
+					"description": "The power state of the audio device"
+				},
+				"input": {
+					"type": "string",
+					"description": "The name of the current input to the audio device"
+				},
+				"muted": {
+					"type": "boolean",
+					"description": "Whether or not the audio device is currently muted"
+				}
+			}
+		},
+
+		"Response": {
+			"type": "object",
+			"properties": {
+				"links": {
+					"type": "array",
+					"items": {
+						"$ref": "#/definitions/HATEOAS"
+					}
+				},
+				"message": {
+					"type": "string",
+					"description": "A human-readable message about what just happened"
+				}
+			}
+		},
+		"Error": {
+			"type": "object",
+			"properties": {
+				"message": {
+					"type": "string"
+				}
+			}
+		}
+	},
+	"parameters": {
+		"building": {
+			"name": "building",
+			"in": "path",
+			"description": "Building shortname",
+			"required": true,
+			"type": "string"
+		},
+		"room": {
+			"name": "room",
+			"in": "path",
+			"description": "Room name",
+			"required": true,
+			"type": "string"
+		}
+	},
+	"responses": {
+		"401": {
+			"description": "You are not authorized to make that request",
+			"schema": {
+				"$ref": "#/definitions/Error"
+			}
+		},
+		"500": {
+			"description": "There was a problem with the server on our end",
+			"schema": {
+				"$ref": "#/definitions/Error"
+			}
+		},
+		"503": {
+			"description": "The server is overloaded, is under maintenance, or is otherwise unavailable",
+			"schema": {
+				"$ref": "#/definitions/Error"
+			}
+		},
+		"default": {
+			"description": "Unexpected error",
+			"schema": {
+				"$ref": "#/definitions/Error"
+			}
+		}
+	}
 }
