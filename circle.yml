@@ -6,6 +6,10 @@ test:
   post:
     - ./coverage.sh
     - bash <(curl -s https://codecov.io/bash)
+      
+dependencies:
+    pre:
+        - pip install awsebcli
 
 deployment:
   production:
