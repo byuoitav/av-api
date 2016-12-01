@@ -14,3 +14,4 @@ aws elasticbeanstalk create-application-version --application-name $PROJECT_NAME
 
 # Update Elastic Beanstalk environment to new version
 aws elasticbeanstalk update-environment --environment-name $PROJECT_NAME-env --version-label $SHA1
+eb setenv poots=test
