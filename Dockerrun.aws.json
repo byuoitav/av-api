@@ -14,7 +14,7 @@
           "value": "test"
         }
       ],
-      "memory": 512,
+      "memory": 256,
       "essential": true,
       "mountPoints": []
     }
