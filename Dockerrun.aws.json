@@ -15,7 +15,6 @@
         }
       ],
       "essential": true,
-      "memory": 1024,
       "mountPoints": []
     }
   ]
