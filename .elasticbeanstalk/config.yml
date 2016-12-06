@@ -8,7 +8,8 @@ environment-defaults:
 global:
   application_name: av-api
   default_ec2_keyname: aws-av-api
-  default_platform: 64bit Amazon Linux 2016.03 v2.1.6 running Docker 1.11.2
+  default_platform: 64bit Amazon Linux 2016.09 v2.2.0 running Multi-container Docker
+    1.11.2 (Generic)
   default_region: us-west-2
   profile: null
   sc: git
