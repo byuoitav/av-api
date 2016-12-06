@@ -7,10 +7,6 @@ test:
         - ./coverage.sh
         - bash <(curl -s https://codecov.io/bash)
 
-dependencies:
-    pre:
-        - pip install awsebcli
-
 deployment:
     production:
         branch: master
@@ -28,4 +24,3 @@ deployment:
             - docker push byuoitav/rpi-av-api:latest
             - ./deploy.sh $CIRCLE_PROJECT_REPONAME $CIRCLE_SHA1
             - ./deploy-pi.sh
-            - eb setenv poots=test
