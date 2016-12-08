@@ -157,6 +157,7 @@ func Init() map[string]CommandEvaluator {
 	if !commandMapInitialized {
 		CommandMap["PowerOnDefault"] = &PowerOn{}
 		CommandMap["StandbyDefault"] = &Standby{}
+		CommandMap["ChangeInputDefault"] = &ChangeInput{}
 
 		commandMapInitialized = true
 	}
