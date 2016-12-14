@@ -8,14 +8,26 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/byuoitav/authmiddleware/bearertoken"
 	"github.com/byuoitav/configuration-database-microservice/accessors"
 )
 
-//GetData will run a get on the url, and attempt to fill the interface provided
-//from the returned JSON.
+// GetData will run a get on the url, and attempt to fill the interface provided from the returned JSON.
 func GetData(url string, structToFill interface{}) error {
 	log.Printf("Getting data from URL: %s...", url)
-	resp, err := http.Get(url)
+	// Make an HTTP client so we can add custom headers (currently used for adding in the Bearer token for inter-microservice communication)
+
+	client := &http.Client{}
+
+	token, err := bearertoken.GetToken()
+	if err != nil {
+		return err
+	}
+
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Set("Authorization", "Bearer "+token.Token)
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -33,7 +45,7 @@ func GetData(url string, structToFill interface{}) error {
 	return nil
 }
 
-//GetAllRawCommands retrieves all the commands
+// GetAllRawCommands retrieves all the commands
 func GetAllRawCommands() (commands []accessors.RawCommand, err error) {
 	log.Printf("Getting all commands.")
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/commands"
@@ -48,32 +60,32 @@ func GetAllRawCommands() (commands []accessors.RawCommand, err error) {
 	return
 }
 
-//GetRoomByInfo simply retrieves a device's information from the databse.
+// GetRoomByInfo simply retrieves a device's information from the databse.
 func GetRoomByInfo(buildingName string, roomName string) (toReturn accessors.Room, err error) {
 	log.Printf("Getting room %s in building %s...", roomName, buildingName)
 	err = GetData(os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS")+"/buildings/"+buildingName+"/rooms/"+roomName, &toReturn)
 	return
 }
 
-//GetDeviceByName simply retrieves a device's information from the databse.
+// GetDeviceByName simply retrieves a device's information from the databse.
 func GetDeviceByName(buildingName string, roomName string, deviceName string) (toReturn accessors.Device, err error) {
 	err = GetData(os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS")+"/buildings/"+buildingName+"/rooms/"+roomName+"/devices/"+deviceName, &toReturn)
 	return
 }
 
-//GetDevicesByRoom will jut get the devices based on the room.
+// GetDevicesByRoom will jut get the devices based on the room.
 func GetDevicesByRoom(buildingName string, roomName string) (toReturn []accessors.Device, err error) {
 	err = GetData(os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS")+"/buildings/"+buildingName+"/rooms/"+roomName+"/devices", &toReturn)
 	return
 }
 
-//GetDevicesByBuildingAndRoomAndRole will get the devices with the given role from the DB
+// GetDevicesByBuildingAndRoomAndRole will get the devices with the given role from the DB
 func GetDevicesByBuildingAndRoomAndRole(building string, room string, roleName string) (toReturn []accessors.Device, err error) {
 	err = GetData(os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS")+"/buildings/"+building+"/rooms/"+room+"/devices/roles/"+roleName, &toReturn)
 	return
 }
 
-//SetAudioInDB will set the audio levels in the database
+// SetAudioInDB will set the audio levels in the database
 func SetAudioInDB(building string, room string, device accessors.Device) error {
 	log.Printf("Updating audio levels in DB.")
 

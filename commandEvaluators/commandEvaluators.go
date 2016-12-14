@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/byuoitav/authmiddleware/bearertoken"
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/configuration-database-microservice/accessors"
@@ -114,7 +115,18 @@ func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionRe
 		}
 
 		//Execute the command.
-		_, er := http.Get(cmd.Microservice + endpoint)
+		client := &http.Client{}
+
+		token, er := bearertoken.GetToken()
+		if er != nil {
+			err = er
+			return
+		}
+
+		req, _ := http.NewRequest("GET", cmd.Microservice+endpoint, nil)
+		req.Header.Set("Authorization", "Bearer "+token.Token)
+
+		_, er = client.Do(req)
 
 		//if error, record it
 		if er != nil {
