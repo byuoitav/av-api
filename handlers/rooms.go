@@ -4,6 +4,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/byuoitav/av-api/base"
+	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/av-api/helpers"
 	"github.com/labstack/echo"
 )
@@ -11,7 +13,7 @@ import (
 //GetRoomByNameAndBuildingHandler is almost identical to GetRoomByName
 func GetRoomByNameAndBuildingHandler(context echo.Context) error {
 	log.Printf("Getting room...")
-	room, err := helpers.GetRoomByInfo(context.Param("room"), context.Param("building"))
+	room, err := dbo.GetRoomByInfo(context.Param("building"), context.Param("room"))
 	if err != nil {
 		return context.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 	}
@@ -26,17 +28,17 @@ SetRoomState is the handler to accept puts to /buildlings/:buildling/rooms/:room
 		"currentAudioInput": "comptuer",
 		"power": "on",
     "displays": [{
-        "name": "dp1",
-        "power": "on",
-				"input": "roku",
-        "blanked": false
+      "name": "dp1",
+      "power": "on",
+			"input": "roku",
+      "blanked": false
     }],
 		"audioDevices": [{
-		"name": "audio1",
-		"power": "standby",
-		"input": "roku",
-		"muted": false,
-		"volume": 50
+			"name": "audio1",
+			"power": "standby",
+			"input": "roku",
+			"muted": false,
+			"volume": 50
 		}]
 	}
 	Or the 'helpers.PublicRoom' struct.
@@ -46,14 +48,26 @@ func SetRoomState(context echo.Context) error {
 	building, room := context.Param("building"), context.Param("room")
 	log.Printf("Putting room changes.\n")
 
-	var roomInQuestion helpers.PublicRoom
+	var roomInQuestion base.PublicRoom
 	err := context.Bind(&roomInQuestion)
 	if err != nil {
 		return context.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 	}
+	roomInQuestion.Room = room
+	roomInQuestion.Building = building
 
-	helpers.EditRoomState(roomInQuestion, building, room)
+	report, err := helpers.EditRoomState(roomInQuestion)
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+		return context.JSON(http.StatusInternalServerError, helpers.ReturnError(err))
+	}
+	hasError := helpers.CheckReport(report)
 
 	log.Printf("Done.\n")
-	return context.JSON(http.StatusOK, "Success")
+
+	if hasError {
+		return context.JSON(http.StatusInternalServerError, report)
+	}
+	return context.JSON(http.StatusOK, report)
+
 }
