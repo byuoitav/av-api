@@ -49,26 +49,26 @@ func GetAllRawCommands() (commands []accessors.RawCommand, err error) {
 }
 
 //GetRoomByInfo simply retrieves a device's information from the databse.
-func GetRoomByInfo(roomName string, buildingName string) (toReturn accessors.Room, err error) {
+func GetRoomByInfo(buildingName string, roomName string) (toReturn accessors.Room, err error) {
 	log.Printf("Getting room %s in building %s...", roomName, buildingName)
 	err = GetData(os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS")+"/buildings/"+buildingName+"/rooms/"+roomName, &toReturn)
 	return
 }
 
 //GetDeviceByName simply retrieves a device's information from the databse.
-func GetDeviceByName(roomName string, buildingName string, deviceName string) (toReturn accessors.Device, err error) {
+func GetDeviceByName(buildingName string, roomName string, deviceName string) (toReturn accessors.Device, err error) {
 	err = GetData(os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS")+"/buildings/"+buildingName+"/rooms/"+roomName+"/devices/"+deviceName, &toReturn)
 	return
 }
 
 //GetDevicesByRoom will jut get the devices based on the room.
-func GetDevicesByRoom(roomName string, buildingName string) (toReturn []accessors.Device, err error) {
+func GetDevicesByRoom(buildingName string, roomName string) (toReturn []accessors.Device, err error) {
 	err = GetData(os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS")+"/buildings/"+buildingName+"/rooms/"+roomName+"/devices", &toReturn)
 	return
 }
 
 //GetDevicesByBuildingAndRoomAndRole will get the devices with the given role from the DB
-func GetDevicesByBuildingAndRoomAndRole(room string, building string, roleName string) (toReturn []accessors.Device, err error) {
+func GetDevicesByBuildingAndRoomAndRole(building string, room string, roleName string) (toReturn []accessors.Device, err error) {
 	err = GetData(os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS")+"/buildings/"+building+"/rooms/"+room+"/devices/roles/"+roleName, &toReturn)
 	return
 }
