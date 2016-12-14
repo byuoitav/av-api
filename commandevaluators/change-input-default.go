@@ -118,7 +118,7 @@ func generateChangeInputByDevice(dev base.Device, room string, building string) 
 }
 
 func generateChangeInputByRole(role string, input string, room string, building string) (actions []base.ActionStructure, err error) {
-	videoOutDevices, err := dbo.GetDevicesByBuildingAndRoomAndRole(building, room, role)
+	devicesToChange, err := dbo.GetDevicesByBuildingAndRoomAndRole(building, room, role)
 	if err != nil {
 		return
 	}
