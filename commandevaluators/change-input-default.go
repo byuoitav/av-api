@@ -86,7 +86,7 @@ func (p *ChangeInputDefault) GetIncompatableCommands() (incompatableActions []st
 func generateChangeInputByDevice(dev base.Device, room string, building string) (action base.ActionStructure, err error) {
 	var curDevice accessors.Device
 
-	curDevice, err = dbo.GetDeviceByName(room, building, dev.Name)
+	curDevice, err = dbo.GetDeviceByName(building, room, dev.Name)
 	if err != nil {
 		return
 	}
@@ -118,7 +118,7 @@ func generateChangeInputByDevice(dev base.Device, room string, building string) 
 }
 
 func generateChangeInputByRole(role string, input string, room string, building string) (actions []base.ActionStructure, err error) {
-	devicesToChange, err := dbo.GetDevicesByBuildingAndRoomAndRole(room, building, role) // Get all the devices with the role you passed in
+	videoOutDevices, err := dbo.GetDevicesByBuildingAndRoomAndRole(building, room, role)
 	if err != nil {
 		return
 	}

@@ -20,8 +20,8 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom) (actions []base.ActionSt
 	var devices []accessors.Device
 	if strings.EqualFold(room.Power, "standby") {
 		log.Printf("Room-wide power set. Retrieving all devices.")
-		// Get all devices.
-		devices, err = dbo.GetDevicesByRoom(room.Room, room.Building)
+		//Get all devices.
+		devices, err = dbo.GetDevicesByRoom(room.Building, room.Room)
 		if err != nil {
 			return
 		}

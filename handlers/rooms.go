@@ -13,7 +13,7 @@ import (
 //GetRoomByNameAndBuildingHandler is almost identical to GetRoomByName
 func GetRoomByNameAndBuildingHandler(context echo.Context) error {
 	log.Printf("Getting room...")
-	room, err := dbo.GetRoomByInfo(context.Param("room"), context.Param("building"))
+	room, err := dbo.GetRoomByInfo(context.Param("building"), context.Param("room"))
 	if err != nil {
 		return context.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 	}

@@ -19,7 +19,7 @@ func EditRoomState(roomInQuestion base.PublicRoom) (report []commandevaluators.C
 	reconcilers := actionreconcilers.Init()
 
 	//get our room
-	room, err := dbo.GetRoomByInfo(roomInQuestion.Room, roomInQuestion.Building)
+	room, err := dbo.GetRoomByInfo(roomInQuestion.Building, roomInQuestion.Room)
 	if err != nil {
 		return
 	}
