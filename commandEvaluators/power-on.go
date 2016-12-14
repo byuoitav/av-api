@@ -21,7 +21,7 @@ func (p *PowerOn) Evaluate(room base.PublicRoom) (actions []base.ActionStructure
 	if strings.EqualFold(room.Power, "on") {
 		log.Printf("Room-wide power set. Retrieving all devices.")
 		//Get all devices.
-		devices, err = dbo.GetDevicesByRoom(room.Room, room.Building)
+		devices, err = dbo.GetDevicesByRoom(room.Building, room.Room)
 		if err != nil {
 			return
 		}

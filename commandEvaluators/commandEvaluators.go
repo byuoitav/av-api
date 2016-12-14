@@ -56,7 +56,7 @@ func getDevice(devs []accessors.Device, d string, room string, building string) 
 	}
 	var device accessors.Device
 
-	device, err = dbo.GetDeviceByName(room, building, d)
+	device, err = dbo.GetDeviceByName(building, room, d)
 	if err != nil {
 		return
 	}
