@@ -1,4 +1,4 @@
-package commandEvaluators
+package commandevaluators
 
 import (
 	"errors"
@@ -32,11 +32,11 @@ type CommandEvaluator interface {
 	Evaluate(base.PublicRoom) ([]base.ActionStructure, error)
 	/*
 		  Validate takes an action structure (for the command) and validates
-			that the device and parameter are valid for the comamnd.
+			that the device and parameter are valid for the command.
 	*/
 	Validate(base.ActionStructure) error
 	/*
-			   GetIncompatableActions returns A list of commands that are incompatable
+			   GetIncompatableActions returns a list of commands that are incompatable
 		     with this one (i.e. 'standby' and 'power on', or 'mute' and 'volume up')
 	*/
 	GetIncompatableCommands() []string
@@ -155,9 +155,10 @@ func ReplaceIPAddressEndpoint(path string, address string) string {
 //Init adds the commands to the commandMap here.
 func Init() map[string]CommandEvaluator {
 	if !commandMapInitialized {
-		CommandMap["PowerOnDefault"] = &PowerOn{}
-		CommandMap["StandbyDefault"] = &Standby{}
-		CommandMap["ChangeInputDefault"] = &ChangeInput{}
+		CommandMap["PowerOnDefault"] = &PowerOnDefault{}
+		CommandMap["StandbyDefault"] = &StandbyDefault{}
+		CommandMap["ChangeInputDefault"] = &ChangeInputDefault{}
+		CommandMap["BlankDisplayDefault"] = &BlankDisplayDefault{}
 
 		commandMapInitialized = true
 	}

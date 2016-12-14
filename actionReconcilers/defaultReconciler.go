@@ -1,4 +1,4 @@
-package actionReconcilers
+package actionreconcilers
 
 import (
 	"encoding/json"
@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/commandEvaluators"
+	"github.com/byuoitav/av-api/commandevaluators"
 )
 
 //DefaultReconciler is the Default Reconciler
@@ -17,7 +17,7 @@ type DefaultReconciler struct{}
 //Reconcile fulfills the requirement to be a Reconciler.
 func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure) (actionsNew []base.ActionStructure, err error) {
 
-	CommandMap := commandEvaluators.Init()
+	CommandMap := commandevaluators.Init()
 
 	log.Printf("Reconciling actions.")
 	deviceActionMap := make(map[int][]base.ActionStructure)

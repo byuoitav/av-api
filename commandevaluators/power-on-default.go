@@ -1,4 +1,4 @@
-package commandEvaluators
+package commandevaluators
 
 import (
 	"errors"
@@ -10,32 +10,38 @@ import (
 	"github.com/byuoitav/configuration-database-microservice/accessors"
 )
 
-//PowerOn is struct that implements the CommandEvaluation struct
-type PowerOn struct {
+// PowerOn is struct that implements the CommandEvaluation struct
+type PowerOnDefault struct {
 }
 
-//Evaluate fulfills the CommmandEvaluation evaluate requirement.
-func (p *PowerOn) Evaluate(room base.PublicRoom) (actions []base.ActionStructure, err error) {
-	log.Printf("Evaluating for PowerOn Command.")
+// Evaluate fulfills the CommmandEvaluation evaluate requirement.
+func (p *PowerOnDefault) Evaluate(room base.PublicRoom) (actions []base.ActionStructure, err error) {
+	log.Printf("Evaluating for PowerOn command.")
 	var devices []accessors.Device
 	if strings.EqualFold(room.Power, "on") {
 		log.Printf("Room-wide power set. Retrieving all devices.")
-		//Get all devices.
+		// Get all devices.
 		devices, err = dbo.GetDevicesByRoom(room.Room, room.Building)
 		if err != nil {
 			return
 		}
 		log.Printf("Setting power 'on' state for all output devices.")
-		//Currently we only check for output devices.
+		// Currently we only check for output devices.
 		for i := range devices {
 			if devices[i].Output {
 				log.Printf("Adding device %+v", devices[i].Name)
-				actions = append(actions, base.ActionStructure{Action: "PowerOn", Device: devices[i], DeviceSpecific: false})
+
+				actions = append(actions, base.ActionStructure{
+					Action:              "PowerOn",
+					Device:              devices[i],
+					GeneratingEvaluator: "PowerOnDefault",
+					DeviceSpecific:      false,
+				})
 			}
 		}
 	}
 
-	//now we go through and check if power 'on' was set for any other device.
+	// Now we go through and check if power 'on' was set for any other device.
 	for _, device := range room.Displays {
 		log.Printf("Evaluating displays for command power on. ")
 		actions, err = p.evaluateDevice(device.Device, actions, devices, room.Room, room.Building)
@@ -51,18 +57,20 @@ func (p *PowerOn) Evaluate(room base.PublicRoom) (actions []base.ActionStructure
 			return
 		}
 	}
+
 	log.Printf("%v actions generated.", len(actions))
 	log.Printf("Evaluation complete.")
 
 	return
 }
 
-//Validate fulfills the Fulfill requirement on the command interface
-func (p *PowerOn) Validate(action base.ActionStructure) (err error) {
+// Validate fulfills the Fulfill requirement on the command interface
+func (p *PowerOnDefault) Validate(action base.ActionStructure) (err error) {
 
 	log.Printf("Validating action for comand PowerOn")
 
-	if ok, _ := checkCommands(action.Device.Commands, "PowerOn"); !ok || !strings.EqualFold(action.Action, "PowerOn") {
+	ok, _ := checkCommands(action.Device.Commands, "PowerOn")
+	if !ok || !strings.EqualFold(action.Action, "PowerOn") {
 		log.Printf("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
 		return errors.New(action.Action + " is an invalid command for" + action.Device.Name)
 	}
@@ -71,35 +79,40 @@ func (p *PowerOn) Validate(action base.ActionStructure) (err error) {
 	return
 }
 
-//GetIncompatableCommands keeps track of actions that are incompatable (on the same device)
-func (p *PowerOn) GetIncompatableCommands() (incompatableActions []string) {
+// GetIncompatableCommands keeps track of actions that are incompatable (on the same device)
+func (p *PowerOnDefault) GetIncompatableCommands() (incompatableActions []string) {
 	incompatableActions = []string{
 		"standby",
 	}
+
 	return
 }
 
-//Evaluate devices just pulls out the process we do with the audio-devices and
-//displays into one function.
-func (p *PowerOn) evaluateDevice(device base.Device,
+// Evaluate devices just pulls out the process we do with the audio-devices and displays into one function.
+func (p *PowerOnDefault) evaluateDevice(device base.Device,
 	actions []base.ActionStructure,
 	devices []accessors.Device,
 	room string,
 	building string) ([]base.ActionStructure, error) {
 
-	//Check if we even need to start anything
+	// Check if we even need to start anything
 	if strings.EqualFold(device.Power, "on") {
-		//check if we already added it
+		// check if we already added it
 		index := checkActionListForDevice(actions, device.Name, room, building)
 		if index == -1 {
-
-			//Get the device, check the list of already retreived devices first, if not there,
-			//hit the DB up for it.
+			// Get the device, check the list of already retreived devices first, if not there,
+			// hit the DB up for it.
 			dev, err := getDevice(devices, device.Name, room, building)
 			if err != nil {
 				return actions, err
 			}
-			actions = append(actions, base.ActionStructure{Action: "PowerOn", Device: dev, DeviceSpecific: true})
+
+			actions = append(actions, base.ActionStructure{
+				Action:              "PowerOn",
+				Device:              dev,
+				GeneratingEvaluator: "PowerOnDefault",
+				DeviceSpecific:      true,
+			})
 		}
 	}
 	return actions, nil

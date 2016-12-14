@@ -5,18 +5,18 @@ import (
 	"log"
 	"strings"
 
-	"github.com/byuoitav/av-api/actionReconcilers"
+	"github.com/byuoitav/av-api/actionreconcilers"
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/commandEvaluators"
+	"github.com/byuoitav/av-api/commandevaluators"
 	"github.com/byuoitav/av-api/dbo"
 )
 
 //EditRoomState actually carries out the room state changes
-func EditRoomState(roomInQuestion base.PublicRoom) (report []commandEvaluators.CommandExecutionReporting, err error) {
+func EditRoomState(roomInQuestion base.PublicRoom) (report []commandevaluators.CommandExecutionReporting, err error) {
 
 	//Initialize
-	evaluators := commandEvaluators.Init()
-	reconcilers := actionReconcilers.Init()
+	evaluators := commandevaluators.Init()
+	reconcilers := actionreconcilers.Init()
 
 	//get our room
 	room, err := dbo.GetRoomByInfo(roomInQuestion.Room, roomInQuestion.Building)
@@ -71,7 +71,7 @@ func EditRoomState(roomInQuestion base.PublicRoom) (report []commandEvaluators.C
 	}
 
 	//execute actions.
-	report, err = commandEvaluators.ExecuteActions(actionList)
+	report, err = commandevaluators.ExecuteActions(actionList)
 
 	return
 }

@@ -1,4 +1,4 @@
-package commandEvaluators
+package commandevaluators
 
 import (
 	"errors"
@@ -10,35 +10,40 @@ import (
 )
 
 //ChangeInput is struct that implements the CommandEvaluation struct
-type ChangeInput struct {
+type ChangeInputDefault struct {
 }
 
 //Evaluate fulfills the CommmandEvaluation evaluate requirement.
-func (p *ChangeInput) Evaluate(room base.PublicRoom) (actions []base.ActionStructure, err error) {
-
+func (p *ChangeInputDefault) Evaluate(room base.PublicRoom) (actions []base.ActionStructure, err error) {
 	//RoomWideSetVideoInput
-	if len(room.CurrentVideoInput) > 0 {
+	if len(room.CurrentVideoInput) > 0 { // Check if the user sent a PUT body changing the current video input
 		var tempActions []base.ActionStructure
 
-		tempActions, err = generateChangeInputByRole("VideoOut",
+		tempActions, err = generateChangeInputByRole(
+			"VideoOut",
 			room.CurrentVideoInput,
 			room.Room,
-			room.Building)
+			room.Building,
+		)
+
 		if err != nil {
 			return
 		}
+
 		actions = append(actions, tempActions...)
 	}
 
 	//RoomWideSetAudioInput
-	if len(room.CurrentAudioInput) > 0 {
+	if len(room.CurrentAudioInput) > 0 { // Check if the user sent a PUT body changing the current audio input
 		var tempActions []base.ActionStructure
 
 		//generate action
-		tempActions, err = generateChangeInputByRole("AudioOut",
+		tempActions, err = generateChangeInputByRole(
+			"AudioOut",
 			room.CurrentVideoInput,
 			room.Room,
-			room.Building)
+			room.Building,
+		)
 		if err != nil {
 			return
 		}
@@ -46,7 +51,7 @@ func (p *ChangeInput) Evaluate(room base.PublicRoom) (actions []base.ActionStruc
 	}
 
 	//Displays
-	for _, d := range room.Displays {
+	for _, d := range room.Displays { // Loop through the devices array (potentially) passed in the user's PUT body
 		var action base.ActionStructure
 		action, err = generateChangeInputByDevice(d.Device, room.Room, room.Building)
 		if err != nil {
@@ -56,7 +61,7 @@ func (p *ChangeInput) Evaluate(room base.PublicRoom) (actions []base.ActionStruc
 	}
 
 	//AudioDevice
-	for _, d := range room.AudioDevices {
+	for _, d := range room.AudioDevices { // Loop through the audio devices array (potentially) passed in the user's PUT body
 		var action base.ActionStructure
 		action, err = generateChangeInputByDevice(d.Device, room.Room, room.Building)
 		if err != nil {
@@ -69,12 +74,12 @@ func (p *ChangeInput) Evaluate(room base.PublicRoom) (actions []base.ActionStruc
 }
 
 //Validate fulfills the Fulfill requirement on the command interface
-func (p *ChangeInput) Validate(action base.ActionStructure) (err error) {
+func (p *ChangeInputDefault) Validate(action base.ActionStructure) (err error) {
 	return nil
 }
 
 //GetIncompatableCommands keeps track of actions that are incompatable (on the same device)
-func (p *ChangeInput) GetIncompatableCommands() (incompatableActions []string) {
+func (p *ChangeInputDefault) GetIncompatableCommands() (incompatableActions []string) {
 	return
 }
 
@@ -113,17 +118,16 @@ func generateChangeInputByDevice(dev base.Device, room string, building string) 
 }
 
 func generateChangeInputByRole(role string, input string, room string, building string) (actions []base.ActionStructure, err error) {
-
-	videoOutDevices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room, building, role)
+	devicesToChange, err := dbo.GetDevicesByBuildingAndRoomAndRole(room, building, role) // Get all the devices with the role you passed in
 	if err != nil {
 		return
 	}
 
-	for _, d := range videoOutDevices {
-		paramMap := make(map[string]string)
+	for _, d := range devicesToChange { // Loop through the devices in the room
+		paramMap := make(map[string]string) // Start building parameter map
 
 		//Get the port mapping for the device
-		for _, curPort := range d.Ports {
+		for _, curPort := range d.Ports { // Loop through the found ports
 			if strings.EqualFold(curPort.Source, input) {
 				paramMap["port"] = curPort.Name
 				break
@@ -136,8 +140,8 @@ func generateChangeInputByRole(role string, input string, room string, building 
 		}
 
 		action := base.ActionStructure{
-			Action:              "change-input",
-			GeneratingEvaluator: "changeInput",
+			Action:              "ChangeInput",
+			GeneratingEvaluator: "ChangeInputDefault",
 			Device:              d,
 			Parameters:          paramMap,
 			DeviceSpecific:      false,
@@ -145,7 +149,9 @@ func generateChangeInputByRole(role string, input string, room string, building 
 		}
 
 		actions = append(actions, action)
+
 		return
 	}
+
 	return
 }

@@ -1,4 +1,4 @@
-package commandEvaluators
+package commandevaluators
 
 import (
 	"strings"
