@@ -2,7 +2,6 @@ package helpers
 
 import (
 	"errors"
-	"log"
 	"strings"
 
 	"github.com/byuoitav/av-api/actionreconcilers"
@@ -13,7 +12,6 @@ import (
 
 //EditRoomState actually carries out the room state changes
 func EditRoomState(roomInQuestion base.PublicRoom) (report []commandevaluators.CommandExecutionReporting, err error) {
-
 	//Initialize
 	evaluators := commandevaluators.Init()
 	reconcilers := actionreconcilers.Init()
@@ -28,8 +26,6 @@ func EditRoomState(roomInQuestion base.PublicRoom) (report []commandevaluators.C
 
 	//for each command in the configuration, evaluate and validate.
 	for _, c := range room.Configuration.Commands {
-		log.Printf("Evaluating command %s.", c.CommandName)
-
 		curEvaluator := evaluators[c.CommandKey]
 		if curEvaluator == nil {
 			err = errors.New("No evaluator corresponding to key " + c.CommandKey)

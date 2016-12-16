@@ -88,7 +88,6 @@ func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionRe
 
 		//go through and replace the parameters with the parameters in the actions
 		for k, v := range a.Parameters {
-
 			toReplace := ":" + k
 			if !strings.Contains(endpoint, toReplace) {
 				errorString := "The parameter " + toReplace + " was not found in the command " +
@@ -100,7 +99,7 @@ func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionRe
 				return
 			}
 
-			strings.Replace(endpoint, toReplace, v, -1)
+			endpoint = strings.Replace(endpoint, toReplace, v, -1)
 		}
 
 		if strings.Contains(endpoint, ":") {

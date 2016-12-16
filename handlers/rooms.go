@@ -53,14 +53,18 @@ func SetRoomState(context echo.Context) error {
 	if err != nil {
 		return context.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 	}
+
 	roomInQuestion.Room = room
 	roomInQuestion.Building = building
+
+	log.Println("Beginning edit of room state")
 
 	report, err := helpers.EditRoomState(roomInQuestion)
 	if err != nil {
 		log.Printf("Error: %s", err.Error())
 		return context.JSON(http.StatusInternalServerError, helpers.ReturnError(err))
 	}
+
 	hasError := helpers.CheckReport(report)
 
 	log.Printf("Done.\n")
@@ -68,6 +72,6 @@ func SetRoomState(context echo.Context) error {
 	if hasError {
 		return context.JSON(http.StatusInternalServerError, report)
 	}
-	return context.JSON(http.StatusOK, report)
 
+	return context.JSON(http.StatusOK, report)
 }

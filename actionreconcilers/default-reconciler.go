@@ -1,9 +1,7 @@
 package actionreconcilers
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"strings"
 
@@ -54,7 +52,6 @@ func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure) (actionsNe
 		//baseAction is the actionStructure generating the action (for cur action)
 		//incompatableBaseAction is the actionStructure that generated the incompatable action.
 		for curAction, baseAction := range actionsForEvaluation {
-			fmt.Printf("%v: %+v\n", curAction, baseAction)
 			if baseAction.Overridden {
 				continue
 			}
@@ -90,11 +87,6 @@ func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure) (actionsNe
 			}
 		}
 	}
-
-	//Debug
-	b, _ := json.Marshal(&actions)
-	fmt.Printf("%s", b)
-	//END Debug
 
 	log.Printf("Done.")
 	actionsNew = actions
