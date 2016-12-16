@@ -18,7 +18,7 @@ type CommandExecutionReporting struct {
 	Success bool   `json:"success"`
 	Action  string `json:"action"`
 	Device  string `json:"device"`
-	Err     string `json:"error"`
+	Err     string `json:"error,omitempty"`
 }
 
 /*
