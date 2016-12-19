@@ -125,12 +125,23 @@ func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionRe
 		req, _ := http.NewRequest("GET", cmd.Microservice+endpoint, nil)
 		req.Header.Set("Authorization", "Bearer "+token.Token)
 
-		_, er = client.Do(req)
+		resp, er := client.Do(req)
+
+		toReport := base.Event{
+			Event:    a.Action,
+			Building: a.Device.Building.Shortname,
+			Room:     a.Device.Room.Name,
+			Device:   a.Device.Name,
+		}
 
 		//if error, record it
 		if er != nil {
 			log.Printf("ERROR: %s. Continuing.", er.Error())
-			//TODO: log to ELK
+
+			toReport.ResponseCode = resp.StatusCode
+			toReport.Success = true
+			base.ReportToELK(toReport)
+
 			status = append(status, CommandExecutionReporting{
 				Success: false,
 				Action:  a.Action,
@@ -139,7 +150,10 @@ func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionRe
 			})
 		} else {
 			log.Printf("Successfully sent command %s to device %s.", a.Action, a.Device.Name)
-			//TODO: log to ELK
+
+			toReport.Success = false
+			base.ReportToELK(toReport)
+
 			status = append(status, CommandExecutionReporting{
 				Success: true,
 				Action:  a.Action,
@@ -147,6 +161,7 @@ func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionRe
 				Err:     "",
 			})
 		}
+
 	}
 
 	return
