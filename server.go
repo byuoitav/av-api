@@ -5,8 +5,9 @@ import (
 	"net/http"
 
 	"github.com/byuoitav/authmiddleware"
+	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/handlers"
-	"github.com/byuoitav/av-api/init"
+	avapi "github.com/byuoitav/av-api/init"
 	"github.com/byuoitav/hateoas"
 	"github.com/jessemillar/health"
 	"github.com/labstack/echo"
@@ -15,11 +16,18 @@ import (
 
 func main() {
 	//First we need to check if we're a room.
-	init.CheckRoomInitialization()
-
-	err := hateoas.Load("https://raw.githubusercontent.com/byuoitav/av-api/master/swagger.json")
+	err := avapi.CheckRoomInitialization()
 	if err != nil {
-		log.Fatalln("Could not load Swagger file. Error: " + err.Error())
+		base.ReportToELK(base.Event{Event: "Fail to run init script. Terminating."})
+
+		log.Fatalf("Could not initialize room. Error: %v\n", err.Error())
+	}
+
+	err = hateoas.Load("https://raw.githubusercontent.com/byuoitav/av-api/master/swagger.json")
+	if err != nil {
+		base.ReportToELK(base.Event{Event: "Fail to run init script. Terminating."})
+
+		log.Fatalf("Could not load Swagger file. Error: %s\b", err.Error())
 	}
 
 	port := ":8000"
