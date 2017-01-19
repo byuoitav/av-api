@@ -6,6 +6,7 @@ import (
 
 	"github.com/byuoitav/authmiddleware"
 	"github.com/byuoitav/av-api/handlers"
+	"github.com/byuoitav/av-api/init"
 	"github.com/byuoitav/hateoas"
 	"github.com/jessemillar/health"
 	"github.com/labstack/echo"
@@ -13,6 +14,9 @@ import (
 )
 
 func main() {
+	//First we need to check if we're a room.
+	init.CheckRoomInitialization()
+
 	err := hateoas.Load("https://raw.githubusercontent.com/byuoitav/av-api/master/swagger.json")
 	if err != nil {
 		log.Fatalln("Could not load Swagger file. Error: " + err.Error())
