@@ -52,7 +52,12 @@ func (p *ChangeInputDefault) Evaluate(room base.PublicRoom) (actions []base.Acti
 
 	//Displays
 	for _, d := range room.Displays { // Loop through the devices array (potentially) passed in the user's PUT body
+		if len(d.Input) < 1 {
+			continue
+		}
+
 		var action base.ActionStructure
+
 		action, err = generateChangeInputByDevice(d.Device, room.Room, room.Building)
 		if err != nil {
 			return
@@ -62,7 +67,12 @@ func (p *ChangeInputDefault) Evaluate(room base.PublicRoom) (actions []base.Acti
 
 	//AudioDevice
 	for _, d := range room.AudioDevices { // Loop through the audio devices array (potentially) passed in the user's PUT body
+		if len(d.Input) < 1 {
+			continue
+		}
+
 		var action base.ActionStructure
+
 		action, err = generateChangeInputByDevice(d.Device, room.Room, room.Building)
 		if err != nil {
 			return
