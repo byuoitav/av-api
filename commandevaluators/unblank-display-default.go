@@ -35,7 +35,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStr
 				log.Printf("Adding Device %+v", devices[i].Name)
 
 				actions = append(actions, base.ActionStructure{
-					Action:              "UnblankScreen",
+					Action:              "UnblankDisplay",
 					GeneratingEvaluator: "UnBlankDisplayDefault",
 					Device:              devices[i],
 					DeviceSpecific:      false,
@@ -60,7 +60,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStr
 			}
 
 			actions = append(actions, base.ActionStructure{
-				Action:              "UnblankScreen",
+				Action:              "UnblankDisplay",
 				GeneratingEvaluator: "UnBlankDisplayDefault",
 				Device:              device,
 				DeviceSpecific:      true,
@@ -79,9 +79,9 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStr
 func (p *UnBlankDisplayDefault) Validate(action base.ActionStructure) error {
 	log.Printf("Validating action for command \"UnBlank\"")
 
-	ok, _ := checkCommands(action.Device.Commands, "UnblankScreen")
+	ok, _ := checkCommands(action.Device.Commands, "UnblankDisplay")
 
-	if !ok || !strings.EqualFold(action.Action, "UnblankScreen") {
+	if !ok || !strings.EqualFold(action.Action, "UnblankDisplay") {
 		log.Printf("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
 		return errors.New(action.Action + " is an invalid command for" + action.Device.Name)
 	}
