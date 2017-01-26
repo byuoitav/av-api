@@ -1,9 +1,12 @@
 package commandevaluators
 
 import (
+	"errors"
 	"log"
+	"strings"
 
 	"github.com/byuoitav/av-api/base"
+	"github.com/byuoitav/av-api/dbo"
 )
 
 type UnMuteDefault struct {
@@ -17,12 +20,14 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, 
   //check if request is a roomwide unmute
 	if room.Muted != nil && !*room.Muted {
 
-		log.Printf("Roomwide UnMute request recieved. Retrieving all devices")
+		log.Printf("Room-wide UnMute request recieved. Retrieving all devices")
 
     devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "AudioOut")
     if err != nil {
       return []base.ActionStructure, err
     }
+
+    log.Printf("UnMuting alll devices in room.")
 
 		for i := range devices {
 
@@ -44,7 +49,7 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, 
 	}
 
   //check specific devices
-  log.Printf("Evaluating individual audio devices for unmuting", v)
+  log.Printf("Evaluating individual audio devices for unmuting.")
 
   for _, audioDevice := range room.AudioDevices{
 
@@ -75,7 +80,7 @@ return actions, nil
 
 }
 
-func (p *UnMuteDefault) Validate (action base.ActionStructure) error {
+func (p *UnMuteDefault) Validate(action base.ActionStructure) error {
 
   log.Printf("Validating action for command \"UnMute\"")
 
@@ -90,11 +95,11 @@ func (p *UnMuteDefault) Validate (action base.ActionStructure) error {
   return nil
 }
 
-func (p *UnMuteDefault) GetIncompatableCommands() ([]string) {
+func (p *UnMuteDefault) GetIncompatableCommands() (incompatibleActions []string) {
 
-  return {
-  // this is the only command I see as incompatible
-    "Mute"
-  }
+	incompatibleActions = []string{
+		"Mute",
+	}
 
+	return
 }

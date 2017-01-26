@@ -11,7 +11,7 @@ type SetVolumeDefault struct {
 }
 
 //Validate checks for a volume for the entire room or the volume of a specific device
-func (*SetVolumeDefault) Validate(room base.PublicRoom) ([]base.ActionStructure, error) {
+func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
 
 	actions := []base.ActionStructure{}
 

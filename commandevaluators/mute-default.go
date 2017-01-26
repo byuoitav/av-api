@@ -1,7 +1,9 @@
 package commandevaluators
 
 import (
+	"errors"
 	"log"
+	"strings"
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
@@ -17,23 +19,15 @@ type MuteDefault struct {
 */
 func (p *MuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
 
-	log.Printf("Evaluating mute command.")
+	log.Printf("Evaluating for Mute command.")
 
 	//create array of type ActionStructure
 	actions := []base.ActionStructure{}
 
-	if room.Muted != nil {
+	if room.Muted != nil && *room.Muted {
 
 		//general mute command
-		log.Printf("Room-wide mute request detected. Retrieving all devices.")
-
-		//create action string
-		action := ""
-		if *room.Muted == true {
-			action = "Mute"
-		} else {
-			action = "UnMute"
-		}
+		log.Printf("Room-wide Mute request recieved. Retrieving all devices.")
 
 		//get all devices
 		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Room, room.Building, "AudioOut")
@@ -48,7 +42,7 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, er
 				log.Printf("Adding device %+v", devices[i].Name)
 
 				actions = append(actions, base.ActionStructure{
-					Action:              action,
+					Action:              "Mute",
 					GeneratingEvaluator: "MuteDefault",
 					Device:              devices[i],
 					DeviceSpecific:      false,
@@ -58,41 +52,24 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, er
 	}
 
 	//scan the room struct
-	if len(room.AudioDevices) != 0 {
-		log.Printf("Device-specific request recieved. Scanning devices.")
+	log.Printf("Evaluating audio devices for Mute command.")
 
-		//generate commands
-		for _, audioDevice := range room.AudioDevices {
-			if audioDevice.Muted != nil {
+	//generate commands
+	for _, audioDevice := range room.AudioDevices {
+		if audioDevice.Muted != nil && *audioDevice.Muted {
 
-				//get the device
-				device, err := dbo.GetDeviceByName(room.Building, room.Room, audioDevice.Name)
-				if err != nil {
-					return []base.ActionStructure{}, err
-				}
-
-				//generate a command based on desired state
-				action := ""
-
-				if *audioDevice.Muted == true {
-					//append command to mute device
-					log.Printf("Muting %v", audioDevice.Name)
-					action = "Mute"
-
-				} else {
-					//append command to un-mute device
-					log.Printf("Un-muting %v", audioDevice.Name)
-					action = "UnMute"
-				}
-
-				actions = append(actions, base.ActionStructure{
-					Action:              action,
-					GeneratingEvaluator: "MuteDefault",
-					Device:              device,
-					DeviceSpecific:      true,
-				})
-
+			//get the device
+			device, err := dbo.GetDeviceByName(room.Building, room.Room, audioDevice.Name)
+			if err != nil {
+				return []base.ActionStructure{}, err
 			}
+
+			actions = append(actions, base.ActionStructure{
+				Action:              "Mute",
+				GeneratingEvaluator: "MuteDefault",
+				Device:              device,
+				DeviceSpecific:      true,
+			})
 
 		}
 
@@ -102,18 +79,29 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, er
 
 }
 
-/*
-	  Validate takes an action structure (for the command) and validates
-		that the device and parameter are valid for the command.
-*/
-func (p *MuteDefault) Validate(room base.ActionStructure) error {
+// Validate takes an ActionStructure and determines if the command and parameter are valid for the device specified
+func (p *MuteDefault) Validate(action base.ActionStructure) error {
+
+	log.Printf("Validating mute action for command \"UnMute\".")
+
+	ok, _ := checkCommands(action.Device.Commands, "UnMute")
+
+	if !ok || !strings.EqualFold(action.Action, "UnMute") {
+		log.Printf("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
+		return errors.New(action.Action + " is an invalid command for" + action.Device.Name)
+	}
+
+	log.Printf("Done.")
+
 	return nil
 }
 
-/*
-   GetIncompatableActions returns a list of commands that are incompatable
-   with this one (i.e. 'standby' and 'power on', or 'mute' and 'volume up')
-*/
-func (p *MuteDefault) GetIncompatableCommands() []string {
-	return nil
+//  GetIncompatableActions returns a list of commands that are incompatabl with this one (i.e. 'standby' and 'power on', or 'mute' and 'volume up')
+func (p *MuteDefault) GetIncompatableCommands() (incompatibleActions []string) {
+
+	incompatibleActions = []string{
+		"UnMute",
+	}
+
+	return
 }
