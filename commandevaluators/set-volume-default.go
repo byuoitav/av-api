@@ -1,6 +1,7 @@
 package commandevaluators
 
 import (
+	"errors"
 	"log"
 
 	"github.com/byuoitav/av-api/base"
@@ -79,4 +80,23 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure,
 	}
 
 	return actions, nil
+}
+
+//Evaluate returns an error if the volume is greater than 100 or less than 0
+func (p *SetVolumeDefault) Validate(action base.ActionStructure) error {
+	maximum := "100"
+	minimum := "0"
+
+	if action.Parameters["level"] > maximum || action.Parameters["level"] < minimum {
+		log.Printf("ERROR. %v is an invalid volume level for %s", action.Parameters["level"], action.Device.Name)
+		return errors.New(action.Action + " is an invalid command for " + action.Device.Name)
+	}
+
+	return nil
+
+}
+
+//GetIncompatableCommands returns a string array of commands incompatible with setting the volume
+func (p *SetVolumeDefault) GetIncompatableCommands() []string {
+	return nil
 }
