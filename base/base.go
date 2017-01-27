@@ -10,6 +10,8 @@ type PublicRoom struct {
 	CurrentAudioInput string        `json:"currentAudioInput"`
 	Power             string        `json:"power"`
 	Blanked           *bool         `json:"blanked"`
+	Muted             *bool         `json:"muted"`
+	Volume            *int          `json:"volume"`
 	Displays          []Display     `json:"displays"`
 	AudioDevices      []AudioDevice `json:"audioDevices"`
 }

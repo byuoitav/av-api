@@ -19,7 +19,7 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom) (actions []base.ActionSt
 	log.Printf("Evaluating for PowerOn command.")
 	var devices []accessors.Device
 	if strings.EqualFold(room.Power, "on") {
-		log.Printf("Room-wide power set. Retrieving all devices.")
+		log.Printf("Room-wide PowerOn request received. Retrieving all devices.")
 		//Get all devices.
 		devices, err = dbo.GetDevicesByRoom(room.Building, room.Room)
 		if err != nil {
@@ -42,8 +42,8 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom) (actions []base.ActionSt
 	}
 
 	// Now we go through and check if power 'on' was set for any other device.
+	log.Printf("Evaluating displays for power on command.")
 	for _, device := range room.Displays {
-		log.Printf("Evaluating displays for command power on. ")
 		actions, err = p.evaluateDevice(device.Device, actions, devices, room.Room, room.Building)
 		if err != nil {
 			return

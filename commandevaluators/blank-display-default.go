@@ -15,21 +15,13 @@ type BlankDisplayDefault struct {
 
 // Evaluate fulfills the CommmandEvaluation evaluate requirement.
 func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
-	log.Printf("Evaluating for BlankDisplay Command.")
+	log.Printf("Evaluating for BlankDisplay command.")
 
 	actions := []base.ActionStructure{}
 
 	// Check for room-wide blanking
-	if room.Blanked != nil {
+	if room.Blanked != nil && *room.Blanked {
 		log.Printf("Room-wide blank request received. Retrieving all devices.")
-
-		// Set the action (blank or unblank) based on the current status of the room
-		blankActionFromCurrentStatus := ""
-		if *room.Blanked == true {
-			blankActionFromCurrentStatus = "BlankDisplay"
-		} else {
-			blankActionFromCurrentStatus = "UnBlankDisplay"
-		}
 
 		// Get all devices
 		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Room, room.Building, "VideoOut")
@@ -44,7 +36,7 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStruc
 				log.Printf("Adding device %+v", devices[i].Name)
 
 				actions = append(actions, base.ActionStructure{
-					Action:              blankActionFromCurrentStatus,
+					Action:              "BlankDisplay",
 					GeneratingEvaluator: "BlankDisplayDefault",
 					Device:              devices[i],
 					DeviceSpecific:      false,
@@ -54,28 +46,22 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStruc
 	}
 
 	// Now we go through and check if blank was set for a specific device
-	for _, device := range room.Displays { // Loop through the provided displays array from the PUT body
-		log.Printf("Evaluating individual displays for blanking.")
-		log.Printf("Adding device %+v", device.Name)
+	log.Printf("Evaluating individual displays for blanking.")
 
-		blankActionFromCurrentStatus := ""
+	for _, display := range room.Displays { // Loop through the provided displays array from the PUT body
+		log.Printf("Adding device %+v", display.Name)
 
-		if device.Blanked != nil { // If the user passed in a blanked state with the device
-			if *device.Blanked == true {
-				blankActionFromCurrentStatus = "BlankDisplay"
-			} else {
-				blankActionFromCurrentStatus = "UnBlankDisplay"
-			}
+		if display.Blanked != nil && *display.Blanked { // If the user passed in a blanked state with the device
 
-			dev, err := dbo.GetDeviceByName(room.Building, room.Room, device.Name)
+			device, err := dbo.GetDeviceByName(room.Building, room.Room, display.Name)
 			if err != nil {
 				return []base.ActionStructure{}, err
 			}
 
 			actions = append(actions, base.ActionStructure{
-				Action:              blankActionFromCurrentStatus,
+				Action:              "BlankDisplay",
 				GeneratingEvaluator: "BlankDisplayDefault",
-				Device:              dev,
+				Device:              device,
 				DeviceSpecific:      true,
 			})
 		}
@@ -89,7 +75,7 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStruc
 
 // Validate fulfills the Fulfill requirement on the command interface
 func (p *BlankDisplayDefault) Validate(action base.ActionStructure) (err error) {
-	log.Printf("Validating action for comand BlankDisplay")
+	log.Printf("Validating action for command %v", action.Action)
 
 	// Check if the BlankDisplay command is a valid name of a command
 	ok, _ := checkCommands(action.Device.Commands, "BlankDisplay")
@@ -105,5 +91,9 @@ func (p *BlankDisplayDefault) Validate(action base.ActionStructure) (err error) 
 
 // GetIncompatableCommands keeps track of actions that are incompatable (on the same device)
 func (p *BlankDisplayDefault) GetIncompatableCommands() (incompatableActions []string) {
-	return // Just return because there are no actions incompatible with BlankDisplay
+	incompatableActions = []string{
+		"UnblankDisplay",
+	}
+
+	return
 }
