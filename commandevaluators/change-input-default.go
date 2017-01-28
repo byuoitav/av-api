@@ -88,8 +88,8 @@ func (p *ChangeInputDefault) Validate(action base.ActionStructure) (err error) {
 	return nil
 }
 
-//GetIncompatableCommands keeps track of actions that are incompatable (on the same device)
-func (p *ChangeInputDefault) GetIncompatableCommands() (incompatableActions []string) {
+//GetIncompatibleCommands keeps track of actions that are incompatable (on the same device)
+func (p *ChangeInputDefault) GetIncompatibleCommands() (incompatableActions []string) {
 	return
 }
 

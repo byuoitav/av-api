@@ -2,7 +2,9 @@ package commandevaluators
 
 import (
 	"errors"
+	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
@@ -21,7 +23,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure,
 
 		log.Printf("General volume request detected.")
 
-		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Room, room.Building, "AudioOut")
+		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "AudioOut")
 		if err != nil {
 			return []base.ActionStructure{}, err
 		}
@@ -31,7 +33,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure,
 			if devices[i].Output {
 
 				parameters := make(map[string]string)
-				parameters["level"] = string(*room.Volume)
+				parameters["level"] = fmt.Sprintf("%v", *room.Volume)
 
 				actions = append(actions, base.ActionStructure{
 					Action:              "SetVolume",
@@ -79,15 +81,25 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure,
 
 	}
 
+	log.Printf("%v actions generated.", len(actions))
+	log.Printf("Evaluation complete.")
+
+	fmt.Printf("Generated: %+v\n", actions)
+
 	return actions, nil
 }
 
 //Evaluate returns an error if the volume is greater than 100 or less than 0
 func (p *SetVolumeDefault) Validate(action base.ActionStructure) error {
-	maximum := "100"
-	minimum := "0"
+	maximum := 100
+	minimum := 0
 
-	if action.Parameters["level"] > maximum || action.Parameters["level"] < minimum {
+	level, err := strconv.Atoi(action.Parameters["level"])
+	if err != nil {
+		return err
+	}
+
+	if level > maximum || level < minimum {
 		log.Printf("ERROR. %v is an invalid volume level for %s", action.Parameters["level"], action.Device.Name)
 		return errors.New(action.Action + " is an invalid command for " + action.Device.Name)
 	}
@@ -96,7 +108,7 @@ func (p *SetVolumeDefault) Validate(action base.ActionStructure) error {
 
 }
 
-//GetIncompatableCommands returns a string array of commands incompatible with setting the volume
-func (p *SetVolumeDefault) GetIncompatableCommands() []string {
+//GetIncompatibleCommands returns a string array of commands incompatible with setting the volume
+func (p *SetVolumeDefault) GetIncompatibleCommands() []string {
 	return nil
 }

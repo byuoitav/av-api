@@ -30,7 +30,7 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, er
 		log.Printf("Room-wide Mute request recieved. Retrieving all devices.")
 
 		//get all devices
-		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Room, room.Building, "AudioOut")
+		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "AudioOut")
 		if err != nil {
 			return []base.ActionStructure{}, err
 		}
@@ -97,7 +97,7 @@ func (p *MuteDefault) Validate(action base.ActionStructure) error {
 }
 
 //  GetIncompatableActions returns a list of commands that are incompatabl with this one (i.e. 'standby' and 'power on', or 'mute' and 'volume up')
-func (p *MuteDefault) GetIncompatableCommands() (incompatibleActions []string) {
+func (p *MuteDefault) GetIncompatibleCommands() (incompatibleActions []string) {
 
 	incompatibleActions = []string{
 		"UnMute",

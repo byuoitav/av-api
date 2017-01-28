@@ -90,7 +90,7 @@ func (p *UnBlankDisplayDefault) Validate(action base.ActionStructure) error {
 	return nil
 }
 
-//GetIncompatableCommands returns a string array containing commands incompatible with UnBlank Display
+//GetIncompatibleCommands returns a string array containing commands incompatible with UnBlank Display
 func (p *UnBlankDisplayDefault) GetIncompatibleCommands() (incompatibleActions []string) {
 	incompatibleActions = []string{
 		"BlankScreen",
