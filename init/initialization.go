@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/byuoitav/av-api/dbo"
+	"github.com/byuoitav/configuration-database-microservice/accessors"
 )
 
 /*
@@ -74,7 +75,7 @@ func CheckRoomInitialization() error {
 	//take our room and get the init key
 	initMap := getMap()
 	if initializor, ok := initMap[room.Configuration.RoomInitKey]; ok {
-		initializor.Initialize()
+		initializor.Initialize(room)
 		return nil
 	}
 
@@ -88,10 +89,10 @@ type RoomInitializer interface {
 	  Initizlize performs the actions necessary for the room on startup.
 	  This is called when the AV-API service is spun up.
 	*/
-	Initialize() error
+	Initialize(accessors.Room) error
 }
 
-//CommandMap is the map that contains the initializers
+//InitializerMap is the map that contains the initializers
 var InitializerMap = make(map[string]RoomInitializer)
 var roomInitializerBuilt = false
 
