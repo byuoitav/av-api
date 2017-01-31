@@ -15,9 +15,12 @@ type DefaultReconciler struct{}
 //Reconcile fulfills the requirement to be a Reconciler.
 func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure) (actionsNew []base.ActionStructure, err error) {
 
+	//map all possible commands to a reference to the command struct
 	CommandMap := commandevaluators.Init()
 
 	log.Printf("Reconciling actions.")
+
+	//map a device ID to an array of actions specific to the device
 	deviceActionMap := make(map[int][]base.ActionStructure)
 
 	log.Printf("Generating device action set.")
@@ -30,7 +33,7 @@ func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure) (actionsNe
 		}
 	}
 
-	log.Printf("Checking for incompatable actions.")
+	log.Printf("Checking for incompatible actions.")
 	for devID, v := range deviceActionMap {
 		//for each device, construct set of actions
 		actionsForEvaluation := make(map[string]base.ActionStructure)
