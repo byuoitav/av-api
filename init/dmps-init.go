@@ -46,7 +46,7 @@ func (i *DMPSInitializer) Initialize(room accessors.Room) error {
 		}
 	}
 
-	log.Pritnf("Found %v DMPS.", len(actions))
+	log.Printf("Found %v DMPS.", len(actions))
 	log.Printf("Registering...")
 
 	status, err := commandevaluators.ExecuteActions(actions)
