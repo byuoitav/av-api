@@ -2,6 +2,7 @@ package commandevaluators
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 
@@ -82,13 +83,17 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, er
 // Validate takes an ActionStructure and determines if the command and parameter are valid for the device specified
 func (p *MuteDefault) Validate(action base.ActionStructure) error {
 
-	log.Printf("Validating mute action for command \"UnMute\".")
+	log.Printf("Validating for command \"Mute\".")
 
-	ok, _ := checkCommands(action.Device.Commands, "UnMute")
+	ok, _ := checkCommands(action.Device.Commands, "Mute")
 
-	if !ok || !strings.EqualFold(action.Action, "UnMute") {
+	// fmt.Printf("action.Device.Commands contains: %+v\n", action.Device.Commands)
+	fmt.Printf("Device ID: %v\n", action.Device.ID)
+	fmt.Printf("checkCommands returns: %v\n", ok)
+
+	if !ok || !strings.EqualFold(action.Action, "Mute") {
 		log.Printf("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
-		return errors.New(action.Action + " is an invalid command for" + action.Device.Name)
+		return errors.New(action.Action + " is an invalid command for " + action.Device.Name)
 	}
 
 	log.Printf("Done.")
