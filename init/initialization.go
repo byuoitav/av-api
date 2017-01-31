@@ -38,7 +38,7 @@ func CheckRoomInitialization() error {
 	//DEBUG
 	//hostname := os.Getenv("HOSTNAME")
 
-	hostname := "ITB-1001D"
+	hostname := "ITB-1006"
 	//END DEBUG
 
 	splitValues := strings.Split(hostname, "-")
@@ -101,6 +101,7 @@ func getMap() map[string]RoomInitializer {
 	if !roomInitializerBuilt {
 		//Add the new initializers here
 		InitializerMap["Default"] = &DefaultInitializer{}
+		InitializerMap["DMPS"] = &DMPSInitializer{}
 	}
 
 	return InitializerMap
