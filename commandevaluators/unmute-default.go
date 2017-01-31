@@ -84,7 +84,7 @@ func (p *UnMuteDefault) Validate(action base.ActionStructure) error {
 
 	log.Printf("Validating action for command \"UnMute\"")
 
-	ok, _ := checkCommands(action.Device.Commands, "UnMute")
+	ok, _ := CheckCommands(action.Device.Commands, "UnMute")
 
 	if !ok || !strings.EqualFold(action.Action, "UnMute") {
 		log.Printf("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)

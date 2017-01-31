@@ -69,7 +69,7 @@ func (p *PowerOnDefault) Validate(action base.ActionStructure) (err error) {
 
 	log.Printf("Validating action for comand PowerOn")
 
-	ok, _ := checkCommands(action.Device.Commands, "PowerOn")
+	ok, _ := CheckCommands(action.Device.Commands, "PowerOn")
 	if !ok || !strings.EqualFold(action.Action, "PowerOn") {
 		log.Printf("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
 		return errors.New(action.Action + " is an invalid command for" + action.Device.Name)
