@@ -66,10 +66,10 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom) (actions []base.ActionSt
 func (s *StandbyDefault) Validate(action base.ActionStructure) (err error) {
 	log.Printf("Validating action for command Standby.")
 
-	ok, _ := checkCommands(action.Device.Commands, "Standby")
+	ok, _ := CheckCommands(action.Device.Commands, "Standby")
 	if !ok || !strings.EqualFold(action.Action, "Standby") {
-		log.Printf("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
-		return errors.New(action.Action + " is an invalid command for" + action.Device.Name)
+		log.Printf("ERROR. %s is an invalid command for %s", action.Action, action.Device.GetFullName())
+		return errors.New(action.Action + " is an invalid command for" + action.Device.GetFullName())
 	}
 
 	log.Printf("Done.")

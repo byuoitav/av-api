@@ -79,7 +79,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStr
 func (p *UnBlankDisplayDefault) Validate(action base.ActionStructure) error {
 	log.Printf("Validating action for command \"UnBlank\"")
 
-	ok, _ := checkCommands(action.Device.Commands, "UnblankDisplay")
+	ok, _ := CheckCommands(action.Device.Commands, "UnblankDisplay")
 
 	if !ok || !strings.EqualFold(action.Action, "UnblankDisplay") {
 		log.Printf("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)

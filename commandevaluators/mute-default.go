@@ -85,7 +85,7 @@ func (p *MuteDefault) Validate(action base.ActionStructure) error {
 
 	log.Printf("Validating for command \"Mute\".")
 
-	ok, _ := checkCommands(action.Device.Commands, "Mute")
+	ok, _ := CheckCommands(action.Device.Commands, "Mute")
 
 	// fmt.Printf("action.Device.Commands contains: %+v\n", action.Device.Commands)
 	fmt.Printf("Device ID: %v\n", action.Device.ID)

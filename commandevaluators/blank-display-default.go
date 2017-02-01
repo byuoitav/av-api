@@ -81,7 +81,7 @@ func (p *BlankDisplayDefault) Validate(action base.ActionStructure) (err error) 
 	log.Printf("Validating action for command %v", action.Action)
 
 	// Check if the BlankDisplay command is a valid name of a command
-	ok, _ := checkCommands(action.Device.Commands, "BlankDisplay")
+	ok, _ := CheckCommands(action.Device.Commands, "BlankDisplay")
 	// Return an error if the BlankDisplay command doesn't exist or the command in question isn't a BlankDisplay command
 	if !ok || !strings.EqualFold(action.Action, "BlankDisplay") {
 		log.Printf("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
