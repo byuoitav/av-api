@@ -142,8 +142,11 @@ func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionRe
 		if er != nil {
 			log.Printf("ERROR: %s. Continuing.", er.Error())
 
-			toReport.ResponseCode = resp.StatusCode
-			toReport.Success = true
+			if resp != nil {
+				toReport.ResponseCode = resp.StatusCode
+			}
+
+			toReport.Success = false
 			base.ReportToELK(toReport)
 
 			status = append(status, CommandExecutionReporting{

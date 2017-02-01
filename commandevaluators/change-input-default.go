@@ -9,7 +9,7 @@ import (
 	"github.com/byuoitav/configuration-database-microservice/accessors"
 )
 
-//ChangeInput is struct that implements the CommandEvaluation struct
+//ChangeInputDefault is struct that implements the CommandEvaluation struct
 type ChangeInputDefault struct {
 }
 
