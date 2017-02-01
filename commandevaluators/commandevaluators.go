@@ -40,7 +40,7 @@ type CommandEvaluator interface {
 			   GetIncompatableActions returns a list of commands that are incompatable
 		     with this one (i.e. 'standby' and 'power on', or 'mute' and 'volume up')
 	*/
-	GetIncompatableCommands() []string
+	GetIncompatibleCommands() []string
 }
 
 //CommandMap is a singleton that
@@ -189,6 +189,10 @@ func Init() map[string]CommandEvaluator {
 		CommandMap["StandbyDefault"] = &StandbyDefault{}
 		CommandMap["ChangeInputDefault"] = &ChangeInputDefault{}
 		CommandMap["BlankDisplayDefault"] = &BlankDisplayDefault{}
+		CommandMap["UnBlankDisplayDefault"] = &UnBlankDisplayDefault{}
+		CommandMap["MuteDefault"] = &MuteDefault{}
+		CommandMap["UnMuteDefault"] = &UnMuteDefault{}
+		CommandMap["SetVolumeDefault"] = &SetVolumeDefault{}
 
 		commandMapInitialized = true
 	}
