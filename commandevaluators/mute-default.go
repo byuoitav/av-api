@@ -2,6 +2,7 @@ package commandevaluators
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 
@@ -30,7 +31,7 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, er
 		log.Printf("Room-wide Mute request recieved. Retrieving all devices.")
 
 		//get all devices
-		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Room, room.Building, "AudioOut")
+		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "AudioOut")
 		if err != nil {
 			return []base.ActionStructure{}, err
 		}
@@ -82,13 +83,17 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, er
 // Validate takes an ActionStructure and determines if the command and parameter are valid for the device specified
 func (p *MuteDefault) Validate(action base.ActionStructure) error {
 
-	log.Printf("Validating mute action for command \"UnMute\".")
+	log.Printf("Validating for command \"Mute\".")
 
-	ok, _ := CheckCommands(action.Device.Commands, "UnMute")
+	ok, _ := CheckCommands(action.Device.Commands, "Mute")
 
-	if !ok || !strings.EqualFold(action.Action, "UnMute") {
+	// fmt.Printf("action.Device.Commands contains: %+v\n", action.Device.Commands)
+	fmt.Printf("Device ID: %v\n", action.Device.ID)
+	fmt.Printf("checkCommands returns: %v\n", ok)
+
+	if !ok || !strings.EqualFold(action.Action, "Mute") {
 		log.Printf("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
-		return errors.New(action.Action + " is an invalid command for" + action.Device.Name)
+		return errors.New(action.Action + " is an invalid command for " + action.Device.Name)
 	}
 
 	log.Printf("Done.")
@@ -97,7 +102,7 @@ func (p *MuteDefault) Validate(action base.ActionStructure) error {
 }
 
 //  GetIncompatableActions returns a list of commands that are incompatabl with this one (i.e. 'standby' and 'power on', or 'mute' and 'volume up')
-func (p *MuteDefault) GetIncompatableCommands() (incompatibleActions []string) {
+func (p *MuteDefault) GetIncompatibleCommands() (incompatibleActions []string) {
 
 	incompatibleActions = []string{
 		"UnMute",

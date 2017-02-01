@@ -12,11 +12,12 @@ import (
 
 //EditRoomState actually carries out the room state changes
 func EditRoomState(roomInQuestion base.PublicRoom) (report []commandevaluators.CommandExecutionReporting, err error) {
-	//Initialize
+
+	//Initialize map of strings to commandevaluators
 	evaluators := commandevaluators.Init()
 	reconcilers := actionreconcilers.Init()
 
-	//get our room
+	//get accessors.Room (as it exists in the database)
 	room, err := dbo.GetRoomByInfo(roomInQuestion.Building, roomInQuestion.Room)
 	if err != nil {
 		return

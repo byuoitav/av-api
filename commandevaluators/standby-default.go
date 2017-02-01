@@ -76,8 +76,8 @@ func (s *StandbyDefault) Validate(action base.ActionStructure) (err error) {
 	return
 }
 
-// GetIncompatableCommands keeps track of actions that are incompatable (on the same device)
-func (s *StandbyDefault) GetIncompatableCommands() (incompatableActions []string) {
+// GetIncompatibleCommands keeps track of actions that are incompatable (on the same device)
+func (s *StandbyDefault) GetIncompatibleCommands() (incompatableActions []string) {
 	incompatableActions = []string{
 		"PowerOn",
 	}

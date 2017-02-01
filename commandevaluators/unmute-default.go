@@ -95,7 +95,7 @@ func (p *UnMuteDefault) Validate(action base.ActionStructure) error {
 	return nil
 }
 
-func (p *UnMuteDefault) GetIncompatableCommands() (incompatibleActions []string) {
+func (p *UnMuteDefault) GetIncompatibleCommands() (incompatibleActions []string) {
 
 	incompatibleActions = []string{
 		"Mute",

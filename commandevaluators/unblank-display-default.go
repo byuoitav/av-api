@@ -21,7 +21,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStr
 
 		log.Printf("Room-wide UnBlank request received. Retrieving all devices.")
 
-		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Room, room.Building, "VideoOut")
+		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "VideoOut")
 		if err != nil {
 			return []base.ActionStructure{}, err
 		}
@@ -90,7 +90,7 @@ func (p *UnBlankDisplayDefault) Validate(action base.ActionStructure) error {
 	return nil
 }
 
-//GetIncompatableCommands returns a string array containing commands incompatible with UnBlank Display
+//GetIncompatibleCommands returns a string array containing commands incompatible with UnBlank Display
 func (p *UnBlankDisplayDefault) GetIncompatibleCommands() (incompatibleActions []string) {
 	incompatibleActions = []string{
 		"BlankScreen",

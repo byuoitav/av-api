@@ -2,6 +2,7 @@ package commandevaluators
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 
@@ -24,10 +25,12 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStruc
 		log.Printf("Room-wide blank request received. Retrieving all devices.")
 
 		// Get all devices
-		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Room, room.Building, "VideoOut")
+		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "VideoOut")
 		if err != nil {
 			return []base.ActionStructure{}, err
 		}
+
+		fmt.Printf("VideoOut devices: %+v\n", devices)
 
 		log.Printf("Blanking all displays in room.")
 		// Currently we only check for output devices
@@ -89,8 +92,8 @@ func (p *BlankDisplayDefault) Validate(action base.ActionStructure) (err error) 
 	return
 }
 
-// GetIncompatableCommands keeps track of actions that are incompatable (on the same device)
-func (p *BlankDisplayDefault) GetIncompatableCommands() (incompatableActions []string) {
+// GetIncompatibleCommands keeps track of actions that are incompatable (on the same device)
+func (p *BlankDisplayDefault) GetIncompatibleCommands() (incompatableActions []string) {
 	incompatableActions = []string{
 		"UnblankDisplay",
 	}
