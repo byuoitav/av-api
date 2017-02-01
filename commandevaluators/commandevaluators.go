@@ -77,7 +77,7 @@ func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionRe
 		has, cmd := CheckCommands(a.Device.Commands, a.Action)
 		if !has {
 			errorStr := "There was an error retrieving the command " + a.Action +
-				" for device " + a.Device.Name
+				" for device " + a.Device.GetFullName()
 			log.Printf("%s", errorStr)
 			err = errors.New(errorStr)
 			return
@@ -91,7 +91,7 @@ func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionRe
 			toReplace := ":" + k
 			if !strings.Contains(endpoint, toReplace) {
 				errorString := "The parameter " + toReplace + " was not found in the command " +
-					cmd.Name + " for device " + a.Device.Name + "."
+					cmd.Name + " for device " + a.Device.GetFullName() + "."
 
 				log.Printf("%s", errorString)
 
@@ -104,7 +104,7 @@ func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionRe
 
 		if strings.Contains(endpoint, ":") {
 			errorString := "Not enough parameters provided for command " +
-				cmd.Name + " for device " + a.Device.Name + "." + " After evaluation " +
+				cmd.Name + " for device " + a.Device.GetFullName() + "." + " After evaluation " +
 				"endpoint was " + endpoint + "."
 
 			log.Printf("%s", errorString)

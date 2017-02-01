@@ -68,8 +68,8 @@ func (s *StandbyDefault) Validate(action base.ActionStructure) (err error) {
 
 	ok, _ := CheckCommands(action.Device.Commands, "Standby")
 	if !ok || !strings.EqualFold(action.Action, "Standby") {
-		log.Printf("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
-		return errors.New(action.Action + " is an invalid command for" + action.Device.Name)
+		log.Printf("ERROR. %s is an invalid command for %s", action.Action, action.Device.GetFullName())
+		return errors.New(action.Action + " is an invalid command for" + action.Device.GetFullName())
 	}
 
 	log.Printf("Done.")
