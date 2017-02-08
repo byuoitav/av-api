@@ -7,6 +7,7 @@ import (
 	"github.com/byuoitav/av-api/dbo"
 )
 
+//ChangeVideoInputVideoswitcher f
 type ChangeVideoInputVideoswitcher struct {
 }
 
@@ -54,10 +55,10 @@ func (c *ChangeVideoInputVideoswitcher) Evaluate(room base.PublicRoom) ([]base.A
 
 //Validate f
 func (c *ChangeVideoInputVideoswitcher) Validate(base.ActionStructure) error {
-
+	return nil
 }
 
 //GetIncompatibleCommands f
 func (c *ChangeVideoInputVideoswitcher) GetIncompatibleCommands() []string {
-
+	return nil
 }
