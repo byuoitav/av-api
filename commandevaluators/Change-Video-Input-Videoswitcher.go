@@ -6,9 +6,10 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
+	"github.com/byuoitav/configuration-database-microservice/accessors"
 )
 
-//ChangeVideoInputVideoswitcher f
+//ChangeVideoInputVideoswitcher the struct that implements the CommandEvaluation struct
 type ChangeVideoInputVideoswitcher struct {
 }
 
@@ -51,15 +52,38 @@ func (c *ChangeVideoInputVideoswitcher) Evaluate(room base.PublicRoom) ([]base.A
 			}
 		}
 	}
+
+	// if there is at least one display
+	if len(room.Displays) != 0 {
+
+		// interate through all displays in the room, create an ActionStructure if it has an input
+		for _, display := range room.Displays {
+
+			// if the display has an input, create the action
+			if len(display.Input) != 0 {
+
+				tempAction := base.ActionStructure{
+					Action:              "ChangeInput",
+					GeneratingEvaluator: "ChangeVideoInputVideoswitcher",
+					Device:              display, // or is it the switcher[0]?
+					Parameters:          m,
+					DeviceSpecific:      true,
+					Overridden:          false,
+				}
+			}
+		}
+
+	}
 	return actionList, nil
+}
+
+//GetSwitcherAndCreateAction f
+func (c *ChangeVideoInputVideoswitcher) GetSwitcherAndCreateAction(room, device accessors.Device) {
+
 }
 
 //Validate f
 func (c *ChangeVideoInputVideoswitcher) Validate(action base.ActionStructure) error {
-	// me just guessing what to do?
-	//
-	//
-	//
 	log.Printf("Validating action for command %v", action.Action)
 
 	// check if ChangeInput is a valid name of a command (ok is a bool)
@@ -73,10 +97,6 @@ func (c *ChangeVideoInputVideoswitcher) Validate(action base.ActionStructure) er
 
 	log.Print("done.")
 	return nil
-	//
-	//
-	//
-	//  end danny's code
 }
 
 //GetIncompatibleCommands f
