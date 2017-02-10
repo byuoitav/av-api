@@ -23,33 +23,8 @@ func (c *ChangeVideoInputVideoswitcher) Evaluate(room base.PublicRoom) ([]base.A
 			return []base.ActionStructure{}, err
 		}
 
-		switcher, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "VideoSwitcher")
-		if err != nil {
-			return []base.ActionStructure{}, err
-		}
-		if len(switcher) != 1 {
-			return []base.ActionStructure{}, errors.New("too many switchers/none available")
-		}
-
 		for _, device := range devices {
-			for _, port := range switcher[0].Ports {
-				if port.Destination == device.Name && port.Source == room.CurrentVideoInput {
-					m := make(map[string]string)
-					m["port"] = port.Name
-
-					tempAction := base.ActionStructure{
-						Action:              "ChangeInput",
-						GeneratingEvaluator: "ChangeVideoInputVideoswitcher",
-						Device:              switcher[0],
-						Parameters:          m,
-						DeviceSpecific:      false,
-						Overridden:          false,
-					}
-
-					actionList = append(actionList, tempAction)
-					break
-				}
-			}
+			GetSwitcherAndCreateAction(room, device)
 		}
 	}
 
@@ -61,15 +36,7 @@ func (c *ChangeVideoInputVideoswitcher) Evaluate(room base.PublicRoom) ([]base.A
 
 			// if the display has an input, create the action
 			if len(display.Input) != 0 {
-
-				tempAction := base.ActionStructure{
-					Action:              "ChangeInput",
-					GeneratingEvaluator: "ChangeVideoInputVideoswitcher",
-					Device:              display, // or is it the switcher[0]?
-					Parameters:          m,
-					DeviceSpecific:      true,
-					Overridden:          false,
-				}
+				// GetSwitcherAndCreateAction(room, display.Device) //?
 			}
 		}
 
@@ -77,9 +44,36 @@ func (c *ChangeVideoInputVideoswitcher) Evaluate(room base.PublicRoom) ([]base.A
 	return actionList, nil
 }
 
-//GetSwitcherAndCreateAction f
-func (c *ChangeVideoInputVideoswitcher) GetSwitcherAndCreateAction(room, device accessors.Device) {
+//GetSwitcherAndCreateAction gets the videoswitcher in a room, matches the destination port to the new port
+// and creates an action
+func GetSwitcherAndCreateAction(room base.PublicRoom, device accessors.Device) (base.ActionStructure, error) {
+	switcher, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "VideoSwitcher")
+	if err != nil {
+		return base.ActionStructure{}, err
+	}
+	if len(switcher) != 1 {
+		return base.ActionStructure{}, errors.New("too many switchers/none available")
+	}
 
+	for _, port := range switcher[0].Ports {
+		if port.Destination == device.Name && port.Source == room.CurrentVideoInput {
+			m := make(map[string]string)
+			m["port"] = port.Name
+
+			tempAction := base.ActionStructure{
+				Action:              "ChangeInput",
+				GeneratingEvaluator: "ChangeVideoInputVideoswitcher",
+				Device:              switcher[0],
+				Parameters:          m,
+				DeviceSpecific:      false,
+				Overridden:          false,
+			}
+
+			return tempAction, nil
+		}
+	}
+
+	return base.ActionStructure{}, errors.New("no switcher found with the matching port")
 }
 
 //Validate f
