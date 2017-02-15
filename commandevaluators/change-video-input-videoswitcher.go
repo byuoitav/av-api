@@ -24,7 +24,11 @@ func (c *ChangeVideoInputVideoswitcher) Evaluate(room base.PublicRoom) ([]base.A
 		}
 
 		for _, device := range devices {
-			GetSwitcherAndCreateAction(room, device)
+			action, err := GetSwitcherAndCreateAction(room, device, room.CurrentVideoInput)
+			if err != nil {
+				return []base.ActionStructure{}, err
+			}
+			actionList = append(actionList, action)
 		}
 	}
 
@@ -36,7 +40,16 @@ func (c *ChangeVideoInputVideoswitcher) Evaluate(room base.PublicRoom) ([]base.A
 
 			// if the display has an input, create the action
 			if len(display.Input) != 0 {
-				// GetSwitcherAndCreateAction(room, display.Device) //?
+				device, err := dbo.GetDeviceByName(room.Building, room.Room, display.Name)
+				if err != nil {
+					return []base.ActionStructure{}, err
+				}
+
+				action, err := GetSwitcherAndCreateAction(room, device, device.Name)
+				if err != nil {
+					return []base.ActionStructure{}, err
+				}
+				actionList = append(actionList, action)
 			}
 		}
 
@@ -46,7 +59,7 @@ func (c *ChangeVideoInputVideoswitcher) Evaluate(room base.PublicRoom) ([]base.A
 
 //GetSwitcherAndCreateAction gets the videoswitcher in a room, matches the destination port to the new port
 // and creates an action
-func GetSwitcherAndCreateAction(room base.PublicRoom, device accessors.Device) (base.ActionStructure, error) {
+func GetSwitcherAndCreateAction(room base.PublicRoom, device accessors.Device, selectedInput string) (base.ActionStructure, error) {
 	switcher, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "VideoSwitcher")
 	if err != nil {
 		return base.ActionStructure{}, err
@@ -56,7 +69,7 @@ func GetSwitcherAndCreateAction(room base.PublicRoom, device accessors.Device) (
 	}
 
 	for _, port := range switcher[0].Ports {
-		if port.Destination == device.Name && port.Source == room.CurrentVideoInput {
+		if port.Destination == device.Name && port.Source == selectedInput {
 			m := make(map[string]string)
 			m["port"] = port.Name
 
