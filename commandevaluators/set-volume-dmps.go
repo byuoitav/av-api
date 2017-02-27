@@ -69,7 +69,7 @@ func (*SetVolumeDMPS) Evaluate(room base.PublicRoom) ([]base.ActionStructure, er
 				}
 
 				parameters := make(map[string]string)
-				parameters["level"] = string(*audioDevice.Volume)
+				parameters["level"] = fmt.Sprintf("%v", newVol)
 
 				actions = append(actions, base.ActionStructure{
 					Action:              "SetVolume",
@@ -92,7 +92,7 @@ func (*SetVolumeDMPS) Evaluate(room base.PublicRoom) ([]base.ActionStructure, er
 	return actions, nil
 }
 
-func remapVolume(int oldLevel) int {
+func remapVolume(oldLevel int) int {
 	MinLevel := 0
 	MaxLevel := 65534
 
