@@ -74,6 +74,7 @@ func (*SetVolumeDMPS) Evaluate(room base.PublicRoom) ([]base.ActionStructure, er
 				actions = append(actions, base.ActionStructure{
 					Action:              "SetVolume",
 					GeneratingEvaluator: "SetVolumeDMPS",
+					Parameters:          parameters,
 					Device:              device,
 					DeviceSpecific:      true,
 				})
@@ -87,8 +88,6 @@ func (*SetVolumeDMPS) Evaluate(room base.PublicRoom) ([]base.ActionStructure, er
 	log.Printf("%v actions generated.", len(actions))
 	log.Printf("Evaluation complete.")
 
-	fmt.Printf("Generated: %+v\n", actions)
-
 	return actions, nil
 }
 
@@ -101,8 +100,10 @@ func remapVolume(oldLevel int) int {
 
 //Evaluate returns an error if the volume is greater than 100 or less than 0
 func (p *SetVolumeDMPS) Validate(action base.ActionStructure) error {
-	maximum := 100
+	maximum := 65535
 	minimum := 0
+
+	fmt.Printf("%+v", action.Parameters)
 
 	level, err := strconv.Atoi(action.Parameters["level"])
 	if err != nil {
