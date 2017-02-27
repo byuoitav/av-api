@@ -10,11 +10,11 @@ import (
 	"github.com/byuoitav/av-api/dbo"
 )
 
-type SetVolumeDefault struct {
+type SetVolumeDMPS struct {
 }
 
 //Validate checks for a volume for the entire room or the volume of a specific device
-func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
+func (*SetVolumeDMPS) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
 
 	actions := []base.ActionStructure{}
 
@@ -40,7 +40,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure,
 				actions = append(actions, base.ActionStructure{
 					Action:              "SetVolume",
 					Parameters:          parameters,
-					GeneratingEvaluator: "SetVolumeDefault",
+					GeneratingEvaluator: "SetVolumeDMPS",
 					Device:              devices[i],
 					DeviceSpecific:      false,
 				})
@@ -73,7 +73,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure,
 
 				actions = append(actions, base.ActionStructure{
 					Action:              "SetVolume",
-					GeneratingEvaluator: "SetVolumeDefault",
+					GeneratingEvaluator: "SetVolumeDMPS",
 					Device:              device,
 					DeviceSpecific:      true,
 				})
@@ -100,7 +100,7 @@ func remapVolume(int oldLevel) int {
 }
 
 //Evaluate returns an error if the volume is greater than 100 or less than 0
-func (p *SetVolumeDefault) Validate(action base.ActionStructure) error {
+func (p *SetVolumeDMPS) Validate(action base.ActionStructure) error {
 	maximum := 100
 	minimum := 0
 
@@ -119,6 +119,6 @@ func (p *SetVolumeDefault) Validate(action base.ActionStructure) error {
 }
 
 //GetIncompatibleCommands returns a string array of commands incompatible with setting the volume
-func (p *SetVolumeDefault) GetIncompatibleCommands() []string {
+func (p *SetVolumeDMPS) GetIncompatibleCommands() []string {
 	return nil
 }

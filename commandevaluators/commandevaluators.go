@@ -198,6 +198,7 @@ func Init() map[string]CommandEvaluator {
 		CommandMap["MuteDefault"] = &MuteDefault{}
 		CommandMap["UnMuteDefault"] = &UnMuteDefault{}
 		CommandMap["SetVolumeDefault"] = &SetVolumeDefault{}
+		CommandMap["SetVolumeDMPS"] = &SetVolumeDMPS{}
 
 		commandMapInitialized = true
 	}
