@@ -9,12 +9,12 @@ import (
 	"github.com/byuoitav/configuration-database-microservice/accessors"
 )
 
-//ChangeInputDefault is struct that implements the CommandEvaluation struct
-type ChangeInputDefault struct {
+//ChangeVideoInputDefault is struct that implements the CommandEvaluation struct
+type ChangeVideoInputDefault struct {
 }
 
 //Evaluate fulfills the CommmandEvaluation evaluate requirement.
-func (p *ChangeInputDefault) Evaluate(room base.PublicRoom) (actions []base.ActionStructure, err error) {
+func (p *ChangeVideoInputDefault) Evaluate(room base.PublicRoom) (actions []base.ActionStructure, err error) {
 	//RoomWideSetVideoInput
 	if len(room.CurrentVideoInput) > 0 { // Check if the user sent a PUT body changing the current video input
 		var tempActions []base.ActionStructure
@@ -33,40 +33,8 @@ func (p *ChangeInputDefault) Evaluate(room base.PublicRoom) (actions []base.Acti
 		actions = append(actions, tempActions...)
 	}
 
-	//RoomWideSetAudioInput
-	if len(room.CurrentAudioInput) > 0 { // Check if the user sent a PUT body changing the current audio input
-		var tempActions []base.ActionStructure
-
-		//generate action
-		tempActions, err = generateChangeInputByRole(
-			"AudioOut",
-			room.CurrentVideoInput,
-			room.Room,
-			room.Building,
-		)
-		if err != nil {
-			return
-		}
-		actions = append(actions, tempActions...)
-	}
-
 	//Displays
 	for _, d := range room.Displays { // Loop through the devices array (potentially) passed in the user's PUT body
-		if len(d.Input) < 1 {
-			continue
-		}
-
-		var action base.ActionStructure
-
-		action, err = generateChangeInputByDevice(d.Device, room.Room, room.Building)
-		if err != nil {
-			return
-		}
-		actions = append(actions, action)
-	}
-
-	//AudioDevice
-	for _, d := range room.AudioDevices { // Loop through the audio devices array (potentially) passed in the user's PUT body
 		if len(d.Input) < 1 {
 			continue
 		}
@@ -84,12 +52,12 @@ func (p *ChangeInputDefault) Evaluate(room base.PublicRoom) (actions []base.Acti
 }
 
 //Validate fulfills the Fulfill requirement on the command interface
-func (p *ChangeInputDefault) Validate(action base.ActionStructure) (err error) {
+func (p *ChangeVideoInputDefault) Validate(action base.ActionStructure) (err error) {
 	return nil
 }
 
 //GetIncompatibleCommands keeps track of actions that are incompatable (on the same device)
-func (p *ChangeInputDefault) GetIncompatibleCommands() (incompatableActions []string) {
+func (p *ChangeVideoInputDefault) GetIncompatibleCommands() (incompatableActions []string) {
 	return
 }
 

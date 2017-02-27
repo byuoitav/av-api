@@ -2,6 +2,8 @@ package helpers
 
 import (
 	"errors"
+	"log"
+	"regexp"
 	"strings"
 
 	"github.com/byuoitav/av-api/actionreconcilers"
@@ -25,8 +27,17 @@ func EditRoomState(roomInQuestion base.PublicRoom) (report []commandevaluators.C
 
 	actionList := []base.ActionStructure{}
 
+	re := regexp.MustCompile(".*-RPC$")
+
 	//for each command in the configuration, evaluate and validate.
 	for _, c := range room.Configuration.Commands {
+
+		if re.MatchString(c.CommandKey) {
+			continue
+		}
+
+		log.Printf("Starting evaluation with evaluator %s", c.CommandKey)
+
 		curEvaluator := evaluators[c.CommandKey]
 		if curEvaluator == nil {
 			err = errors.New("No evaluator corresponding to key " + c.CommandKey)

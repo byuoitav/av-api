@@ -190,12 +190,15 @@ func Init() map[string]CommandEvaluator {
 	if !commandMapInitialized {
 		CommandMap["PowerOnDefault"] = &PowerOnDefault{}
 		CommandMap["StandbyDefault"] = &StandbyDefault{}
-		CommandMap["ChangeInputDefault"] = &ChangeInputDefault{}
+		CommandMap["ChangeVideoInputDefault"] = &ChangeVideoInputDefault{}
+		CommandMap["ChangeAudioInputDefault"] = &ChangeAudioInputDefault{}
+		CommandMap["ChangeVideoInputVideoSwitcher"] = &ChangeVideoInputVideoSwitcher{}
 		CommandMap["BlankDisplayDefault"] = &BlankDisplayDefault{}
 		CommandMap["UnBlankDisplayDefault"] = &UnBlankDisplayDefault{}
 		CommandMap["MuteDefault"] = &MuteDefault{}
 		CommandMap["UnMuteDefault"] = &UnMuteDefault{}
 		CommandMap["SetVolumeDefault"] = &SetVolumeDefault{}
+		CommandMap["SetVolumeDMPS"] = &SetVolumeDMPS{}
 
 		commandMapInitialized = true
 	}
