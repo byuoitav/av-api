@@ -10,11 +10,11 @@ import (
 )
 
 //ChangeVideoInputVideoswitcher the struct that implements the CommandEvaluation struct
-type ChangeVideoInputVideoswitcher struct {
+type ChangeVideoInputVideoSwitcher struct {
 }
 
 //Evaluate fulfills the CommmandEvaluation evaluate requirement
-func (c *ChangeVideoInputVideoswitcher) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
+func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
 	actionList := []base.ActionStructure{}
 
 	if len(room.CurrentVideoInput) != 0 {
@@ -45,7 +45,7 @@ func (c *ChangeVideoInputVideoswitcher) Evaluate(room base.PublicRoom) ([]base.A
 					return []base.ActionStructure{}, err
 				}
 
-				action, err := GetSwitcherAndCreateAction(room, device, device.Name)
+				action, err := GetSwitcherAndCreateAction(room, device, display.Input)
 				if err != nil {
 					return []base.ActionStructure{}, err
 				}
@@ -67,7 +67,7 @@ func GetSwitcherAndCreateAction(room base.PublicRoom, device accessors.Device, s
 	if len(switcher) != 1 {
 		return base.ActionStructure{}, errors.New("too many switchers/none available")
 	}
-
+	log.Printf("Evaluating device %s for a port connecting %s to %s", switcher[0].GetFullName(), selectedInput, device.GetFullName())
 	for _, port := range switcher[0].Ports {
 		if port.Destination == device.Name && port.Source == selectedInput {
 			m := make(map[string]string)
@@ -90,7 +90,7 @@ func GetSwitcherAndCreateAction(room base.PublicRoom, device accessors.Device, s
 }
 
 //Validate f
-func (c *ChangeVideoInputVideoswitcher) Validate(action base.ActionStructure) error {
+func (c *ChangeVideoInputVideoSwitcher) Validate(action base.ActionStructure) error {
 	log.Printf("Validating action for command %v", action.Action)
 
 	// check if ChangeInput is a valid name of a command (ok is a bool)
@@ -107,6 +107,6 @@ func (c *ChangeVideoInputVideoswitcher) Validate(action base.ActionStructure) er
 }
 
 //GetIncompatibleCommands f
-func (c *ChangeVideoInputVideoswitcher) GetIncompatibleCommands() []string {
+func (c *ChangeVideoInputVideoSwitcher) GetIncompatibleCommands() []string {
 	return nil
 }
