@@ -60,7 +60,45 @@ london-audio-microservice:
         - LOCAL_ENVIRONMENT="true"
     restart: always
 crestron-control-microservice:
-  build: ../crestron-control-microservice
-  ports:
-      - "8004:8004"
-  restart: always
+    build: ../crestron-control-microservice
+    ports:
+        - "8004:8004"
+    restart: always
+raspi-database:
+    build: ../raspi-database
+    ports:
+        - "3306:3306"
+    environment:
+        - MYSQL_ROOT_PASSWORD=password
+        - MYSQL_DATABASE=configuration
+    restart: always
+telnet-microservice:
+    build: ../telnet-microservice
+    ports:
+        - "8001:8001"
+    restart: always
+ftp-microservice:
+    build: ../ftp-microservice
+    ports:
+        - "8002:8002"
+    restart: always
+wait-for-restart-microservice:
+    build: ../wait-for-restart-microservice
+    ports:
+        - "8003:8003"
+    restart: always
+cgi-microservice:
+    build: ../cgi-microservice
+    ports:
+        - "8010:8010"
+    restart: always
+bearer-token-microservice:
+    build: ../bearer-token-microservice
+    ports:
+        - " 12000:12000"
+    environment:
+        - AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+        - AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+        - AWS_DEFAULT_REGION=$AWS_DEFAULT_REGION
+        - AWS_BUCKET_ADDRESS=$AWS_BUCKET_ADDRESS
+    restart: always
