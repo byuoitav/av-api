@@ -81,8 +81,8 @@ services:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
         network_mode: "host"
         restart: always
-    raspi-tp:
-        image: byuoitav/raspi-tp
+    touchpanel-ui-microservice:
+        image: byuoitav/touchpanel-ui-microservice
         ports:
             - "8888:8888"
         environment:
