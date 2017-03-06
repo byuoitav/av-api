@@ -81,6 +81,7 @@ services:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
         network_mode: "host"
         restart: always
+<<<<<<< HEAD:docker-compose-prod.yml
     touchpanel-ui-microservice:
         image: byuoitav/touchpanel-ui-microservice
         ports:
@@ -90,3 +91,5 @@ services:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
         network_mode: "host"
         restart: always
+=======
+>>>>>>> 1e63bdbcf8b015a2e2c255867680071540fbbab3:docker-compose.yml
