@@ -18,14 +18,19 @@ func GetData(url string, structToFill interface{}) error {
 	// Make an HTTP client so we can add custom headers (currently used for adding in the Bearer token for inter-microservice communication)
 
 	client := &http.Client{}
-
-	token, err := bearertoken.GetToken()
-	if err != nil {
-		return err
-	}
-
 	req, _ := http.NewRequest("GET", url, nil)
-	req.Header.Set("Authorization", "Bearer "+token.Token)
+
+	if len(os.Getenv("LOCAL_ENVIRONMENT")) == 0 {
+
+		log.Printf("Adding the bearer token for inter-service communication")
+
+		token, err := bearertoken.GetToken()
+		if err != nil {
+			return err
+		}
+
+		req.Header.Set("Authorization", "Bearer "+token.Token)
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {
