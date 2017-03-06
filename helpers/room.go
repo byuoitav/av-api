@@ -56,6 +56,7 @@ func EditRoomState(roomInQuestion base.PublicRoom) (report []commandevaluators.C
 		for _, action := range subList {
 			err = curEvaluator.Validate(action)
 			if err != nil {
+				log.Printf("Error on validation of %s on evaluator %s", action.Action, c.CommandKey)
 				return
 			}
 
@@ -65,6 +66,8 @@ func EditRoomState(roomInQuestion base.PublicRoom) (report []commandevaluators.C
 			actionList = append(actionList, action)
 		}
 	}
+	log.Printf("Done with Evaluation.")
+	log.Printf("Starting reconcilliation")
 
 	//Reconcile actions
 	curReconciler := reconcilers[room.Configuration.RoomKey]
@@ -72,6 +75,7 @@ func EditRoomState(roomInQuestion base.PublicRoom) (report []commandevaluators.C
 		err = errors.New("No reconciler corresponding to key " + room.Configuration.RoomKey)
 		return
 	}
+	log.Printf("Startin reconciliation")
 
 	actionList, err = curReconciler.Reconcile(actionList)
 	if err != nil {
