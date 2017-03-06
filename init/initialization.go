@@ -55,6 +55,7 @@ func CheckRoomInitialization() error {
 			log.Printf("Attempting to connect to DB...")
 			room, err = dbo.GetRoomByInfo(splitValues[0], splitValues[1])
 			if err != nil {
+				log.Printf("Error: %s", err.Error())
 				attempts++
 				time.Sleep(2 * time.Second)
 			} else {
