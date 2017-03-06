@@ -1,0 +1,95 @@
+version: '2'
+services:
+    av-api:
+        image: byuoitav/av-api
+        ports:
+            - "8000:8000"
+        environment:
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+            - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
+        network_mode: "host"
+        restart: always
+    telnet-microservice:
+        image: byuoitav/telnet-microservice
+        ports:
+            - "8001:8001"
+        environment:
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+        network_mode: "host"
+        restart: always
+    crestron-control-microservice:
+        image: byuoitav/crestron-control-microservice
+        ports:
+            - "8004:8004"
+        environment:
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+        network_mode: "host"
+        restart: always
+    pjlink-microservice:
+        image: byuoitav/pjlink-microservice
+        ports:
+            - "8005:8005"
+        environment:
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+            - PJLINK_PORT=$PJLINK_PORT 
+            - PJLINK_PASS=$PJLINK_PASS
+        network_mode: "host"
+        restart: always
+    configuration-database-microservice:
+        image: byuoitav/configuration-database-microservice
+        ports:
+            - "8006:8006"
+        environment:
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+            - CONFIGURATION_DATABASE_USERNAME=$CONFIGURATION_DATABASE_USERNAME 
+            - CONFIGURATION_DATABASE_PASSWORD=$CONFIGURATION_DATABASE_PASSWORD 
+            - CONFIGURATION_DATABASE_HOST=$CONFIGURATION_DATABASE_HOST 
+            - CONFIGURATION_DATABASE_PORT=$CONFIGURATION_DATABASE_PORT 
+            - CONFIGURATION_DATABASE_NAME=$CONFIGURATION_DATABASE_NAME
+        network_mode: "host"
+        restart: always
+    sony-control-microservice:
+        image: byuoitav/sony-control-microservice
+        ports:
+            - "8007:8007"
+        environment:
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+            - SONY_TV_PSK=$SONY_TV_PSK
+        network_mode: "host"
+        restart: always
+    london-audio-microservice:
+        image: byuoitav/london-audio-microservice
+        ports:
+            - "8009:8009"
+        environment:
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+        network_mode: "host"
+        restart: always
+    cgi-microservice:
+        image: byuoitav/cgi-microservice
+        ports:
+            - "8010:8010"
+        environment:
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+        network_mode: "host"
+        restart: always
+    av-api-rpc:
+        image: byuoitav/av-api-rpc
+        ports:
+            - "8100:8100"
+        environment:
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+        network_mode: "host"
+        restart: always
+<<<<<<< HEAD:docker-compose-prod.yml
+    touchpanel-ui-microservice:
+        image: byuoitav/touchpanel-ui-microservice
+        ports:
+            - "8888:8888"
+        environment:
+            - PI_HOSTNAME=$PI_HOSTNAME
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+        network_mode: "host"
+        restart: always
+=======
+>>>>>>> 1e63bdbcf8b015a2e2c255867680071540fbbab3:docker-compose.yml

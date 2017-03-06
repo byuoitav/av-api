@@ -21,3 +21,16 @@ Perform a PUT on `http://localhost:8000/buildings/ITB/rooms/1001D` with the foll
 	}]
 }
 ```
+
+## Docker Development
+For Docker development via `docker-compose` utilize the following commands depending on your use case:
+
+### Development Testing (Build Containers Locally)
+```
+docker-compose -f docker-compose-dev.yml up
+```
+
+### Production Testing (Pull Containers)
+```
+docker-compose -f docker-compose-prod.yml up
+```
