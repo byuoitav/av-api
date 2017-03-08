@@ -9,9 +9,6 @@ dependencies:
 test:
     override:
         - go test -v -race $(go list ./... | grep -v /vendor/)
-    post:
-        - ./coverage.sh
-        - bash <(curl -s https://codecov.io/bash)
 
 deployment:
     production:
