@@ -122,8 +122,7 @@ func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionRe
 			return
 		}
 
-		if len(os.Getenv("LOCAL_ENVIRONMENT")) != 0 {
-
+		if len(os.Getenv("LOCAL_ENVIRONMENT")) == 0 {
 			token, er := bearertoken.GetToken()
 			if er != nil {
 				err = er
