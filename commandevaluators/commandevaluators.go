@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/byuoitav/authmiddleware/bearertoken"
@@ -121,7 +122,7 @@ func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionRe
 			return
 		}
 
-		if len(os.GetEnv("LOCAL_ENVIRONMENT")) != 0 {
+		if len(os.Getenv("LOCAL_ENVIRONMENT")) != 0 {
 
 			token, er := bearertoken.GetToken()
 			if er != nil {
