@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/byuoitav/authmiddleware/bearertoken"
@@ -115,19 +116,21 @@ func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionRe
 
 		//Execute the command.
 		client := &http.Client{}
-
-		token, er := bearertoken.GetToken()
-		if er != nil {
-			err = er
-			return
-		}
-
 		req, er := http.NewRequest("GET", cmd.Microservice+endpoint, nil)
 		if er != nil {
 			err = er
 			return
 		}
-		req.Header.Set("Authorization", "Bearer "+token.Token)
+
+		if len(os.Getenv("LOCAL_ENVIRONMENT")) != 0 {
+
+			token, er := bearertoken.GetToken()
+			if er != nil {
+				err = er
+				return
+			}
+			req.Header.Set("Authorization", "Bearer "+token.Token)
+		}
 
 		resp, er := client.Do(req)
 
