@@ -77,8 +77,7 @@ func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionRe
 
 		has, cmd := CheckCommands(a.Device.Commands, a.Action)
 		if !has {
-			errorStr := "There was an error retrieving the command " + a.Action +
-				" for device " + a.Device.GetFullName()
+			errorStr := "There was an error retrieving the command " + a.Action + " for device " + a.Device.GetFullName()
 			log.Printf("%s", errorStr)
 			err = errors.New(errorStr)
 			return

@@ -24,6 +24,7 @@ func (p *ChangeVideoInputDefault) Evaluate(room base.PublicRoom) (actions []base
 			room.CurrentVideoInput,
 			room.Room,
 			room.Building,
+			"ChangeVideoInputDefault",
 		)
 
 		if err != nil {
@@ -41,7 +42,7 @@ func (p *ChangeVideoInputDefault) Evaluate(room base.PublicRoom) (actions []base
 
 		var action base.ActionStructure
 
-		action, err = generateChangeInputByDevice(d.Device, room.Room, room.Building)
+		action, err = generateChangeInputByDevice(d.Device, room.Room, room.Building, "ChangeVideoInputDefault")
 		if err != nil {
 			return
 		}
@@ -61,7 +62,7 @@ func (p *ChangeVideoInputDefault) GetIncompatibleCommands() (incompatableActions
 	return
 }
 
-func generateChangeInputByDevice(dev base.Device, room string, building string) (action base.ActionStructure, err error) {
+func generateChangeInputByDevice(dev base.Device, room string, building string, generatingEvaluator string) (action base.ActionStructure, err error) {
 	var curDevice accessors.Device
 
 	curDevice, err = dbo.GetDeviceByName(building, room, dev.Name)
@@ -84,8 +85,8 @@ func generateChangeInputByDevice(dev base.Device, room string, building string) 
 	}
 
 	action = base.ActionStructure{
-		Action:              "change-input",
-		GeneratingEvaluator: "changeInput",
+		Action:              "ChangeInput",
+		GeneratingEvaluator: generatingEvaluator,
 		Device:              curDevice,
 		Parameters:          paramMap,
 		DeviceSpecific:      true,
@@ -95,7 +96,7 @@ func generateChangeInputByDevice(dev base.Device, room string, building string) 
 	return
 }
 
-func generateChangeInputByRole(role string, input string, room string, building string) (actions []base.ActionStructure, err error) {
+func generateChangeInputByRole(role string, input string, room string, building string, generatingEvaluator string) (actions []base.ActionStructure, err error) {
 	devicesToChange, err := dbo.GetDevicesByBuildingAndRoomAndRole(building, room, role)
 	if err != nil {
 		return
@@ -119,7 +120,7 @@ func generateChangeInputByRole(role string, input string, room string, building 
 
 		action := base.ActionStructure{
 			Action:              "ChangeInput",
-			GeneratingEvaluator: "ChangeInputDefault",
+			GeneratingEvaluator: generatingEvaluator,
 			Device:              d,
 			Parameters:          paramMap,
 			DeviceSpecific:      false,
