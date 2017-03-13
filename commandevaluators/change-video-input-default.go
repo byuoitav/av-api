@@ -84,8 +84,8 @@ func generateChangeInputByDevice(dev base.Device, room string, building string) 
 	}
 
 	action = base.ActionStructure{
-		Action:              "change-input",
-		GeneratingEvaluator: "changeInput",
+		Action:              "ChangeInput",
+		GeneratingEvaluator: "ChangeVideoInputDefault",
 		Device:              curDevice,
 		Parameters:          paramMap,
 		DeviceSpecific:      true,
@@ -119,7 +119,7 @@ func generateChangeInputByRole(role string, input string, room string, building 
 
 		action := base.ActionStructure{
 			Action:              "ChangeInput",
-			GeneratingEvaluator: "ChangeInputDefault",
+			GeneratingEvaluator: "ChangeVideoInputDefault",
 			Device:              d,
 			Parameters:          paramMap,
 			DeviceSpecific:      false,
