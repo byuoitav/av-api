@@ -24,7 +24,7 @@ func (p *ChangeVideoInputDefault) Evaluate(room base.PublicRoom) (actions []base
 			room.CurrentVideoInput,
 			room.Room,
 			room.Building,
-			"ChangeVideoInputDefault"
+			"ChangeVideoInputDefault",
 		)
 
 		if err != nil {
