@@ -18,10 +18,13 @@ func (p *ChangeAudioInputDefault) Evaluate(room base.PublicRoom) (actions []base
 			room.CurrentVideoInput,
 			room.Room,
 			room.Building,
+			"ChangeAudioInputDefault",
 		)
+
 		if err != nil {
 			return
 		}
+
 		actions = append(actions, tempActions...)
 	}
 
@@ -33,7 +36,7 @@ func (p *ChangeAudioInputDefault) Evaluate(room base.PublicRoom) (actions []base
 
 		var action base.ActionStructure
 
-		action, err = generateChangeInputByDevice(d.Device, room.Room, room.Building)
+		action, err = generateChangeInputByDevice(d.Device, room.Room, room.Building, "ChangeAudioInputDefault")
 		if err != nil {
 			return
 		}
