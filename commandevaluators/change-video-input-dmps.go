@@ -2,19 +2,19 @@ package commandevaluators
 
 import (
 	"errors"
+	"fmt"
 	"log"
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/accessors"
 )
 
 //ChangeVideoInputVideoswitcher the struct that implements the CommandEvaluation struct
-type ChangeVideoInputVideoSwitcher struct {
+type ChangeVideoInputDMPS struct {
 }
 
 //Evaluate fulfills the CommmandEvaluation evaluate requirement
-func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
+func (c *ChangeVideoInputDMPS) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
 	actionList := []base.ActionStructure{}
 
 	if len(room.CurrentVideoInput) != 0 {
@@ -24,7 +24,7 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom) ([]base.A
 		}
 
 		for _, device := range devices {
-			action, err := GetSwitcherAndCreateAction(room, device, room.CurrentVideoInput, "ChangeVideoInputVideoSwitcher")
+			action, err := GetSwitcherAndCreateAction(room, device, room.CurrentVideoInput, "ChangeVideoInputDMPS")
 			if err != nil {
 				return []base.ActionStructure{}, err
 			}
@@ -45,10 +45,29 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom) ([]base.A
 					return []base.ActionStructure{}, err
 				}
 
-				action, err := GetSwitcherAndCreateAction(room, device, display.Input, "ChangeVideoInputVideoSwitcher")
+				action, err := GetSwitcherAndCreateAction(room, device, display.Input, "ChangeVideoInputDMPS")
 				if err != nil {
 					return []base.ActionStructure{}, err
 				}
+
+				fmt.Printf("Adding device signal name for DMPS specific Video Switching")
+				deviceSignalName := ""
+				switch display.Name {
+				case "D1":
+					deviceSignalName = "Display1_Select"
+					break
+				case "D2":
+					deviceSignalName = "Display2_Select"
+					break
+				case "D3":
+					deviceSignalName = "Display3_Select"
+					break
+
+				}
+
+				fmt.Printf("Signal name to add: %s", deviceSignalName)
+
+				action.Parameters["device"] = deviceSignalName
 				actionList = append(actionList, action)
 			}
 		}
@@ -57,40 +76,8 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom) ([]base.A
 	return actionList, nil
 }
 
-//GetSwitcherAndCreateAction gets the videoswitcher in a room, matches the destination port to the new port
-// and creates an action
-func GetSwitcherAndCreateAction(room base.PublicRoom, device accessors.Device, selectedInput string, generatingEvaluator string) (base.ActionStructure, error) {
-	switcher, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "VideoSwitcher")
-	if err != nil {
-		return base.ActionStructure{}, err
-	}
-	if len(switcher) != 1 {
-		return base.ActionStructure{}, errors.New("too many switchers/none available")
-	}
-	log.Printf("Evaluating device %s for a port connecting %s to %s", switcher[0].GetFullName(), selectedInput, device.GetFullName())
-	for _, port := range switcher[0].Ports {
-		if port.Destination == device.Name && port.Source == selectedInput {
-			m := make(map[string]string)
-			m["port"] = port.Name
-
-			tempAction := base.ActionStructure{
-				Action:              "ChangeInput",
-				GeneratingEvaluator: generatingEvaluator,
-				Device:              switcher[0],
-				Parameters:          m,
-				DeviceSpecific:      false,
-				Overridden:          false,
-			}
-
-			return tempAction, nil
-		}
-	}
-
-	return base.ActionStructure{}, errors.New("no switcher found with the matching port")
-}
-
 //Validate f
-func (c *ChangeVideoInputVideoSwitcher) Validate(action base.ActionStructure) error {
+func (c *ChangeVideoInputDMPS) Validate(action base.ActionStructure) error {
 	log.Printf("Validating action for command %v", action.Action)
 
 	// check if ChangeInput is a valid name of a command (ok is a bool)
@@ -107,6 +94,6 @@ func (c *ChangeVideoInputVideoSwitcher) Validate(action base.ActionStructure) er
 }
 
 //GetIncompatibleCommands f
-func (c *ChangeVideoInputVideoSwitcher) GetIncompatibleCommands() []string {
+func (c *ChangeVideoInputDMPS) GetIncompatibleCommands() []string {
 	return nil
 }
