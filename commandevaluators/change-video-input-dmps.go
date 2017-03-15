@@ -24,7 +24,7 @@ func (c *ChangeVideoInputDMPS) Evaluate(room base.PublicRoom) ([]base.ActionStru
 		}
 
 		for _, device := range devices {
-			action, err := GetSwitcherAndCreateAction(room, device, room.CurrentVideoInputm, "ChangeVideoInputDMPS")
+			action, err := GetSwitcherAndCreateAction(room, device, room.CurrentVideoInput, "ChangeVideoInputDMPS")
 			if err != nil {
 				return []base.ActionStructure{}, err
 			}
