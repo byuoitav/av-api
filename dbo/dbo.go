@@ -50,6 +50,10 @@ func GetData(url string, structToFill interface{}) error {
 	return nil
 }
 
+func WriteData(url string, structToAdd interface{}) error {
+
+}
+
 // GetAllRawCommands retrieves all the commands
 func GetAllRawCommands() (commands []accessors.RawCommand, err error) {
 	log.Printf("Getting all commands.")
@@ -136,4 +140,10 @@ func GetRoomsByBuilding(building string) ([]accessors.Room, error) {
 	var rooms []accessors.Room
 	err := GetData(url, &rooms)
 	return rooms, err
+}
+
+// AddBuilding asdf
+func AddBuilding(building accessors.Building) (accessors.Building, error) {
+	log.Printf("adding building %v to database", building.Shortname)
+
 }
