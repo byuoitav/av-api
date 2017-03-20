@@ -118,3 +118,13 @@ func SetAudioInDB(building string, room string, device accessors.Device) error {
 
 	return nil
 }
+
+// getBuildings will return all buildings
+func GetBuildings() ([]accessors.Building, error) {
+	log.Printf("getting all buildings")
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/buildings"
+	var buildings []accessors.Building
+	err := GetData(url, &buildings)
+
+	return buildings, err
+}
