@@ -1,6 +1,7 @@
 package dbo
 
 import (
+	"bytes"
 	"encoding/json"
 	"io/ioutil"
 	"log"
@@ -20,16 +21,9 @@ func GetData(url string, structToFill interface{}) error {
 	client := &http.Client{}
 	req, _ := http.NewRequest("GET", url, nil)
 
-	if len(os.Getenv("LOCAL_ENVIRONMENT")) == 0 {
-
-		log.Printf("Adding the bearer token for inter-service communication")
-
-		token, err := bearertoken.GetToken()
-		if err != nil {
-			return err
-		}
-
-		req.Header.Set("Authorization", "Bearer "+token.Token)
+	err := setToken(req)
+	if err != nil {
+		return err
 	}
 
 	resp, err := client.Do(req)
@@ -50,8 +44,46 @@ func GetData(url string, structToFill interface{}) error {
 	return nil
 }
 
-func WriteData(url string, structToAdd interface{}) error {
+//PostData hits POST endpoints
+func PostData(url string, structToAdd interface{}) ([]byte, error) {
+	log.Printf("Posting data to URL: %s...", url)
 
+	body, err := json.Marshal(structToAdd)
+	if err != nil {
+		return nil, err
+	}
+	client := &http.Client{}
+	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(body))
+
+	err = setToken(req)
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return ioutil.ReadAll(response.Body)
+
+}
+
+func setToken(request *http.Request) error {
+	if len(os.Getenv("LOCAL_ENVIRONMENT")) == 0 {
+
+		log.Printf("Adding the bearer token for inter-service communication")
+
+		token, err := bearertoken.GetToken()
+		if err != nil {
+			return err
+		}
+
+		request.Header.Set("Authorization", "Bearer "+token.Token)
+
+	}
+
+	return nil
 }
 
 // GetAllRawCommands retrieves all the commands
@@ -142,8 +174,22 @@ func GetRoomsByBuilding(building string) ([]accessors.Room, error) {
 	return rooms, err
 }
 
-// AddBuilding asdf
-func AddBuilding(building accessors.Building) (accessors.Building, error) {
-	log.Printf("adding building %v to database", building.Shortname)
+// AddBuilding monsters
+func AddBuilding(buildingToAdd accessors.Building) (accessors.Building, error) {
+	log.Printf("adding building %v to database", buildingToAdd.Shortname)
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/buildings/" + buildingToAdd.Shortname
+
+	result, err := PostData(url, buildingToAdd)
+	if err != nil {
+		return buildingToAdd, err
+	}
+
+	var building accessors.Building
+	err = json.Unmarshal(result, &building)
+	if err != nil {
+		return building, err
+	}
+
+	return building, nil
 
 }
