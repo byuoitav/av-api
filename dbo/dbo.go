@@ -203,7 +203,7 @@ func GetRoomsByBuilding(building string) ([]accessors.Room, error) {
 func GetBuildingByShortname(building string) (accessors.Building, error) {
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/buildings/shortname/" + building
 	var output accessors.Building
-	err := GetData(url, output)
+	err := GetData(url, &output)
 	if err != nil {
 		return output, err
 	}
