@@ -60,12 +60,12 @@ func GetData(url string, structToFill interface{}) error {
 }
 
 //PostData hits POST endpoints
-func PostData(url string, structToAdd interface{}) ([]byte, error) {
+func PostData(url string, structToAdd interface{}, structToFill interface{}) error {
 	log.Printf("Posting data to URL: %s...", url)
 
 	body, err := json.Marshal(structToAdd)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	client := &http.Client{}
 	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(body))
@@ -74,22 +74,32 @@ func PostData(url string, structToAdd interface{}) ([]byte, error) {
 
 	err = setToken(req)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	response, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if response.StatusCode != http.StatusOK {
 		errorString, err := ioutil.ReadAll(response.Body)
 		if err != nil {
-			return []byte{}, err
+			return err
 		}
-		return []byte{}, errors.New(string(errorString))
+		return errors.New(string(errorString))
 	}
 
-	return ioutil.ReadAll(response.Body)
+	jsonArray, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(jsonArray, structToFill)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func setToken(request *http.Request) error {
@@ -215,17 +225,24 @@ func AddBuilding(buildingToAdd accessors.Building) (accessors.Building, error) {
 	log.Printf("adding building %v to database", buildingToAdd.Shortname)
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/buildings/" + buildingToAdd.Shortname
 
-	result, err := PostData(url, buildingToAdd)
+	var buildingToFill accessors.Building
+	err := PostData(url, buildingToAdd, &buildingToFill)
 	if err != nil {
-		return buildingToAdd, err
+		return accessors.Building{}, err
 	}
 
-	var building accessors.Building
-	err = json.Unmarshal(result, &building)
+	return buildingToFill, nil
+}
+
+func AddRoom(building string, roomToAdd accessors.Room) (accessors.Room, error){
+	log.Printf("adding room %v to building %v in database", roomToAdd.Name, building)
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/buildings/" + building + "/rooms/" + roomToAdd.Name
+
+	var roomToFill accessors.Room
+	err := PostData(url, roomToAdd, &roomToFill)
 	if err != nil {
-		return building, err
+		return accessors.Room{}, err
 	}
 
-	return building, nil
-
+	return roomToFill, nil
 }
