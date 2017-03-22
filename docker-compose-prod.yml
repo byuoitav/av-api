@@ -33,7 +33,7 @@ services:
             - "8005:8005"
         environment:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
-            - PJLINK_PORT=$PJLINK_PORT 
+            - PJLINK_PORT=$PJLINK_PORT
             - PJLINK_PASS=$PJLINK_PASS
         network_mode: "host"
         restart: always
@@ -43,10 +43,10 @@ services:
             - "8006:8006"
         environment:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
-            - CONFIGURATION_DATABASE_USERNAME=$CONFIGURATION_DATABASE_USERNAME 
-            - CONFIGURATION_DATABASE_PASSWORD=$CONFIGURATION_DATABASE_PASSWORD 
-            - CONFIGURATION_DATABASE_HOST=$CONFIGURATION_DATABASE_HOST 
-            - CONFIGURATION_DATABASE_PORT=$CONFIGURATION_DATABASE_PORT 
+            - CONFIGURATION_DATABASE_USERNAME=$CONFIGURATION_DATABASE_USERNAME
+            - CONFIGURATION_DATABASE_PASSWORD=$CONFIGURATION_DATABASE_PASSWORD
+            - CONFIGURATION_DATABASE_HOST=$CONFIGURATION_DATABASE_HOST
+            - CONFIGURATION_DATABASE_PORT=$CONFIGURATION_DATABASE_PORT
             - CONFIGURATION_DATABASE_NAME=$CONFIGURATION_DATABASE_NAME
         network_mode: "host"
         restart: always
@@ -92,6 +92,14 @@ services:
             - "8888:8888"
         environment:
             - PI_HOSTNAME=$PI_HOSTNAME
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+        network_mode: "host"
+        restart: always
+    configuration-database-tool:
+        image: byuoitav/configuration-database-tool
+        ports:
+            - "9999:9999"
+        environment:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
         network_mode: "host"
         restart: always

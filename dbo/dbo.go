@@ -1,7 +1,10 @@
 package dbo
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -18,7 +21,79 @@ func GetData(url string, structToFill interface{}) error {
 	// Make an HTTP client so we can add custom headers (currently used for adding in the Bearer token for inter-microservice communication)
 
 	client := &http.Client{}
-	req, _ := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return err
+	}
+
+	err = setToken(req)
+	if err != nil {
+		return err
+	}
+
+	if req == nil {
+		fmt.Printf("Alert! req is nil!")
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		errorString, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return err
+		}
+		return errors.New(string(errorString))
+	}
+
+	err = json.Unmarshal(b, structToFill)
+	if err != nil {
+		return err
+	}
+	log.Printf("Done.")
+	return nil
+}
+
+//PostData hits POST endpoints
+func PostData(url string, structToAdd interface{}) ([]byte, error) {
+	log.Printf("Posting data to URL: %s...", url)
+
+	body, err := json.Marshal(structToAdd)
+	if err != nil {
+		return nil, err
+	}
+	client := &http.Client{}
+	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(body))
+
+	req.Header.Set("Content-Type", "application/json")
+
+	err = setToken(req)
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if response.StatusCode != http.StatusOK {
+		errorString, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			return []byte{}, err
+		}
+		return []byte{}, errors.New(string(errorString))
+	}
+
+	return ioutil.ReadAll(response.Body)
+}
+
+func setToken(request *http.Request) error {
+	fmt.Printf("Calling setToken on %v", request)
 
 	if len(os.Getenv("LOCAL_ENVIRONMENT")) == 0 {
 
@@ -29,24 +104,10 @@ func GetData(url string, structToFill interface{}) error {
 			return err
 		}
 
-		req.Header.Set("Authorization", "Bearer "+token.Token)
+		request.Header.Set("Authorization", "Bearer "+token.Token)
+
 	}
 
-	resp, err := client.Do(req)
-	if err != nil {
-		return err
-	}
-
-	b, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	err = json.Unmarshal(b, structToFill)
-	if err != nil {
-		return err
-	}
-	log.Printf("Done.")
 	return nil
 }
 
@@ -117,4 +178,54 @@ func SetAudioInDB(building string, room string, device accessors.Device) error {
 	}
 
 	return nil
+}
+
+// GetBuildings will return all buildings
+func GetBuildings() ([]accessors.Building, error) {
+	log.Printf("getting all buildings...")
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/buildings"
+	var buildings []accessors.Building
+	err := GetData(url, &buildings)
+
+	return buildings, err
+}
+
+// GetRooms returns all the rooms in a given building
+func GetRoomsByBuilding(building string) ([]accessors.Room, error) {
+	log.Printf("getting all rooms from %v ...", building)
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/buildings/" + building + "/rooms"
+	var rooms []accessors.Room
+	err := GetData(url, &rooms)
+	return rooms, err
+}
+
+// GetBuildingByShortname returns a building with a given shortname
+func GetBuildingByShortname(building string) (accessors.Building, error) {
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/buildings/shortname/" + building
+	var output accessors.Building
+	err := GetData(url, &output)
+	if err != nil {
+		return output, err
+	}
+	return output, nil
+}
+
+// AddBuilding monsters
+func AddBuilding(buildingToAdd accessors.Building) (accessors.Building, error) {
+	log.Printf("adding building %v to database", buildingToAdd.Shortname)
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/buildings/" + buildingToAdd.Shortname
+
+	result, err := PostData(url, buildingToAdd)
+	if err != nil {
+		return buildingToAdd, err
+	}
+
+	var building accessors.Building
+	err = json.Unmarshal(result, &building)
+	if err != nil {
+		return building, err
+	}
+
+	return building, nil
+
 }
