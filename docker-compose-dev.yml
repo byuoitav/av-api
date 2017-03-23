@@ -75,6 +75,14 @@ services:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
         network_mode: "host"
         restart: always
+    pulse-eight-neo-microservice:
+        build: ../pulse-eight-neo-microservice
+        ports:
+            - "8011:8011"
+        environment:
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+        network_mode: "host"
+        restart: always
     av-api-rpc:
         build: ../av-api-rpc
         ports:
@@ -96,7 +104,7 @@ services:
         network_mode: "host"
         restart: always
     configuration-database-tool:
-        build: ../touchpanel-ui-tool
+        build: ../configuration-database-tool
         ports:
             - "9999:9999"
         environment:
