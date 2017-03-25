@@ -96,9 +96,17 @@ services:
         network_mode: "host"
         restart: always
     configuration-database-tool:
-        build: ../touchpanel-ui-tool
+        build: ../configuration-database-tool
         ports:
             - "9999:9999"
+        environment:
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+        network_mode: "host"
+        restart: always
+    cgi-microservice:
+        build: ../adcp-control-microservice
+        ports:
+            - "8012:8012"
         environment:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
         network_mode: "host"
