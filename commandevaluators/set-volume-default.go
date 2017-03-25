@@ -89,11 +89,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure,
 	return actions, nil
 }
 
-//Evaluate returns an error if the volume is greater than 100 or less than 0
-func (p *SetVolumeDefault) Validate(action base.ActionStructure) error {
-	maximum := 100
-	minimum := 0
-
+func validateSetVolumeMaxMin(action base.ActionStructure, maximum int, minimum int) error {
 	level, err := strconv.Atoi(action.Parameters["level"])
 	if err != nil {
 		return err
@@ -104,6 +100,14 @@ func (p *SetVolumeDefault) Validate(action base.ActionStructure) error {
 		return errors.New(action.Action + " is an invalid command for " + action.Device.Name)
 	}
 	return nil
+}
+
+//Evaluate returns an error if the volume is greater than 100 or less than 0
+func (p *SetVolumeDefault) Validate(action base.ActionStructure) error {
+	maximum := 100
+	minimum := 0
+
+	return validateSetVolumeMaxMin(action, maximum, minimum)
 
 }
 
