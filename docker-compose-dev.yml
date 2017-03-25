@@ -103,7 +103,7 @@ services:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
         network_mode: "host"
         restart: always
-    cgi-microservice:
+    adcp-control-microservice:
         build: ../adcp-control-microservice
         ports:
             - "8012:8012"
