@@ -66,13 +66,15 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure,
 				}
 
 				parameters := make(map[string]string)
-				parameters["level"] = string(*audioDevice.Volume)
+				parameters["level"] = fmt.Sprintf("%v", *audioDevice.Volume)
+				log.Printf("%+v", parameters)
 
 				actions = append(actions, base.ActionStructure{
 					Action:              "SetVolume",
 					GeneratingEvaluator: "SetVolumeDefault",
 					Device:              device,
 					DeviceSpecific:      true,
+					Parameters:          parameters,
 				})
 
 			}
@@ -83,8 +85,6 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure,
 
 	log.Printf("%v actions generated.", len(actions))
 	log.Printf("Evaluation complete.")
-
-	fmt.Printf("Generated: %+v\n", actions)
 
 	return actions, nil
 }
@@ -103,7 +103,6 @@ func (p *SetVolumeDefault) Validate(action base.ActionStructure) error {
 		log.Printf("ERROR. %v is an invalid volume level for %s", action.Parameters["level"], action.Device.Name)
 		return errors.New(action.Action + " is an invalid command for " + action.Device.Name)
 	}
-
 	return nil
 
 }
