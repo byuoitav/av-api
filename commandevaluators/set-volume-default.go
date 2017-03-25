@@ -66,7 +66,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure,
 				}
 
 				parameters := make(map[string]string)
-				parameters["port"] = string(*audioDevice.Volume)
+				parameters["level"] = string(*audioDevice.Volume)
 
 				actions = append(actions, base.ActionStructure{
 					Action:              "SetVolume",
