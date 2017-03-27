@@ -67,7 +67,7 @@ func (c *ChangeVideoInputDMPS) Evaluate(room base.PublicRoom) ([]base.ActionStru
 
 				fmt.Printf("Signal name to add: %s", deviceSignalName)
 
-				action.Parameters["device"] = deviceSignalName
+				action.Parameters["input"] = deviceSignalName
 				actionList = append(actionList, action)
 			}
 		}

@@ -66,13 +66,15 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure,
 				}
 
 				parameters := make(map[string]string)
-				parameters["port"] = string(*audioDevice.Volume)
+				parameters["level"] = fmt.Sprintf("%v", *audioDevice.Volume)
+				log.Printf("%+v", parameters)
 
 				actions = append(actions, base.ActionStructure{
 					Action:              "SetVolume",
 					GeneratingEvaluator: "SetVolumeDefault",
 					Device:              device,
 					DeviceSpecific:      true,
+					Parameters:          parameters,
 				})
 
 			}
@@ -84,16 +86,10 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure,
 	log.Printf("%v actions generated.", len(actions))
 	log.Printf("Evaluation complete.")
 
-	fmt.Printf("Generated: %+v\n", actions)
-
 	return actions, nil
 }
 
-//Evaluate returns an error if the volume is greater than 100 or less than 0
-func (p *SetVolumeDefault) Validate(action base.ActionStructure) error {
-	maximum := 100
-	minimum := 0
-
+func validateSetVolumeMaxMin(action base.ActionStructure, maximum int, minimum int) error {
 	level, err := strconv.Atoi(action.Parameters["level"])
 	if err != nil {
 		return err
@@ -103,8 +99,15 @@ func (p *SetVolumeDefault) Validate(action base.ActionStructure) error {
 		log.Printf("ERROR. %v is an invalid volume level for %s", action.Parameters["level"], action.Device.Name)
 		return errors.New(action.Action + " is an invalid command for " + action.Device.Name)
 	}
-
 	return nil
+}
+
+//Evaluate returns an error if the volume is greater than 100 or less than 0
+func (p *SetVolumeDefault) Validate(action base.ActionStructure) error {
+	maximum := 100
+	minimum := 0
+
+	return validateSetVolumeMaxMin(action, maximum, minimum)
 
 }
 

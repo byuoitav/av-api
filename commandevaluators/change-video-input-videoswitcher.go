@@ -3,11 +3,21 @@ package commandevaluators
 import (
 	"errors"
 	"log"
+	"strings"
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/configuration-database-microservice/accessors"
 )
+
+/*
+
+	Video Switchers are a little different by way of port identification.
+	Basically our ports are combinations of input + output
+
+	so 0:0 is the input zero set to output zero. So here we run a split on the ':' to assign the input and output separately.
+
+*/
 
 //ChangeVideoInputVideoswitcher the struct that implements the CommandEvaluation struct
 type ChangeVideoInputVideoSwitcher struct {
@@ -49,10 +59,23 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom) ([]base.A
 				if err != nil {
 					return []base.ActionStructure{}, err
 				}
+				//Undecode the format into the
 				actionList = append(actionList, action)
 			}
 		}
 
+	}
+
+	for _, action := range actionList {
+		p := action.Parameters["output"]
+		splitP := strings.Split(p, ":")
+
+		if len(splitP) != 2 {
+			return actionList, errors.New("Invalid port for a video switcher")
+		}
+
+		action.Parameters["input"] = splitP[0]
+		action.Parameters["output"] = splitP[1]
 	}
 	return actionList, nil
 }
@@ -71,7 +94,7 @@ func GetSwitcherAndCreateAction(room base.PublicRoom, device accessors.Device, s
 	for _, port := range switcher[0].Ports {
 		if port.Destination == device.Name && port.Source == selectedInput {
 			m := make(map[string]string)
-			m["port"] = port.Name
+			m["output"] = port.Name
 
 			tempAction := base.ActionStructure{
 				Action:              "ChangeInput",

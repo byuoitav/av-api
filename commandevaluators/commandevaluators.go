@@ -200,6 +200,7 @@ func Init() map[string]CommandEvaluator {
 		CommandMap["UnMuteDefault"] = &UnMuteDefault{}
 		CommandMap["SetVolumeDefault"] = &SetVolumeDefault{}
 		CommandMap["SetVolumeDMPS"] = &SetVolumeDMPS{}
+		CommandMap["SetVolumeTecLite"] = &SetVolumeTecLite{}
 		CommandMap["ChangeVideoInputDMPS"] = &ChangeVideoInputDMPS{}
 
 		commandMapInitialized = true
