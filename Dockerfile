@@ -1,14 +1,10 @@
-FROM golang:1.7.1-alpine
+FROM alpine
 
-RUN apk update && apk upgrade && apk add git
+RUN mkdir -p /go
+ADD . /go
 
-RUN mkdir -p /go/src/github.com/byuoitav
-ADD . /go/src/github.com/byuoitav/av-api
+WORKDIR /go
 
-WORKDIR /go/src/github.com/byuoitav/av-api
-RUN go get -d -v
-RUN go install -v
-
-CMD ["/go/bin/av-api"]
+CMD ["/go/av-api-x86"]
 
 EXPOSE 8000
