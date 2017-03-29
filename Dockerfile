@@ -5,6 +5,6 @@ ADD . /go
 
 WORKDIR /go
 
-CMD ["/go/av-api-x86"]
+CMD ["/go/av-api"]
 
 EXPOSE 8000
