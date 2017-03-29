@@ -83,6 +83,14 @@ services:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
         network_mode: "host"
         restart: always
+    adcp-control-microservice:
+        image: byuoitav/adcp-control-microservice
+        ports:
+            - "8012:8012"
+        environment:
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+        network_mode: "host"
+        restart: always
     av-api-rpc:
         image: byuoitav/av-api-rpc
         ports:
@@ -107,14 +115,6 @@ services:
         image: byuoitav/configuration-database-tool
         ports:
             - "9999:9999"
-        environment:
-            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
-        network_mode: "host"
-        restart: always
-     adcp-control-microservice:
-        image: byuoitav/adcp-control-microservice
-        ports:
-            - "8012:8012"
         environment:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
         network_mode: "host"

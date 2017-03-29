@@ -85,6 +85,14 @@ services:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
         network_mode: "host"
         restart: always
+    adcp-control-microservice:
+        build: ../adcp-control-microservice
+        ports:
+            - "8012:8012"
+        environment:
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+        network_mode: "host"
+        restart: always
     av-api-rpc:
         build: ../av-api-rpc
         ports:
@@ -109,14 +117,6 @@ services:
         build: ../configuration-database-tool
         ports:
             - "9999:9999"
-        environment:
-            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
-        network_mode: "host"
-        restart: always
-    adcp-control-microservice:
-        build: ../adcp-control-microservice
-        ports:
-            - "8012:8012"
         environment:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
         network_mode: "host"
