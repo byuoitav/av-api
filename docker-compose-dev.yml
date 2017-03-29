@@ -2,6 +2,8 @@ version: '2'
 services:
     av-api:
         build: .
+            context: .
+            dockerfile: Dockerfile-dev
         ports:
             - "8000:8000"
         environment:
@@ -71,6 +73,14 @@ services:
         build: ../cgi-microservice
         ports:
             - "8010:8010"
+        environment:
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+        network_mode: "host"
+        restart: always
+    pulse-eight-neo-microservice:
+        build: ../pulse-eight-neo-microservice
+        ports:
+            - "8011:8011"
         environment:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
         network_mode: "host"
