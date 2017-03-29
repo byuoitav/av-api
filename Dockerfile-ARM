@@ -2,9 +2,6 @@ FROM resin/armv7hf-debian-qemu
 
 RUN [ "cross-build-start" ]
 
-RUN apt-get update
-RUN apt-get -y install ca-certificates
-
 RUN mkdir -p /go
 ADD . /go
 

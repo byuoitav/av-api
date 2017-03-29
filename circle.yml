@@ -4,7 +4,6 @@ machine:
 
 dependencies:
     pre:
-        - rm -rf ~/.m2
         - rm -rf ~/.go_workspace
     post:
         - env GOOS=linux GOARCH=arm go build -v -o av-api-arm
