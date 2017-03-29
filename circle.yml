@@ -3,9 +3,6 @@ machine:
         - docker
 
 dependencies:
-    pre:
-        - rm -rf ~/.go_workspace
-        - rm -rf ~/.m2
     override:
         - mkdir -p ~/.go_project/src/github.com/${CIRCLE_PROJECT_USERNAME}
         - ln -s ${HOME}/${CIRCLE_PROJECT_REPONAME} ${HOME}/.go_project/src/github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}
