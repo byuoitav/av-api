@@ -10,8 +10,8 @@ import (
 	"github.com/labstack/echo"
 )
 
-//GetRoomByNameAndBuildingHandler is almost identical to GetRoomByName
-func GetRoomByNameAndBuildingHandler(context echo.Context) error {
+//GetRoomByNameAndBuilding is almost identical to GetRoomByName
+func GetRoomByNameAndBuilding(context echo.Context) error {
 	log.Printf("Getting room...")
 	room, err := dbo.GetRoomByInfo(context.Param("building"), context.Param("room"))
 	if err != nil {
