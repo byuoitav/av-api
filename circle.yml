@@ -3,12 +3,10 @@ machine:
         - docker
 
 dependencies:
-    post:
+    pre:
         - rm -rf ~/.m2
         - rm -rf ~/.go_workspace
-
-compile:
-    override:
+    post:
         - env GOOS=linux GOARCH=arm go build -v -o av-api-arm
 
 test:
