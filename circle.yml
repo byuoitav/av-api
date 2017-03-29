@@ -3,15 +3,17 @@ machine:
         - docker
 
 dependencies:
+    pre:
+        - rm -rf ~/.go_workspace
     override:
         - mkdir -p ~/.go_project/src/github.com/${CIRCLE_PROJECT_USERNAME}
         - ln -s ${HOME}/${CIRCLE_PROJECT_REPONAME} ${HOME}/.go_project/src/github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}
         - go get -t -d -v
-        - go get -t -d -v $(go list ./... | grep -v /vendor/)
+
+compile:
+    override:
         - go build -v -o av-api-x86
         - env GOOS=linux GOARCH=arm go build -v -o av-api-arm
-    post:
-        - rm -rf ~/.go_workspace
 
 test:
     override:
