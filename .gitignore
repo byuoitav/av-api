@@ -1,10 +1,10 @@
 debug
 .DS_Store
+av-api-x86
+av-api-arm
 
-# Elastic Beanstalk Files
-.elasticbeanstalk/*
-!.elasticbeanstalk/*.cfg.yml
-!.elasticbeanstalk/*.global.yml
+# Joe's scratch files
+.scratch
 
 # Vim swap
 *.swp
