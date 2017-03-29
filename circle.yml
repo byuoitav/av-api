@@ -11,11 +11,10 @@ test:
         - go test -v -race $(go list ./... | grep -v /vendor/)
 
 deployment:
-    pre:
-        - env GOOS=linux GOARCH=arm go build -v -o av-api-arm
     development:
         branch: master
         commands:
+            - env GOOS=linux GOARCH=arm go build -v -o av-api-arm
             - docker build -t byuoitav/av-api:development .
             - docker build -f Dockerfile-ARM -t byuoitav/rpi-av-api:development .
             - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
@@ -25,6 +24,7 @@ deployment:
     stage:
         branch: stage
         commands:
+            - env GOOS=linux GOARCH=arm go build -v -o av-api-arm
             - docker build -t byuoitav/av-api:stage .
             - docker build -f Dockerfile-ARM -t byuoitav/rpi-av-api:stage .
             - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
@@ -34,6 +34,7 @@ deployment:
     production:
         branch: production
         commands:
+            - env GOOS=linux GOARCH=arm go build -v -o av-api-arm
             - docker build -t byuoitav/av-api:latest .
             - docker build -f Dockerfile-ARM -t byuoitav/rpi-av-api:latest .
             - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
