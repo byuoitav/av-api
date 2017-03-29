@@ -4,10 +4,7 @@ machine:
 
 dependencies:
     pre:
-        - rm -rf ~/.m2
         - rm -rf ~/.go_workspace
-    post:
-        - env GOOS=linux GOARCH=arm go build -v -o av-api-arm
 
 test:
     override:
@@ -17,40 +14,31 @@ deployment:
     development:
         branch: master
         commands:
-            - docker build -f Dockerfile-ARM -t byuoitav/rpi-av-api:$CIRCLE_SHA1 .
-            - docker build -f Dockerfile-ARM -t byuoitav/rpi-av-api:development .
-            - docker build -t byuoitav/av-api:$CIRCLE_SHA1 .
+            - env GOOS=linux GOARCH=arm go build -v -o av-api-arm
             - docker build -t byuoitav/av-api:development .
+            - docker build -f Dockerfile-ARM -t byuoitav/rpi-av-api:development .
             - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
-            - docker push byuoitav/av-api:$CIRCLE_SHA1
             - docker push byuoitav/av-api:development
-            - docker push byuoitav/rpi-av-api:$CIRCLE_SHA1
             - docker push byuoitav/rpi-av-api:development
             - ./deploy-pi.sh development
     stage:
         branch: stage
         commands:
-            - docker build -f Dockerfile-ARM -t byuoitav/rpi-av-api:$CIRCLE_SHA1 .
-            - docker build -f Dockerfile-ARM -t byuoitav/rpi-av-api:stage .
-            - docker build -t byuoitav/av-api:$CIRCLE_SHA1 .
+            - env GOOS=linux GOARCH=arm go build -v -o av-api-arm
             - docker build -t byuoitav/av-api:stage .
+            - docker build -f Dockerfile-ARM -t byuoitav/rpi-av-api:stage .
             - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
-            - docker push byuoitav/av-api:$CIRCLE_SHA1
             - docker push byuoitav/av-api:stage
-            - docker push byuoitav/rpi-av-api:$CIRCLE_SHA1
             - docker push byuoitav/rpi-av-api:stage
             - ./deploy-pi.sh stage
     production:
         branch: production
         commands:
-            - docker build -f Dockerfile-ARM -t byuoitav/rpi-av-api:$CIRCLE_SHA1 .
-            - docker build -f Dockerfile-ARM -t byuoitav/rpi-av-api:latest .
-            - docker build -t byuoitav/av-api:$CIRCLE_SHA1 .
+            - env GOOS=linux GOARCH=arm go build -v -o av-api-arm
             - docker build -t byuoitav/av-api:latest .
+            - docker build -f Dockerfile-ARM -t byuoitav/rpi-av-api:latest .
             - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
-            - docker push byuoitav/av-api:$CIRCLE_SHA1
             - docker push byuoitav/av-api:latest
-            - docker push byuoitav/rpi-av-api:$CIRCLE_SHA1
             - docker push byuoitav/rpi-av-api:latest
             - ./deploy.sh $CIRCLE_PROJECT_REPONAME $CIRCLE_SHA1
             - ./deploy-pi.sh production
