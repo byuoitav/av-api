@@ -1,6 +1,11 @@
 machine:
     services:
         - docker
+    environment:
+        GOROOT: ""
+        GOPATH: "${HOME}/.go_project"
+        PATH: "${GOPATH}/bin:${PATH}"
+        BUILD_PATH: "${GOPATH}/src/github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}"
 
 dependencies:
     pre:
@@ -21,7 +26,7 @@ dependencies:
 
 compile:
     override:
-        - go build -v
+        - cd $BUILD_PATH && go build -v
 
 test:
     override:
