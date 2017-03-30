@@ -1,20 +1,42 @@
 machine:
     services:
         - docker
+    environment:
+        GOROOT: ""
+        GOPATH: "${HOME}/.go_project"
+        PATH: "${GOPATH}/bin:${PATH}"
+        BUILD_PATH: "${GOPATH}/src/github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}"
 
 dependencies:
     pre:
         - rm -rf ~/.go_workspace
+    override:
+        - mkdir -p ~/.go_project/src/github.com/${CIRCLE_PROJECT_USERNAME}
+        - ln -s ${HOME}/${CIRCLE_PROJECT_REPONAME} ${HOME}/.go_project/src/github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}
+        - cd ~/.go_project/src/github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}
+        - go get -d -v
+        - >
+            if [ $CIRCLE_BRANCH = "stage" ]; then
+                cd ~/.go_project/src/github.com/byuoitav/configuration-database-microservice
+                git checkout stage
+            elif [ $CIRCLE_BRANCH = "production" ]; then
+                cd ~/.go_project/src/github.com/byuoitav/configuration-database-microservice
+                git checkout production
+            fi
+
+compile:
+    override:
+        - cd $BUILD_PATH && go build -v
 
 test:
     override:
-        - go test -v -race $(go list ./... | grep -v /vendor/)
+        - cd $BUILD_PATH && go test -v -race $(go list ./... | grep -v /vendor/)
 
 deployment:
     development:
         branch: master
         commands:
-            - env GOOS=linux GOARCH=arm go build -v -o av-api-arm
+            - cd $BUILD_PATH && env GOOS=linux GOARCH=arm go build -v -o av-api-arm
             - docker build -t byuoitav/av-api:development .
             - docker build -f Dockerfile-ARM -t byuoitav/rpi-av-api:development .
             - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
@@ -24,7 +46,7 @@ deployment:
     stage:
         branch: stage
         commands:
-            - env GOOS=linux GOARCH=arm go build -v -o av-api-arm
+            - cd $BUILD_PATH && env GOOS=linux GOARCH=arm go build -v -o av-api-arm
             - docker build -t byuoitav/av-api:stage .
             - docker build -f Dockerfile-ARM -t byuoitav/rpi-av-api:stage .
             - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
@@ -34,7 +56,7 @@ deployment:
     production:
         branch: production
         commands:
-            - env GOOS=linux GOARCH=arm go build -v -o av-api-arm
+            - cd $BUILD_PATH && env GOOS=linux GOARCH=arm go build -v -o av-api-arm
             - docker build -t byuoitav/av-api:latest .
             - docker build -f Dockerfile-ARM -t byuoitav/rpi-av-api:latest .
             - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD

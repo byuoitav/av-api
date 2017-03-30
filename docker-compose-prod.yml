@@ -1,4 +1,4 @@
-version: '2'
+version: '3'
 services:
     av-api:
         image: byuoitav/av-api
