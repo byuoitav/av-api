@@ -1,10 +1,4 @@
 debug
 .DS_Store
-av-api
-av-api-arm
-
-# Joe's scratch files
 .scratch
-
-# Vim swap
 *.swp
