@@ -18,6 +18,9 @@ dependencies:
                 cd ~/.go_project/src/github.com/byuoitav/configuration-database-microservice
                 git checkout production
             fi
+
+compile:
+    override:
         - go build -v
 
 test:
