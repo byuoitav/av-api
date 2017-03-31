@@ -1,29 +1,66 @@
 machine:
     services:
         - docker
+    environment:
+        GOROOT: ""
+        GOPATH: "${HOME}/.go_project"
+        PATH: "${GOPATH}/bin:${PATH}"
+        BUILD_PATH: "${GOPATH}/src/github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}"
 
 dependencies:
-    post:
-        - rm -r ~/.gradle || true
+    pre:
+        - rm -rf ~/.go_workspace
+    override:
+        - mkdir -p ~/.go_project/src/github.com/${CIRCLE_PROJECT_USERNAME}
+        - ln -s ${HOME}/${CIRCLE_PROJECT_REPONAME} ${HOME}/.go_project/src/github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}
+        - cd ~/.go_project/src/github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}
+        - go get -d -v
+        - >
+            if [ $CIRCLE_BRANCH = "stage" ]; then
+                cd ~/.go_project/src/github.com/byuoitav/configuration-database-microservice
+                git checkout stage
+            elif [ $CIRCLE_BRANCH = "production" ]; then
+                cd ~/.go_project/src/github.com/byuoitav/configuration-database-microservice
+                git checkout production
+            fi
+
+compile:
+    override:
+        - cd $BUILD_PATH && go build -v
 
 test:
     override:
-        - go test -v -race $(go list ./... | grep -v /vendor/)
+        - cd $BUILD_PATH && go test -v -race $(go list ./... | grep -v /vendor/)
 
 deployment:
-    production:
+    development:
         branch: master
         commands:
-            - go get -d -v
-            - env GOOS=linux GOARCH=arm go build -v .
-            - docker build -f Dockerfile-ARM -t byuoitav/rpi-av-api:$CIRCLE_SHA1 .
-            - docker build -f Dockerfile-ARM -t byuoitav/rpi-av-api:latest .
-            - docker build -t byuoitav/av-api:$CIRCLE_SHA1 .
-            - docker build -t byuoitav/av-api:latest .
+            - cd $BUILD_PATH && env GOOS=linux GOARCH=arm go build -v -o av-api-arm
+            - docker build -t byuoitav/av-api:development .
+            - docker build -f Dockerfile-ARM -t byuoitav/rpi-av-api:development .
             - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
-            - docker push byuoitav/av-api:$CIRCLE_SHA1
+            - docker push byuoitav/av-api:development
+            - docker push byuoitav/rpi-av-api:development
+            - ./deploy-pi.sh development
+    stage:
+        branch: stage
+        commands:
+            - cd $BUILD_PATH && env GOOS=linux GOARCH=arm go build -v -o av-api-arm
+            - docker build -t byuoitav/av-api:stage .
+            - docker build -f Dockerfile-ARM -t byuoitav/rpi-av-api:stage .
+            - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+            - docker push byuoitav/av-api:stage
+            - docker push byuoitav/rpi-av-api:stage
+            - ./deploy-pi.sh stage
+    production:
+        branch: production
+        commands:
+            - cd $BUILD_PATH && env GOOS=linux GOARCH=arm go build -v -o av-api-arm
+            - docker build -t byuoitav/av-api:latest .
+            - docker build -f Dockerfile-ARM -t byuoitav/rpi-av-api:latest .
+            - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
             - docker push byuoitav/av-api:latest
-            - docker push byuoitav/rpi-av-api:$CIRCLE_SHA1
             - docker push byuoitav/rpi-av-api:latest
             - ./deploy.sh $CIRCLE_PROJECT_REPONAME $CIRCLE_SHA1
-            - ./deploy-pi.sh
+            - ./deploy-pi.sh production

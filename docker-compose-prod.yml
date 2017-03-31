@@ -1,4 +1,4 @@
-version: '2'
+version: '3'
 services:
     av-api:
         image: byuoitav/av-api
@@ -75,6 +75,22 @@ services:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
         network_mode: "host"
         restart: always
+    pulse-eight-neo-microservice:
+        image: byuoitav/pulse-eight-neo-microservice
+        ports:
+            - "8011:8011"
+        environment:
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+        network_mode: "host"
+        restart: always
+    adcp-control-microservice:
+        image: byuoitav/adcp-control-microservice
+        ports:
+            - "8012:8012"
+        environment:
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+        network_mode: "host"
+        restart: always
     av-api-rpc:
         image: byuoitav/av-api-rpc
         ports:
@@ -99,14 +115,6 @@ services:
         image: byuoitav/configuration-database-tool
         ports:
             - "9999:9999"
-        environment:
-            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
-        network_mode: "host"
-        restart: always
-     adcp-control-microservice:
-        image: byuoitav/adcp-control-microservice
-        ports:
-            - "8012:8012"
         environment:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
         network_mode: "host"
