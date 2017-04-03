@@ -7,7 +7,7 @@ RUN mkdir -p /go/src/github.com/byuoitav
 ADD . /go/src/github.com/byuoitav/av-api
 
 WORKDIR /go/src/github.com/byuoitav/av-api
-RUN gvt fetch -branch stage github.com/byuoitav/configuration-database-microservice
+RUN gvt fetch -branch ${GITHUB_BRANCH} github.com/byuoitav/configuration-database-microservice
 RUN go get -d -v
 RUN go install -v
 
