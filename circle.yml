@@ -10,6 +10,7 @@ machine:
 dependencies:
     pre:
         - rm -rf ~/.go_workspace
+        - go get -u github.com/FiloSottile/gvt
     override:
         - mkdir -p ~/.go_project/src/github.com/${CIRCLE_PROJECT_USERNAME}
         - ln -s ${HOME}/${CIRCLE_PROJECT_REPONAME} ${HOME}/.go_project/src/github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}
@@ -17,11 +18,9 @@ dependencies:
         - go get -d -v
         - >
             if [ $CIRCLE_BRANCH = "stage" ]; then
-                cd ~/.go_project/src/github.com/byuoitav/configuration-database-microservice
-                git checkout stage
+                gvt fetch -branch stage github.com/byuoitav/configuration-database-microservice
             elif [ $CIRCLE_BRANCH = "production" ]; then
-                cd ~/.go_project/src/github.com/byuoitav/configuration-database-microservice
-                git checkout production
+                gvt fetch -branch production github.com/byuoitav/configuration-database-microservice
             fi
 
 compile:
@@ -36,31 +35,33 @@ deployment:
     development:
         branch: master
         commands:
-            - cd $BUILD_PATH && env GOOS=linux GOARCH=arm go build -v -o av-api-arm
-            - docker build -t byuoitav/av-api:development .
-            - docker build -f Dockerfile-ARM -t byuoitav/rpi-av-api:development .
+            - cd $BUILD_PATH && env GOOS=linux GOARCH=arm go build -v -o ${CIRCLE_PROJECT_REPONAME}-arm
+            - docker build -f Dockerfile-ARM -t byuoitav/rpi-${CIRCLE_PROJECT_REPONAME}:development .
+            - docker build -f Dockerfile-development -t byuoitav/${CIRCLE_PROJECT_REPONAME}:development .
             - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
-            - docker push byuoitav/av-api:development
-            - docker push byuoitav/rpi-av-api:development
+            - docker push byuoitav/${CIRCLE_PROJECT_REPONAME}:development
+            - docker push byuoitav/rpi-${CIRCLE_PROJECT_REPONAME}:development
             - ./deploy-pi.sh development
     stage:
         branch: stage
         commands:
-            - cd $BUILD_PATH && env GOOS=linux GOARCH=arm go build -v -o av-api-arm
-            - docker build -t byuoitav/av-api:stage .
-            - docker build -f Dockerfile-ARM -t byuoitav/rpi-av-api:stage .
+            - cd $BUILD_PATH && env GOOS=linux GOARCH=arm go build -v -o ${CIRCLE_PROJECT_REPONAME}-arm
+            - docker build -f Dockerfile-ARM -t byuoitav/rpi-${CIRCLE_PROJECT_REPONAME}:stage .
+            - gvt delete github.com/byuoitav/configuration-database-microservice
+            - docker build --build-arg GITHUB_BRANCH=stage -f Dockerfile-branch -t byuoitav/${CIRCLE_PROJECT_REPONAME}:stage .
             - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
-            - docker push byuoitav/av-api:stage
-            - docker push byuoitav/rpi-av-api:stage
+            - docker push byuoitav/${CIRCLE_PROJECT_REPONAME}:stage
+            - docker push byuoitav/rpi-${CIRCLE_PROJECT_REPONAME}:stage
             - ./deploy-pi.sh stage
     production:
         branch: production
         commands:
-            - cd $BUILD_PATH && env GOOS=linux GOARCH=arm go build -v -o av-api-arm
-            - docker build -t byuoitav/av-api:latest .
-            - docker build -f Dockerfile-ARM -t byuoitav/rpi-av-api:latest .
+            - cd $BUILD_PATH && env GOOS=linux GOARCH=arm go build -v -o ${CIRCLE_PROJECT_REPONAME}-arm
+            - docker build -f Dockerfile-ARM -t byuoitav/rpi-${CIRCLE_PROJECT_REPONAME}:latest .
+            - gvt delete github.com/byuoitav/configuration-database-microservice
+            - docker build --build-arg GITHUB_BRANCH=production -f Dockerfile-branch -t byuoitav/${CIRCLE_PROJECT_REPONAME}:latest .
             - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
-            - docker push byuoitav/av-api:latest
-            - docker push byuoitav/rpi-av-api:latest
+            - docker push byuoitav/${CIRCLE_PROJECT_REPONAME}:latest
+            - docker push byuoitav/rpi-${CIRCLE_PROJECT_REPONAME}:latest
             - ./deploy.sh $CIRCLE_PROJECT_REPONAME $CIRCLE_SHA1
             - ./deploy-pi.sh production
