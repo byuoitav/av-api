@@ -10,6 +10,7 @@ machine:
 dependencies:
     pre:
         - rm -rf ~/.go_workspace
+        - go get -u github.com/FiloSottile/gvt
     override:
         - mkdir -p ~/.go_project/src/github.com/${CIRCLE_PROJECT_USERNAME}
         - ln -s ${HOME}/${CIRCLE_PROJECT_REPONAME} ${HOME}/.go_project/src/github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}
@@ -17,11 +18,9 @@ dependencies:
         - go get -d -v
         - >
             if [ $CIRCLE_BRANCH = "stage" ]; then
-                cd ~/.go_project/src/github.com/byuoitav/configuration-database-microservice
-                git checkout stage
+                gvt fetch -branch stage github.com/byuoitav/configuration-database-microservice
             elif [ $CIRCLE_BRANCH = "production" ]; then
-                cd ~/.go_project/src/github.com/byuoitav/configuration-database-microservice
-                git checkout production
+                gvt fetch -branch production github.com/byuoitav/configuration-database-microservice
             fi
 
 compile:
@@ -47,7 +46,7 @@ deployment:
         branch: stage
         commands:
             - cd $BUILD_PATH && env GOOS=linux GOARCH=arm go build -v -o av-api-arm
-            - docker build -f Dockerfile-stage -t byuoitav/av-api:stage .
+            - env GITHUB_BRANCH=stage && docker build -f Dockerfile-branch -t byuoitav/av-api:stage .
             - docker build -f Dockerfile-ARM -t byuoitav/rpi-av-api:stage .
             - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
             - docker push byuoitav/av-api:stage
@@ -57,7 +56,7 @@ deployment:
         branch: production
         commands:
             - cd $BUILD_PATH && env GOOS=linux GOARCH=arm go build -v -o av-api-arm
-            - docker build -f Dockerfile-production -t byuoitav/av-api:latest .
+            - env GITHUB_BRANCH=production && docker build -f Dockerfile-branch -t byuoitav/av-api:latest .
             - docker build -f Dockerfile-ARM -t byuoitav/rpi-av-api:latest .
             - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
             - docker push byuoitav/av-api:latest
