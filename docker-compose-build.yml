@@ -1,7 +1,9 @@
-version: '2'
+version: '3'
 services:
     av-api:
-        build: .
+        build:
+            context: .
+            dockerfile: Dockerfile-development
         ports:
             - "8000:8000"
         environment:
@@ -75,6 +77,22 @@ services:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
         network_mode: "host"
         restart: always
+    pulse-eight-neo-microservice:
+        build: ../pulse-eight-neo-microservice
+        ports:
+            - "8011:8011"
+        environment:
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+        network_mode: "host"
+        restart: always
+    adcp-control-microservice:
+        build: ../adcp-control-microservice
+        ports:
+            - "8012:8012"
+        environment:
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+        network_mode: "host"
+        restart: always
     av-api-rpc:
         build: ../av-api-rpc
         ports:
@@ -99,14 +117,6 @@ services:
         build: ../configuration-database-tool
         ports:
             - "9999:9999"
-        environment:
-            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
-        network_mode: "host"
-        restart: always
-    adcp-control-microservice:
-        build: ../adcp-control-microservice
-        ports:
-            - "8012:8012"
         environment:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
         network_mode: "host"
