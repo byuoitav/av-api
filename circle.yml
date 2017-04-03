@@ -46,7 +46,7 @@ deployment:
         branch: stage
         commands:
             - cd $BUILD_PATH && env GOOS=linux GOARCH=arm go build -v -o av-api-arm
-            - env GITHUB_BRANCH=stage && docker build -f Dockerfile-branch -t byuoitav/av-api:stage .
+            - docker build --build-arg GITHUB_BRANCH=stage -f Dockerfile-branch -t byuoitav/av-api:stage .
             - docker build -f Dockerfile-ARM -t byuoitav/rpi-av-api:stage .
             - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
             - docker push byuoitav/av-api:stage
@@ -56,7 +56,7 @@ deployment:
         branch: production
         commands:
             - cd $BUILD_PATH && env GOOS=linux GOARCH=arm go build -v -o av-api-arm
-            - env GITHUB_BRANCH=production && docker build -f Dockerfile-branch -t byuoitav/av-api:latest .
+            - docker build --build-arg GITHUB_BRANCH=production -f Dockerfile-branch -t byuoitav/av-api:latest .
             - docker build -f Dockerfile-ARM -t byuoitav/rpi-av-api:latest .
             - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
             - docker push byuoitav/av-api:latest
