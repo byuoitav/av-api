@@ -1,7 +1,7 @@
 version: '3'
 services:
     av-api:
-        image: byuoitav/av-api
+        image: byuoitav/av-api:${DOCKER_HUB_TAG}
         ports:
             - "8000:8000"
         environment:
@@ -12,7 +12,7 @@ services:
         network_mode: "host"
         restart: always
     telnet-microservice:
-        image: byuoitav/telnet-microservice
+        image: byuoitav/telnet-microservice:${DOCKER_HUB_TAG}
         ports:
             - "8001:8001"
         environment:
@@ -20,7 +20,7 @@ services:
         network_mode: "host"
         restart: always
     crestron-control-microservice:
-        image: byuoitav/crestron-control-microservice
+        image: byuoitav/crestron-control-microservice:${DOCKER_HUB_TAG}
         ports:
             - "8004:8004"
         environment:
@@ -28,7 +28,7 @@ services:
         network_mode: "host"
         restart: always
     pjlink-microservice:
-        image: byuoitav/pjlink-microservice
+        image: byuoitav/pjlink-microservice:${DOCKER_HUB_TAG}
         ports:
             - "8005:8005"
         environment:
@@ -38,7 +38,7 @@ services:
         network_mode: "host"
         restart: always
     configuration-database-microservice:
-        image: byuoitav/configuration-database-microservice
+        image: byuoitav/configuration-database-microservice:${DOCKER_HUB_TAG}
         ports:
             - "8006:8006"
         environment:
@@ -51,7 +51,7 @@ services:
         network_mode: "host"
         restart: always
     sony-control-microservice:
-        image: byuoitav/sony-control-microservice
+        image: byuoitav/sony-control-microservice:${DOCKER_HUB_TAG}
         ports:
             - "8007:8007"
         environment:
@@ -60,7 +60,7 @@ services:
         network_mode: "host"
         restart: always
     london-audio-microservice:
-        image: byuoitav/london-audio-microservice
+        image: byuoitav/london-audio-microservice:${DOCKER_HUB_TAG}
         ports:
             - "8009:8009"
         environment:
@@ -68,7 +68,7 @@ services:
         network_mode: "host"
         restart: always
     cgi-microservice:
-        image: byuoitav/cgi-microservice
+        image: byuoitav/cgi-microservice:${DOCKER_HUB_TAG}
         ports:
             - "8010:8010"
         environment:
@@ -76,7 +76,7 @@ services:
         network_mode: "host"
         restart: always
     pulse-eight-neo-microservice:
-        image: byuoitav/pulse-eight-neo-microservice
+        image: byuoitav/pulse-eight-neo-microservice:${DOCKER_HUB_TAG}
         ports:
             - "8011:8011"
         environment:
@@ -84,7 +84,7 @@ services:
         network_mode: "host"
         restart: always
     adcp-control-microservice:
-        image: byuoitav/adcp-control-microservice
+        image: byuoitav/adcp-control-microservice:${DOCKER_HUB_TAG}
         ports:
             - "8012:8012"
         environment:
@@ -92,7 +92,7 @@ services:
         network_mode: "host"
         restart: always
     av-api-rpc:
-        image: byuoitav/av-api-rpc
+        image: byuoitav/av-api-rpc:${DOCKER_HUB_TAG}
         ports:
             - "8100:8100"
         environment:
@@ -103,7 +103,7 @@ services:
         network_mode: "host"
         restart: always
     touchpanel-ui-microservice:
-        image: byuoitav/touchpanel-ui-microservice
+        image: byuoitav/touchpanel-ui-microservice:${DOCKER_HUB_TAG}
         ports:
             - "8888:8888"
         environment:
@@ -112,7 +112,7 @@ services:
         network_mode: "host"
         restart: always
     configuration-database-tool:
-        image: byuoitav/configuration-database-tool
+        image: byuoitav/configuration-database-tool:${DOCKER_HUB_TAG}
         ports:
             - "9999:9999"
         environment:
