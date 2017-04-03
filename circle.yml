@@ -36,7 +36,7 @@ deployment:
     development:
         branch: master
         commands:
-            - env GOOS=linux GOARCH=arm go build -v -o av-api-arm
+            - cd $BUILD_PATH && env GOOS=linux GOARCH=arm go build -v -o av-api-arm
             - docker build -f Dockerfile-development -t byuoitav/av-api:development .
             - docker build -f Dockerfile-ARM -t byuoitav/rpi-av-api:development .
             - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
@@ -46,7 +46,7 @@ deployment:
     stage:
         branch: stage
         commands:
-            - env GOOS=linux GOARCH=arm go build -v -o av-api-arm
+            - cd $BUILD_PATH && env GOOS=linux GOARCH=arm go build -v -o av-api-arm
             - docker build -f Dockerfile-stage -t byuoitav/av-api:stage .
             - docker build -f Dockerfile-ARM -t byuoitav/rpi-av-api:stage .
             - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
@@ -56,7 +56,7 @@ deployment:
     production:
         branch: production
         commands:
-            - env GOOS=linux GOARCH=arm go build -v -o av-api-arm
+            - cd $BUILD_PATH && env GOOS=linux GOARCH=arm go build -v -o av-api-arm
             - docker build -f Dockerfile-production -t byuoitav/av-api:latest .
             - docker build -f Dockerfile-ARM -t byuoitav/rpi-av-api:latest .
             - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
