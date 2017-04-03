@@ -234,7 +234,7 @@ func AddBuilding(buildingToAdd accessors.Building) (accessors.Building, error) {
 	return buildingToFill, nil
 }
 
-func AddRoom(building string, roomToAdd accessors.Room) (accessors.Room, error){
+func AddRoom(building string, roomToAdd accessors.Room) (accessors.Room, error) {
 	log.Printf("adding room %v to building %v in database", roomToAdd.Name, building)
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/buildings/" + building + "/rooms/" + roomToAdd.Name
 
@@ -245,4 +245,74 @@ func AddRoom(building string, roomToAdd accessors.Room) (accessors.Room, error){
 	}
 
 	return roomToFill, nil
+}
+
+func GetDeviceTypes() ([]accessors.DeviceType, error) {
+
+	log.Printf("getting all device types")
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/types/"
+
+	var DeviceTypes []accessors.DeviceType
+	err := GetData(url, DeviceTypes)
+	if err != nil {
+		return []accessors.DeviceType{}, err
+	}
+
+	return DeviceTypes, nil
+}
+
+func GetPowerStates() ([]accessors.PowerState, error) {
+
+	log.Printf("getting all power states")
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "devices/powerstates/"
+
+	var powerStates []accessors.PowerState
+	err := GetData(url, powerStates)
+	if err != nil {
+		return []accessors.PowerState{}, err
+	}
+
+	return powerStates, nil
+}
+
+func GetMicroservices() ([]accessors.Microservice, error) {
+
+	log.Printf("getting all microservices")
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "devices/microservices"
+
+	var microservices []accessors.Microservice
+	err := GetData(url, microservices)
+	if err != nil {
+		return []accessors.Microservice{}, err
+	}
+
+	return microservices, nil
+}
+
+func GetEndpoints() ([]accessors.Endpoint, error) {
+
+	log.Printf("getting all endpoints")
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "devices/endpoints"
+
+	var endpoints []accessors.Endpoint
+	err := GetData(url, endpoints)
+	if err != nil {
+		return []accessors.Endpoint{}, err
+	}
+
+	return endpoints, nil
+}
+
+func GetPorts() ([]accessors.PortType, error) {
+
+	log.Printf("getting all ports")
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "devices/ports"
+
+	var ports []accessors.PortType
+	err := GetData(url, ports)
+	if err != nil {
+		return []accessors.PortType{}, err
+	}
+
+	return ports, nil
 }
