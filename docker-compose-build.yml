@@ -14,7 +14,9 @@ services:
         network_mode: "host"
         restart: always
     telnet-microservice:
-        build: ../telnet-microservice
+        build: 
+            context: ../telnet-microservice
+            dockerfile: Dockerfile-development
         ports:
             - "8001:8001"
         environment:
@@ -22,7 +24,9 @@ services:
         network_mode: "host"
         restart: always
     crestron-control-microservice:
-        build: ../crestron-control-microservice
+        build: 
+            context: ../crestron-control-microservice
+            dockerfile: Dockerfile-development
         ports:
             - "8004:8004"
         environment:
@@ -30,7 +34,9 @@ services:
         network_mode: "host"
         restart: always
     pjlink-microservice:
-        build: ../pjlink-microservice
+        build: 
+            context: ../pjlink-microservice
+            dockerfile: Dockerfile-development
         ports:
             - "8005:8005"
         environment:
@@ -40,7 +46,9 @@ services:
         network_mode: "host"
         restart: always
     configuration-database-microservice:
-        build: ../configuration-database-microservice
+        build: 
+            context: ../configuration-database-microservice
+            dockerfile: Dockerfile-development
         ports:
             - "8006:8006"
         environment:
@@ -53,7 +61,9 @@ services:
         network_mode: "host"
         restart: always
     sony-control-microservice:
-        build: ../sony-control-microservice
+        build: 
+            context: ../sony-control-microservice
+            dockerfile: Dockerfile-development
         ports:
             - "8007:8007"
         environment:
@@ -62,7 +72,9 @@ services:
         network_mode: "host"
         restart: always
     london-audio-microservice:
-        build: ../london-audio-microservice
+        build: 
+            context: ../london-audio-microservice
+            dockerfile: Dockerfile-development
         ports:
             - "8009:8009"
         environment:
@@ -70,7 +82,9 @@ services:
         network_mode: "host"
         restart: always
     cgi-microservice:
-        build: ../cgi-microservice
+        build: 
+            context: ../cgi-microservice
+            dockerfile: Dockerfile-development
         ports:
             - "8010:8010"
         environment:
@@ -78,7 +92,9 @@ services:
         network_mode: "host"
         restart: always
     pulse-eight-neo-microservice:
-        build: ../pulse-eight-neo-microservice
+        build: 
+            context: ../pulse-eight-neo-microservice
+            dockerfile: Dockerfile-development
         ports:
             - "8011:8011"
         environment:
@@ -86,7 +102,9 @@ services:
         network_mode: "host"
         restart: always
     adcp-control-microservice:
-        build: ../adcp-control-microservice
+        build: 
+            context: ../adcp-control-microservice
+            dockerfile: Dockerfile-development
         ports:
             - "8012:8012"
         environment:
@@ -94,7 +112,9 @@ services:
         network_mode: "host"
         restart: always
     av-api-rpc:
-        build: ../av-api-rpc
+        build: 
+            context: ../av-api-rpc
+            dockerfile: Dockerfile-development
         ports:
             - "8100:8100"
         environment:
@@ -105,7 +125,9 @@ services:
         network_mode: "host"
         restart: always
     touchpanel-ui-microservice:
-        build: ../touchpanel-ui-microservice
+        build: 
+            context: ../touchpanel-ui-microservice
+            dockerfile: Dockerfile-development
         ports:
             - "8888:8888"
         environment:
@@ -114,7 +136,9 @@ services:
         network_mode: "host"
         restart: always
     configuration-database-tool:
-        build: ../configuration-database-tool
+        build: 
+            context: ../configuration-database-tool
+            dockerfile: Dockerfile-development
         ports:
             - "9999:9999"
         environment:
