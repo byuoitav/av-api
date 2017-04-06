@@ -13,16 +13,6 @@ services:
             - ELASTIC_API_EVENTS=$ELASTIC_API_EVENTS
         network_mode: "host"
         restart: always
-    telnet-microservice:
-        build: 
-            context: ../telnet-microservice
-            dockerfile: Dockerfile-development
-        ports:
-            - "8001:8001"
-        environment:
-            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
-        network_mode: "host"
-        restart: always
     crestron-control-microservice:
         build: 
             context: ../crestron-control-microservice
@@ -138,7 +128,7 @@ services:
     configuration-database-tool:
         build: 
             context: ../configuration-database-tool
-            dockerfile: Dockerfile-development
+            dockerfile: Dockerfile
         ports:
             - "9999:9999"
         environment:
