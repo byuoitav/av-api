@@ -124,7 +124,7 @@ func setToken(request *http.Request) error {
 // GetAllRawCommands retrieves all the commands
 func GetAllRawCommands() (commands []accessors.RawCommand, err error) {
 	log.Printf("Getting all commands.")
-	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/commands"
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/commands"
 	err = GetData(url, &commands)
 
 	if err != nil {
@@ -194,6 +194,7 @@ func SetAudioInDB(building string, room string, device accessors.Device) error {
 func GetBuildings() ([]accessors.Building, error) {
 	log.Printf("getting all buildings...")
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/buildings"
+	log.Printf(url)
 	var buildings []accessors.Building
 	err := GetData(url, &buildings)
 
@@ -202,6 +203,9 @@ func GetBuildings() ([]accessors.Building, error) {
 
 // GetRooms returns all the rooms in a given building
 func GetRoomsByBuilding(building string) ([]accessors.Room, error) {
+
+	log.Printf("dbo.GetRoomsByBuilding called")
+
 	log.Printf("getting all rooms from %v ...", building)
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/buildings/" + building + "/rooms"
 	var rooms []accessors.Room
@@ -220,7 +224,7 @@ func GetBuildingByShortname(building string) (accessors.Building, error) {
 	return output, nil
 }
 
-// AddBuilding monsters
+// AddBuilding
 func AddBuilding(buildingToAdd accessors.Building) (accessors.Building, error) {
 	log.Printf("adding building %v to database", buildingToAdd.Shortname)
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/buildings/" + buildingToAdd.Shortname
@@ -253,7 +257,7 @@ func GetDeviceTypes() ([]accessors.DeviceType, error) {
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/types/"
 
 	var DeviceTypes []accessors.DeviceType
-	err := GetData(url, DeviceTypes)
+	err := GetData(url, &DeviceTypes)
 	if err != nil {
 		return []accessors.DeviceType{}, err
 	}
@@ -261,13 +265,26 @@ func GetDeviceTypes() ([]accessors.DeviceType, error) {
 	return DeviceTypes, nil
 }
 
+func AddDeviceType(toAdd accessors.DeviceType) (accessors.DeviceType, error) {
+
+	log.Printf("adding device type: %v to database")
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/types/" + toAdd.Name
+
+	var toFill accessors.DeviceType
+	err := PostData(url, toAdd, &toFill)
+	if err != nil {
+		return accessors.DeviceType{}, err
+	}
+
+	return toFill, nil
+}
 func GetPowerStates() ([]accessors.PowerState, error) {
 
 	log.Printf("getting all power states")
-	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "devices/powerstates/"
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/powerstates/"
 
 	var powerStates []accessors.PowerState
-	err := GetData(url, powerStates)
+	err := GetData(url, &powerStates)
 	if err != nil {
 		return []accessors.PowerState{}, err
 	}
@@ -275,13 +292,27 @@ func GetPowerStates() ([]accessors.PowerState, error) {
 	return powerStates, nil
 }
 
+func AddPowerState(toAdd accessors.PowerState) (accessors.PowerState, error) {
+
+	log.Printf("adding power state: %v to database")
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/powerstates/" + toAdd.Name
+
+	var toFill accessors.PowerState
+	err := PostData(url, toAdd, &toFill)
+	if err != nil {
+		return accessors.PowerState{}, err
+	}
+
+	return toFill, nil
+}
+
 func GetMicroservices() ([]accessors.Microservice, error) {
 
 	log.Printf("getting all microservices")
-	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "devices/microservices"
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/microservices"
 
 	var microservices []accessors.Microservice
-	err := GetData(url, microservices)
+	err := GetData(url, &microservices)
 	if err != nil {
 		return []accessors.Microservice{}, err
 	}
@@ -289,13 +320,27 @@ func GetMicroservices() ([]accessors.Microservice, error) {
 	return microservices, nil
 }
 
+func AddMicroservice(toAdd accessors.Microservice) (accessors.Microservice, error) {
+
+	log.Printf("adding microservice: %v to database")
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "devices/microservices" + toAdd.Name
+
+	var toFill accessors.Microservice
+	err := PostData(url, toAdd, &toFill)
+	if err != nil {
+		return accessors.Microservice{}, err
+	}
+
+	return toFill, nil
+}
+
 func GetEndpoints() ([]accessors.Endpoint, error) {
 
 	log.Printf("getting all endpoints")
-	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "devices/endpoints"
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/endpoints"
 
 	var endpoints []accessors.Endpoint
-	err := GetData(url, endpoints)
+	err := GetData(url, &endpoints)
 	if err != nil {
 		return []accessors.Endpoint{}, err
 	}
@@ -303,16 +348,72 @@ func GetEndpoints() ([]accessors.Endpoint, error) {
 	return endpoints, nil
 }
 
+func AddEndpoint(toAdd accessors.Endpoint) (accessors.Endpoint, error) {
+
+	log.Printf("adding endpoint: %v to database", toAdd.Name)
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "devices/endpoints/" + toAdd.Name
+
+	var toFill accessors.Endpoint
+	err := PostData(url, toAdd, &toFill)
+	if err != nil {
+		return accessors.Endpoint{}, err
+	}
+
+	return toFill, nil
+}
+
 func GetPorts() ([]accessors.PortType, error) {
 
 	log.Printf("getting all ports")
-	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "devices/ports"
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/ports"
 
 	var ports []accessors.PortType
-	err := GetData(url, ports)
+	err := GetData(url, &ports)
 	if err != nil {
 		return []accessors.PortType{}, err
 	}
 
 	return ports, nil
+}
+
+func AddPort(portToAdd accessors.PortType) (accessors.PortType, error) {
+
+	log.Printf("adding Port: %v to database", portToAdd.Name)
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/ports/" + portToAdd.Name
+
+	var portToFill accessors.PortType
+	err := PostData(url, portToAdd, &portToFill)
+	if err != nil {
+		return accessors.PortType{}, err
+	}
+
+	return portToFill, nil
+}
+
+func GetDeviceRoleDefinitions() ([]accessors.DeviceRoleDef, error) {
+
+	log.Printf("getting device role definitions")
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "devices/roledefinitions"
+
+	var definitions []accessors.DeviceRoleDef
+	err := GetData(url, definitions)
+	if err != nil {
+		return []accessors.DeviceRoleDef{}, err
+	}
+
+	return definitions, nil
+}
+
+func AddRoleDefinition(toAdd accessors.DeviceRoleDef) (accessors.DeviceRoleDef, error) {
+
+	log.Printf("adding role definition: %v to database", toAdd.Name)
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/roledefinitions/" + toAdd.Name
+
+	var toFill accessors.DeviceRoleDef
+	err := PostData(url, toAdd, &toFill)
+	if err != nil {
+		return accessors.DeviceRoleDef{}, err
+	}
+
+	return toFill, nil
 }
