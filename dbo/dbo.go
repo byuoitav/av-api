@@ -124,7 +124,7 @@ func setToken(request *http.Request) error {
 // GetAllRawCommands retrieves all the commands
 func GetAllRawCommands() (commands []accessors.RawCommand, err error) {
 	log.Printf("Getting all commands.")
-	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/commands"
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/commands"
 	err = GetData(url, &commands)
 
 	if err != nil {
@@ -253,7 +253,7 @@ func GetDeviceTypes() ([]accessors.DeviceType, error) {
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/types/"
 
 	var DeviceTypes []accessors.DeviceType
-	err := GetData(url, DeviceTypes)
+	err := GetData(url, &DeviceTypes)
 	if err != nil {
 		return []accessors.DeviceType{}, err
 	}
@@ -264,10 +264,10 @@ func GetDeviceTypes() ([]accessors.DeviceType, error) {
 func GetPowerStates() ([]accessors.PowerState, error) {
 
 	log.Printf("getting all power states")
-	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "devices/powerstates/"
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/powerstates/"
 
 	var powerStates []accessors.PowerState
-	err := GetData(url, powerStates)
+	err := GetData(url, &powerStates)
 	if err != nil {
 		return []accessors.PowerState{}, err
 	}
@@ -278,10 +278,10 @@ func GetPowerStates() ([]accessors.PowerState, error) {
 func GetMicroservices() ([]accessors.Microservice, error) {
 
 	log.Printf("getting all microservices")
-	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "devices/microservices"
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/microservices"
 
 	var microservices []accessors.Microservice
-	err := GetData(url, microservices)
+	err := GetData(url, &microservices)
 	if err != nil {
 		return []accessors.Microservice{}, err
 	}
@@ -292,10 +292,10 @@ func GetMicroservices() ([]accessors.Microservice, error) {
 func GetEndpoints() ([]accessors.Endpoint, error) {
 
 	log.Printf("getting all endpoints")
-	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "devices/endpoints"
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/endpoints"
 
 	var endpoints []accessors.Endpoint
-	err := GetData(url, endpoints)
+	err := GetData(url, &endpoints)
 	if err != nil {
 		return []accessors.Endpoint{}, err
 	}
@@ -306,10 +306,10 @@ func GetEndpoints() ([]accessors.Endpoint, error) {
 func GetPorts() ([]accessors.PortType, error) {
 
 	log.Printf("getting all ports")
-	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "devices/ports"
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/ports"
 
 	var ports []accessors.PortType
-	err := GetData(url, ports)
+	err := GetData(url, &ports)
 	if err != nil {
 		return []accessors.PortType{}, err
 	}
