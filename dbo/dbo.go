@@ -323,7 +323,7 @@ func GetMicroservices() ([]accessors.Microservice, error) {
 func AddMicroservice(toAdd accessors.Microservice) (accessors.Microservice, error) {
 
 	log.Printf("adding microservice: %v to database")
-	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "devices/microservices" + toAdd.Name
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/microservices" + toAdd.Name
 
 	var toFill accessors.Microservice
 	err := PostData(url, toAdd, &toFill)
@@ -351,7 +351,7 @@ func GetEndpoints() ([]accessors.Endpoint, error) {
 func AddEndpoint(toAdd accessors.Endpoint) (accessors.Endpoint, error) {
 
 	log.Printf("adding endpoint: %v to database", toAdd.Name)
-	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "devices/endpoints/" + toAdd.Name
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/endpoints/" + toAdd.Name
 
 	var toFill accessors.Endpoint
 	err := PostData(url, toAdd, &toFill)
@@ -393,7 +393,7 @@ func AddPort(portToAdd accessors.PortType) (accessors.PortType, error) {
 func GetDeviceRoleDefinitions() ([]accessors.DeviceRoleDef, error) {
 
 	log.Printf("getting device role definitions")
-	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "devices/roledefinitions"
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/roledefinitions"
 
 	var definitions []accessors.DeviceRoleDef
 	err := GetData(url, definitions)
