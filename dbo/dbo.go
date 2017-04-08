@@ -267,7 +267,7 @@ func GetDeviceTypes() ([]accessors.DeviceType, error) {
 
 func AddDeviceType(toAdd accessors.DeviceType) (accessors.DeviceType, error) {
 
-	log.Printf("adding device type: %v to database")
+	log.Printf("adding device type: %v to database", toAdd.Name)
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/types/" + toAdd.Name
 
 	var toFill accessors.DeviceType
@@ -294,7 +294,7 @@ func GetPowerStates() ([]accessors.PowerState, error) {
 
 func AddPowerState(toAdd accessors.PowerState) (accessors.PowerState, error) {
 
-	log.Printf("adding power state: %v to database")
+	log.Printf("adding power state: %v to database", toAdd.Name)
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/powerstates/" + toAdd.Name
 
 	var toFill accessors.PowerState
@@ -322,8 +322,8 @@ func GetMicroservices() ([]accessors.Microservice, error) {
 
 func AddMicroservice(toAdd accessors.Microservice) (accessors.Microservice, error) {
 
-	log.Printf("adding microservice: %v to database")
-	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/microservices" + toAdd.Name
+	log.Printf("adding microservice: %v to database", toAdd.Name)
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/microservices/" + toAdd.Name
 
 	var toFill accessors.Microservice
 	err := PostData(url, toAdd, &toFill)
