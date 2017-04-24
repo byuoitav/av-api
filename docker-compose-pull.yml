@@ -112,13 +112,3 @@ services:
             - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
         network_mode: "host"
         restart: always
-    zeromq-proxy-microservice:
-        image: byuoitav/zeromq-proxy-microservice:${DOCKER_HUB_TAG}
-        ports:
-            - "7000:7000"
-        environment:
-            - PI_HOSTNAME=$PI_HOSTNAME
-            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
-            - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
-        network_mode: "host"
-        restart: always

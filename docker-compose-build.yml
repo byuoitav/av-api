@@ -136,15 +136,3 @@ services:
             - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
         network_mode: "host"
         restart: always
-    zeromq-proxy-microservice:
-        build:
-            context: ../zeromq-proxy-miroservice
-            dockerfile: Dockerfile-development
-        ports:
-            - "7000:7000"
-        environment:
-            - PI_HOSTNAME=$PI_HOSTNAME
-            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
-            - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
-        network_mode: "host"
-        restart: always
