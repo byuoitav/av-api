@@ -418,3 +418,17 @@ func AddRoleDefinition(toAdd accessors.DeviceRoleDef) (accessors.DeviceRoleDef, 
 
 	return toFill, nil
 }
+
+func GetRoomConfigurations() ([]accessors.RoomConfiguration, error) {
+	log.Printf("getting room configurations")
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/configurations"
+
+	var rcs []accessors.RoomConfiguration
+	err := GetData(url, &rcs)
+	if err != nil {
+		return []accessors.RoomConfiguration{}, err
+	}
+
+	return rcs, nil
+
+}
