@@ -49,6 +49,9 @@ func main() {
 	// PUT requests
 	secure.PUT("/buildings/:building/rooms/:room", handlers.SetRoomState)
 
+	// room status
+	secure.GET("/buildings/:building/rooms/:room/status", handlers.GetRoomStatus)
+
 	server := http.Server{
 		Addr:           port,
 		MaxHeaderBytes: 1024 * 10,

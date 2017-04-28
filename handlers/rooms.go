@@ -10,6 +10,21 @@ import (
 	"github.com/labstack/echo"
 )
 
+func GetRoomStatus(context echo.Context) error {
+
+	buildingName := context.Param("building")
+	roomName := context.Param("room")
+
+	log.Printf("Getting status for %s %s", roomName, buildingName)
+
+	statusArray, err := status.GetRoomStatus()
+	if err != nil {
+		return context.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return context.JSON(http.StatusOK, "success")
+}
+
 //GetRoomByNameAndBuilding is almost identical to GetRoomByName
 func GetRoomByNameAndBuilding(context echo.Context) error {
 	log.Printf("Getting room...")
