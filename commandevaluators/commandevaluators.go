@@ -149,7 +149,7 @@ func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionRe
 			}
 
 			toReport.Success = false
-			base.ReportToELK(toReport)
+			base.Publish(toReport)
 
 			status = append(status, CommandExecutionReporting{
 				Success: false,
@@ -161,7 +161,7 @@ func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionRe
 			log.Printf("Successfully sent command %s to device %s.", a.Action, a.Device.Name)
 
 			toReport.Success = false
-			base.ReportToELK(toReport)
+			base.Publish(toReport)
 
 			status = append(status, CommandExecutionReporting{
 				Success: true,
