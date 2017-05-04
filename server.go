@@ -8,6 +8,7 @@ import (
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/handlers"
 	avapi "github.com/byuoitav/av-api/init"
+	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 	"github.com/byuoitav/hateoas"
 	"github.com/jessemillar/health"
 	"github.com/labstack/echo"
@@ -18,14 +19,14 @@ func main() {
 	//First we need to check if we're a room.
 	err := avapi.CheckRoomInitialization()
 	if err != nil {
-		base.ReportToELK(base.Event{Event: "Fail to run init script. Terminating."})
+		base.ReportToELK(eventinfrastructure.Event{Event: "Fail to run init script. Terminating."})
 
 		log.Fatalf("Could not initialize room. Error: %v\n", err.Error())
 	}
 
 	err = hateoas.Load("https://raw.githubusercontent.com/byuoitav/av-api/master/swagger.json")
 	if err != nil {
-		base.ReportToELK(base.Event{Event: "Fail to run init script. Terminating."})
+		base.ReportToELK(eventinfrastructure.Event{Event: "Fail to run init script. Terminating."})
 
 		log.Fatalf("Could not load Swagger file. Error: %s\b", err.Error())
 	}
