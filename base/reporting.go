@@ -11,6 +11,8 @@ import (
 	"github.com/xuther/go-message-router/publisher"
 )
 
+var Publisher publisher.Publisher
+
 func Publish(e eventinfrastructure.Event) error {
 	var err error
 
@@ -32,17 +34,11 @@ func Publish(e eventinfrastructure.Event) error {
 		return err
 	}
 
-	// create the publisher
-	p, err := publisher.NewPublisher("5000", 100, 10)
-	if err != nil {
-		return err
-	}
-
 	header := [24]byte{}
 	copy(header[:], eventinfrastructure.LocalAPI)
 
 	log.Printf("Publishing event: %+v", toSend)
-	p.Write(common.Message{MessageHeader: header, MessageBody: toSend})
+	Publisher.Write(common.Message{MessageHeader: header, MessageBody: toSend})
 
 	return err
 }
