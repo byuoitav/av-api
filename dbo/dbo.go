@@ -431,3 +431,16 @@ func GetRoomConfigurations() ([]accessors.RoomConfiguration, error) {
 	return rcs, nil
 
 }
+
+func AddDevice(toAdd accessors.Device) (accessors.Device, error) {
+	log.Printf("adding device: %v to database", toAdd.Name)
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/buildings/" + toAdd.Building.Shortname + "/rooms/" + toAdd.Room.Name + "/devices/" + toAdd.Name
+
+	var toFill accessors.Device
+	err := PostData(url, toAdd, &toFill)
+	if err != nil {
+		return accessors.Device{}, err
+	}
+
+	return toFill, nil
+}
