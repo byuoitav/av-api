@@ -1,52 +1,18 @@
 package handlers
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
-	"strings"
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/av-api/helpers"
-	"github.com/byuoitav/av-api/status"
 	"github.com/labstack/echo"
 )
 
 func GetRoomStatus(context echo.Context) error {
 
-	buildingName := context.Param("building")
-	roomName := context.Param("room")
-
-	log.Printf("Getting status for %s %s", roomName, buildingName)
-
-	audioArray, err := status.GetAudioStatus(buildingName, roomName)
-	if err != nil {
-		return context.JSON(http.StatusInternalServerError, err.Error())
-	}
-
-	displayArray, err := status.GetDisplayStatus(buildingName, roomName)
-	if err != nil {
-		return context.JSON(http.StatusInternalServerError, err.Error())
-	}
-
-	jsonAudio, err := json.Marshal(audioArray)
-	if err != nil {
-		return context.JSON(http.StatusInternalServerError, err.Error())
-	}
-	audioString := string(jsonAudio)
-
-	jsonDisplay, err := json.Marshal(displayArray)
-	if err != nil {
-		return context.JSON(http.StatusInternalServerError, err.Error())
-	}
-	displayString := string(jsonDisplay)
-
-	outputString := []string{audioString, displayString}
-
-	jsonBody := strings.Join(outputString, ",")
-
-	return context.JSON(http.StatusOK, jsonBody)
+	return context.JSON(http.StatusOK, "ok")
 }
 
 //GetRoomByNameAndBuilding is almost identical to GetRoomByName
