@@ -36,14 +36,12 @@ type Volume struct {
 	Volume int `json:"volume"`
 }
 
-//StatusCommand
 type StatusCommand struct {
 	Action     string            `json:"action"`
 	Device     accessors.Device  `json:"device"`
 	Parameters map[string]string `json:"parameters"`
 }
 
-//a status evaluator looks for all the commands labelled 'STATUS' for each device and decides if those are the statuses we want
 type StatusEvaluator interface {
 
 	//Identifies relevant devices
@@ -54,3 +52,11 @@ type StatusEvaluator interface {
 }
 
 const FLAG = "STATUS"
+
+var DEFAULT_MAP = map[string]StatusEvaluator{
+	"STATUS_PowerDefault":   &PowerDefault{},
+	"STATUS_BlankedDefault": &BlankedDefault{},
+	"STATUS_MutedDefault":   &MutedDefault{},
+	"STATUS_InputDefault":   &InputDefault{},
+	"STATUS_VolumeDefault":  &VolumeDefault{},
+}

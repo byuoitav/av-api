@@ -2,6 +2,7 @@ package status
 
 import (
 	"log"
+	"strings"
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
@@ -46,21 +47,24 @@ func generateStatusCommands(room accessors.Room, commandMap map[string]StatusEva
 	//iterate over each status evaluator
 	for _, command := range room.Configuration.Evaluators {
 
-		evaluator := commandMap[command.EvaluatorKey]
+		if strings.HasPrefix(command.EvaluatorKey, FLAG) {
 
-		//Idenify relevant devices
-		devices, err := evaluator.GetDevices(room)
-		if err != nil {
-			return []StatusCommand{}, err
+			evaluator := DEFAULT_MAP[command.EvaluatorKey]
+
+			//Idenify relevant devices
+			devices, err := evaluator.GetDevices(room)
+			if err != nil {
+				return []StatusCommand{}, err
+			}
+
+			//Generate actions by iterating over the commands of each device
+			commands, err := evaluator.GenerateCommands(devices)
+			if err != nil {
+				return []StatusCommand{}, err
+			}
+
+			commands = append(commands, commands...)
 		}
-
-		//Generate actions by iterating over the commands of each device
-		commands, err := evaluator.GenerateCommands(devices)
-		if err != nil {
-			return []StatusCommand{}, err
-		}
-
-		commands = append(commands, commands...)
 	}
 	return commands, nil
 }
