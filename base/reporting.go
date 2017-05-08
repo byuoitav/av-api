@@ -1,67 +1,48 @@
 package base
 
 import (
-	"bytes"
 	"encoding/json"
 	"log"
-	"net/http"
 	"os"
 	"time"
+
+	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	"github.com/xuther/go-message-router/common"
+	"github.com/xuther/go-message-router/publisher"
 )
 
-/*
-Event is the struct we push up to ELK.
-{
-  hostname: "",
-  timestamp: RFC 3339 Format,
-  localEnvironment: bool,
-  callingIP: "",
-  event: " ",
-  responseCode: int,
-  building: "",
-  room: ""
-}
-*/
-type Event struct {
-	Hostname         string `json:"hostname,omitempty"`
-	Timestamp        string `json:"timestamp,omitempty"`
-	LocalEnvironment bool   `json:"localEnvironment,omitempty"`
-	Event            string `json:"event,omitempty"`
-	ResponseCode     int    `json:"responseCode,omitempty"`
-	Success          bool   `json:"success,omitempty"`
-	Building         string `json:"building,omitempty"`
-	Room             string `json:"room,omitempty"`
-	Device           string `json:"device,omitempty"`
-}
+var Publisher publisher.Publisher
 
-func ReportToELK(e Event) error {
+func Publish(e eventinfrastructure.Event) error {
 	var err error
 
+	// create the event
 	e.Timestamp = time.Now().Format(time.RFC3339)
 	if len(os.Getenv("LOCAL_ENVIRONMENT")) > 0 {
 		e.Hostname = os.Getenv("PI_HOSTNAME")
 	} else {
 		e.Hostname, err = os.Hostname()
 	}
-
 	if err != nil {
 		return err
 	}
 
 	e.LocalEnvironment = len(os.Getenv("LOCAL_ENVIRONMENT")) > 0
 
-	log.Printf("Elastic event to send: %+v", e)
-
 	toSend, err := json.Marshal(&e)
 	if err != nil {
 		return err
 	}
 
-	log.Print("Sending event to: " + os.Getenv("ELASTIC_API_EVENTS"))
+	header := [24]byte{}
+	if e.Success {
+		copy(header[:], eventinfrastructure.APISuccess)
+	} else {
+		copy(header[:], eventinfrastructure.APIError)
+	}
 
-	_, err = http.Post(os.Getenv("ELASTIC_API_EVENTS"),
-		"application/json",
-		bytes.NewBuffer(toSend))
+	log.Printf("Publishing event: %+v", toSend)
+	Publisher.Write(common.Message{MessageHeader: header, MessageBody: toSend})
 
 	return err
 }

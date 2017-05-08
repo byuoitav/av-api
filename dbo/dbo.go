@@ -36,6 +36,7 @@ func GetData(url string, structToFill interface{}) error {
 	}
 	resp, err := client.Do(req)
 	if err != nil {
+		log.Printf("Error on request: %s", err.Error())
 		return err
 	}
 
@@ -103,8 +104,6 @@ func PostData(url string, structToAdd interface{}, structToFill interface{}) err
 }
 
 func setToken(request *http.Request) error {
-	fmt.Printf("Calling setToken on %v", request)
-
 	if len(os.Getenv("LOCAL_ENVIRONMENT")) == 0 {
 
 		log.Printf("Adding the bearer token for inter-service communication")
@@ -149,7 +148,6 @@ func AddRawCommand(toAdd accessors.RawCommand) (accessors.RawCommand, error) {
 	return toFill, nil
 }
 
-// GetRoomByInfo simply retrieves a device's information from the databse.
 func GetRoomByInfo(buildingName string, roomName string) (toReturn accessors.Room, err error) {
 	log.Printf("Getting room %s in building %s...", roomName, buildingName)
 	err = GetData(os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS")+"/buildings/"+buildingName+"/rooms/"+roomName, &toReturn)
@@ -171,6 +169,9 @@ func GetDevicesByRoom(buildingName string, roomName string) (toReturn []accessor
 // GetDevicesByBuildingAndRoomAndRole will get the devices with the given role from the DB
 func GetDevicesByBuildingAndRoomAndRole(building string, room string, roleName string) (toReturn []accessors.Device, err error) {
 	err = GetData(os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS")+"/buildings/"+building+"/rooms/"+room+"/devices/roles/"+roleName, &toReturn)
+	if err != nil {
+		log.Printf("Error getting device by role: %s", err.Error())
+	}
 	return
 }
 
@@ -431,4 +432,17 @@ func GetRoomConfigurations() ([]accessors.RoomConfiguration, error) {
 
 	return rcs, nil
 
+}
+
+func AddDevice(toAdd accessors.Device) (accessors.Device, error) {
+	log.Printf("adding device: %v to database", toAdd.Name)
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/buildings/" + toAdd.Building.Shortname + "/rooms/" + toAdd.Room.Name + "/devices/" + toAdd.Name
+
+	var toFill accessors.Device
+	err := PostData(url, toAdd, &toFill)
+	if err != nil {
+		return accessors.Device{}, err
+	}
+
+	return toFill, nil
 }

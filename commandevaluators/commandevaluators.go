@@ -11,6 +11,7 @@ import (
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/configuration-database-microservice/accessors"
+	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
 //CommandExecutionReporting is a struct we use to keep track of command execution
@@ -132,7 +133,7 @@ func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionRe
 
 		resp, er := client.Do(req)
 
-		toReport := base.Event{
+		toReport := eventinfrastructure.Event{
 			Event:    a.Action,
 			Building: a.Device.Building.Shortname,
 			Room:     a.Device.Room.Name,
@@ -148,7 +149,7 @@ func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionRe
 			}
 
 			toReport.Success = false
-			base.ReportToELK(toReport)
+			base.Publish(toReport)
 
 			status = append(status, CommandExecutionReporting{
 				Success: false,
@@ -160,7 +161,7 @@ func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionRe
 			log.Printf("Successfully sent command %s to device %s.", a.Action, a.Device.Name)
 
 			toReport.Success = false
-			base.ReportToELK(toReport)
+			base.Publish(toReport)
 
 			status = append(status, CommandExecutionReporting{
 				Success: true,
