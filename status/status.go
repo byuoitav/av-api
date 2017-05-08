@@ -1,5 +1,10 @@
 package status
 
+import (
+	"github.com/byuoitav/av-api/base"
+	"github.com/byuoitav/configuration-database-microservice/accessors"
+)
+
 type PowerStatus struct {
 	Power string `json:"power",omitempty`
 }
@@ -27,3 +32,15 @@ type AudioList struct {
 type VideoList struct {
 	Inputs []VideoInput `json:"inputs",omitemtpy`
 }
+
+//a status evaluator looks for all the commands labelled 'STATUS' for each device and decides if those are the statuses we want
+type StatusEvaluator interface {
+
+	//Identifies relevant devices
+	GetDevices(base.PublicRoom) ([]accessors.Device, error)
+
+	//Generates action list
+	EvaluateCommands(devices []accessors.Device) ([]base.ActionStructure, error)
+}
+
+const FLAG = "STATUS"
