@@ -149,7 +149,6 @@ func AddRawCommand(toAdd accessors.RawCommand) (accessors.RawCommand, error) {
 	return toFill, nil
 }
 
-// GetRoomByInfo simply retrieves a device's information from the databse.
 func GetRoomByInfo(buildingName string, roomName string) (toReturn accessors.Room, err error) {
 	log.Printf("Getting room %s in building %s...", roomName, buildingName)
 	err = GetData(os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS")+"/buildings/"+buildingName+"/rooms/"+roomName, &toReturn)
