@@ -112,3 +112,13 @@ services:
             - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
         network_mode: "host"
         restart: always
+    event-router-microservice:
+        image: byuoitav/event-router-microservice:${DOCKER_HUB_TAG}
+        ports:
+            - "7000:7000"
+        environment:
+            - PI_HOSTNAME=$PI_HOSTNAME
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+            - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
+        network_mode: "host"
+

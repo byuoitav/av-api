@@ -36,6 +36,7 @@ func GetData(url string, structToFill interface{}) error {
 	}
 	resp, err := client.Do(req)
 	if err != nil {
+		log.Printf("Error on request: %s", err.Error())
 		return err
 	}
 
@@ -103,8 +104,6 @@ func PostData(url string, structToAdd interface{}, structToFill interface{}) err
 }
 
 func setToken(request *http.Request) error {
-	fmt.Printf("Calling setToken on %v", request)
-
 	if len(os.Getenv("LOCAL_ENVIRONMENT")) == 0 {
 
 		log.Printf("Adding the bearer token for inter-service communication")
@@ -170,6 +169,9 @@ func GetDevicesByRoom(buildingName string, roomName string) (toReturn []accessor
 // GetDevicesByBuildingAndRoomAndRole will get the devices with the given role from the DB
 func GetDevicesByBuildingAndRoomAndRole(building string, room string, roleName string) (toReturn []accessors.Device, err error) {
 	err = GetData(os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS")+"/buildings/"+building+"/rooms/"+room+"/devices/roles/"+roleName, &toReturn)
+	if err != nil {
+		log.Printf("Error getting device by role: %s", err.Error())
+	}
 	return
 }
 
