@@ -104,7 +104,7 @@ services:
         network_mode: "host"
         restart: always
     configuration-database-tool:
-        image: byuoitav/configuration-database-tool:latest
+        image: byuoitav/configuration-database-tool:${DOCKER_HUB_TAG}
         ports:
             - "9999:9999"
         environment:
