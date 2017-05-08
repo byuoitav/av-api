@@ -148,7 +148,6 @@ func AddRawCommand(toAdd accessors.RawCommand) (accessors.RawCommand, error) {
 	return toFill, nil
 }
 
-// GetRoomByInfo simply retrieves a device's information from the databse.
 func GetRoomByInfo(buildingName string, roomName string) (toReturn accessors.Room, err error) {
 	log.Printf("Getting room %s in building %s...", roomName, buildingName)
 	err = GetData(os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS")+"/buildings/"+buildingName+"/rooms/"+roomName, &toReturn)
@@ -416,6 +415,33 @@ func AddRoleDefinition(toAdd accessors.DeviceRoleDef) (accessors.DeviceRoleDef, 
 	err := PostData(url, toAdd, &toFill)
 	if err != nil {
 		return accessors.DeviceRoleDef{}, err
+	}
+
+	return toFill, nil
+}
+
+func GetRoomConfigurations() ([]accessors.RoomConfiguration, error) {
+	log.Printf("getting room configurations")
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/configurations"
+
+	var rcs []accessors.RoomConfiguration
+	err := GetData(url, &rcs)
+	if err != nil {
+		return []accessors.RoomConfiguration{}, err
+	}
+
+	return rcs, nil
+
+}
+
+func AddDevice(toAdd accessors.Device) (accessors.Device, error) {
+	log.Printf("adding device: %v to database", toAdd.Name)
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/buildings/" + toAdd.Building.Shortname + "/rooms/" + toAdd.Room.Name + "/devices/" + toAdd.Name
+
+	var toFill accessors.Device
+	err := PostData(url, toAdd, &toFill)
+	if err != nil {
+		return accessors.Device{}, err
 	}
 
 	return toFill, nil
