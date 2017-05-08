@@ -30,17 +30,17 @@ func EditRoomState(roomInQuestion base.PublicRoom) (report []commandevaluators.C
 	re := regexp.MustCompile(".*-RPC$")
 
 	//for each command in the configuration, evaluate and validate.
-	for _, c := range room.Configuration.Commands {
+	for _, c := range room.Configuration.Evaluators {
 
-		if re.MatchString(c.CommandKey) {
+		if re.MatchString(c.EvaluatorKey) {
 			continue
 		}
 
-		log.Printf("Starting evaluation with evaluator %s", c.CommandKey)
+		log.Printf("Starting evaluation with evaluator %s", c.EvaluatorKey)
 
-		curEvaluator := evaluators[c.CommandKey]
+		curEvaluator := evaluators[c.EvaluatorKey]
 		if curEvaluator == nil {
-			err = errors.New("No evaluator corresponding to key " + c.CommandKey)
+			err = errors.New("No evaluator corresponding to key " + c.EvaluatorKey)
 			return
 		}
 
@@ -56,13 +56,13 @@ func EditRoomState(roomInQuestion base.PublicRoom) (report []commandevaluators.C
 		for _, action := range subList {
 			err = curEvaluator.Validate(action)
 			if err != nil {
-				log.Printf("Error on validation of %s on evaluator %s", action.Action, c.CommandKey)
+				log.Printf("Error on validation of %s on evaluator %s", action.Action, c.EvaluatorKey)
 				return
 			}
 
 			// Provide a map from the generating evaluator to the generated action in
 			// case they want to use the Incompatable actions in the reconcilers.
-			action.GeneratingEvaluator = c.CommandKey
+			action.GeneratingEvaluator = c.EvaluatorKey
 			actionList = append(actionList, action)
 		}
 	}

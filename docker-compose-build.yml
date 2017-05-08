@@ -136,3 +136,15 @@ services:
             - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
         network_mode: "host"
         restart: always
+    event-router-microservice:
+        build: 
+            context: ../event-router-microservice
+            dockerfile: Dockerfile-development
+        ports:
+            - "7000:7000"
+        environment:
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+            - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
+            - PI_HOSTNAME=$PI_HOSTNAME
+        network_mode: "host"
+        restart: always
