@@ -44,7 +44,7 @@ func generateStatusCommands(room accessors.Room, commandMap map[string]StatusEva
 	var commands []StatusCommand
 
 	//iterate over each status evaluator
-	for _, command := range room.Configuration.Commands {
+	for _, command := range room.Configuration.Evaluators {
 
 		evaluator := commandMap[command.EvaluatorKey]
 
