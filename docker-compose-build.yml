@@ -10,7 +10,6 @@ services:
             - PI_HOSTNAME=$PI_HOSTNAME
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
-            - ELASTIC_API_EVENTS=$ELASTIC_API_EVENTS
         network_mode: "host"
         restart: always
     crestron-control-microservice:
@@ -146,5 +145,16 @@ services:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
             - PI_HOSTNAME=$PI_HOSTNAME
+        network_mode: "host"
+        restart: always
+    event-translator-microservice:
+        build:
+            context: ../event-translator-microservice
+            dockerfile: Dockerfile-development 
+        ports:
+            - "7002:7002"
+        environment:
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+            - ELASTIC_API_EVENTS=$ELASTIC_API_EVENTS
         network_mode: "host"
         restart: always
