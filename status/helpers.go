@@ -46,7 +46,7 @@ func generateStatusCommands(room accessors.Room, commandMap map[string]StatusEva
 	//iterate over each status evaluator
 	for _, command := range room.Configuration.Commands {
 
-		evaluator := commandMap[command.CommandKey]
+		evaluator := commandMap[command.EvaluatorKey]
 
 		//Idenify relevant devices
 		devices, err := evaluator.GetDevices(room)
