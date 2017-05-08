@@ -35,7 +35,11 @@ func Publish(e eventinfrastructure.Event) error {
 	}
 
 	header := [24]byte{}
-	copy(header[:], eventinfrastructure.LocalAPI)
+	if e.Success {
+		copy(header[:], eventinfrastructure.APISuccess)
+	} else {
+		copy(header[:], eventinfrastructure.APIError)
+	}
 
 	log.Printf("Publishing event: %+v", toSend)
 	Publisher.Write(common.Message{MessageHeader: header, MessageBody: toSend})
