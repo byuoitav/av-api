@@ -38,9 +38,9 @@ type Volume struct {
 
 //represents output from a device, use Error field to flag errors
 type Status struct {
-	Device accessors.Device       `json:"device"`
-	Status map[string]interface{} `json:"status"`
-	Error  bool                   `json:"error"`
+	DestinationDevice DestinationDevice      `json:"device"`
+	Status            map[string]interface{} `json:"status"`
+	Error             bool                   `json:"error"`
 }
 
 //StatusCommand contains information to issue a status command against a device

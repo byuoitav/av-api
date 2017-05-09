@@ -101,11 +101,11 @@ func runStatusCommands(commands []StatusCommand) ([]Status, error) {
 	}
 
 	group.Wait()
-	close(channel)
 	var outputs []Status
 	for output := range channel {
 		outputs = append(outputs, output)
 	}
+	close(channel)
 	return outputs, nil
 }
 
@@ -116,11 +116,8 @@ func issueCommands(commands []StatusCommand, channel chan Status, control sync.W
 	control.Add(1)
 
 	//final output
-	var output Status
+	output := Status{DestinationDevice: commands[0].DestinationDevice}
 	var statuses map[string]interface{}
-
-	//identify device in question
-	output.Device = commands[0].Device
 
 	//iterate over list of StatusCommands
 	//TODO:make sure devices can handle rapid-fire API requests
@@ -134,19 +131,21 @@ func issueCommands(commands []StatusCommand, channel chan Status, control sync.W
 		response, err := http.Get(url)
 		if err != nil {
 			channel <- Status{Error: true}
-			break
+			continue
 		}
 		defer response.Body.Close()
 
 		body, err := ioutil.ReadAll(response.Body)
 		if err != nil {
 			channel <- Status{Error: true}
+			continue
 		}
 
 		var status map[string]interface{}
 		err = json.Unmarshal(body, &status)
 		if err != nil {
 			channel <- Status{Error: true}
+			continue
 		}
 
 		for device, object := range status {
@@ -156,7 +155,7 @@ func issueCommands(commands []StatusCommand, channel chan Status, control sync.W
 
 	//write output to channel
 	channel <- output
-	log.Printf("Done acquiring status of %s", output.Device.Name)
+	log.Printf("Done acquiring status of %s", output.DestinationDevice.Device.Name)
 	control.Done()
 }
 
