@@ -36,10 +36,25 @@ type Volume struct {
 	Volume int `json:"volume"`
 }
 
+type Status struct {
+	Device accessors.Device       `json:"device"`
+	Status map[string]interface{} `json:"status"`
+	Error  bool                   `json:"error"`
+}
+
+//StatusCommand contains information to issue a status command against a device
 type StatusCommand struct {
-	Action     string            `json:"action"`
-	Device     accessors.Device  `json:"device"`
-	Parameters map[string]string `json:"parameters"`
+	Action            accessors.Command `json:"action"`
+	Device            accessors.Device  `json:"device"`
+	DestinationDevice DestinationDevice `json:"destination"`
+	Parameters        map[string]string `json:"parameters"`
+}
+
+//DestinationDevice represents the device a status command is issued to
+type DestinationDevice struct {
+	Device      accessors.Device `json:"device"`
+	AudioDevice bool             `json:"audio"`
+	VideoDevice bool             `json:"video"`
 }
 
 type StatusEvaluator interface {

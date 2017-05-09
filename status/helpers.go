@@ -3,6 +3,7 @@ package status
 import (
 	"log"
 	"strings"
+	"sync"
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
@@ -69,11 +70,50 @@ func generateStatusCommands(room accessors.Room, commandMap map[string]StatusEva
 	return commands, nil
 }
 
-func runStatusCommands(commands []StatusCommand) ([]interface{}, error) {
-	return nil, nil
+func runStatusCommands(commands []StatusCommand) ([]Status, error) {
+
+	//map device names to commands
+	var commandMap map[string][]StatusCommand
+
+	for _, command := range commands {
+
+		//if the command's device is not in the map, add it to the map
+		_, present := commandMap[command.Device.Name]
+		if !present {
+			commandMap[command.Device.Name] = []StatusCommand{command}
+		} else {
+			commandMap[command.Device.Name] = append(commandMap[command.Device.Name], command)
+		}
+
+	}
+
+	//make a channel with the same number of 'slots' as devices
+	channel := make(chan Status, len(commandMap))
+	var group sync.WaitGroup
+
+	for device, deviceCommands := range commandMap {
+
+		//spin up new go routine
+		go issueCommands(deviceCommands, channel, group)
+	}
+
+	group.Wait()
+	close(channel)
+	var outputs []Status
+	for output := range channel {
+		outputs = append(outputs, output)
+	}
+	return output, nil
 }
 
-func evaluateResponses(responses []interface{}) (base.PublicRoom, error) {
+//builds a Status object and writes it to the channel
+func issueCommands(commands []StatusCommand, channel chan Status, control sync.WaitGroup) {
+	control.Add(1)
+	channel <- Status{}
+	control.Done()
+}
+
+func evaluateResponses(responses []Status) (base.PublicRoom, error) {
 	return base.PublicRoom{}, nil
 }
 

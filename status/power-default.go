@@ -27,7 +27,7 @@ func (p *PowerDefault) GenerateCommands(devices []accessors.Device) ([]StatusCom
 
 				log.Printf("Adding command: %s to action list", command.Name)
 				output = append(output, StatusCommand{
-					Action: command.Name,
+					Action: command,
 					Device: device,
 				})
 
