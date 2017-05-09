@@ -36,6 +36,7 @@ type Volume struct {
 	Volume int `json:"volume"`
 }
 
+//represents output from a device, use Error field to flag errors
 type Status struct {
 	Device accessors.Device       `json:"device"`
 	Status map[string]interface{} `json:"status"`

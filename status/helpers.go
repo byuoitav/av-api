@@ -1,7 +1,10 @@
 package status
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"strings"
 	"sync"
 
@@ -91,7 +94,7 @@ func runStatusCommands(commands []StatusCommand) ([]Status, error) {
 	channel := make(chan Status, len(commandMap))
 	var group sync.WaitGroup
 
-	for device, deviceCommands := range commandMap {
+	for _, deviceCommands := range commandMap {
 
 		//spin up new go routine
 		go issueCommands(deviceCommands, channel, group)
@@ -103,13 +106,57 @@ func runStatusCommands(commands []StatusCommand) ([]Status, error) {
 	for output := range channel {
 		outputs = append(outputs, output)
 	}
-	return output, nil
+	return outputs, nil
 }
 
 //builds a Status object and writes it to the channel
 func issueCommands(commands []StatusCommand, channel chan Status, control sync.WaitGroup) {
+
+	//add task to waitgroup
 	control.Add(1)
-	channel <- Status{}
+
+	//final output
+	var output Status
+	var statuses map[string]interface{}
+
+	//identify device in question
+	output.Device = commands[0].Device
+
+	//iterate over list of StatusCommands
+	//TODO:make sure devices can handle rapid-fire API requests
+	for _, command := range commands {
+
+		//build url
+		//TODO figure out passing status parameters
+		url := command.Action.Endpoint.Path
+
+		//send request
+		response, err := http.Get(url)
+		if err != nil {
+			channel <- Status{Error: true}
+			break
+		}
+		defer response.Body.Close()
+
+		body, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			channel <- Status{Error: true}
+		}
+
+		var status map[string]interface{}
+		err = json.Unmarshal(body, &status)
+		if err != nil {
+			channel <- Status{Error: true}
+		}
+
+		for device, object := range status {
+			statuses[device] = object
+		}
+	}
+
+	//write output to channel
+	channel <- output
+	log.Printf("Done acquiring status of %s", output.Device.Name)
 	control.Done()
 }
 
