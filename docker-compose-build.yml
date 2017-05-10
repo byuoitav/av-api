@@ -114,7 +114,7 @@ services:
     configuration-database-tool:
         build: 
             context: ../configuration-database-tool
-            dockerfile: Dockerfile
+            dockerfile: Dockerfile-development
         ports:
             - "9999:9999"
         environment:
