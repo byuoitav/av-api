@@ -122,7 +122,7 @@ services:
             - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
         network_mode: "host"
     event-translator-microservice:
-        image: byuoitav/event-translator-microservice:${DOCKER_HUB_TAB}
+        image: byuoitav/event-translator-microservice:${DOCKER_HUB_TAG}
         ports:
             - "7002:7002"
         environment:
