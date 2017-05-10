@@ -27,7 +27,7 @@ func EditRoomState(roomInQuestion base.PublicRoom) (report []commandevaluators.C
 
 	actionList := []base.ActionStructure{}
 
-	re := regexp.MustCompile(".*-RPC$")
+	re := regexp.MustCompile("(STATUS_.*|.*-RPC$)")
 
 	//for each command in the configuration, evaluate and validate.
 	for _, c := range room.Configuration.Evaluators {
