@@ -22,10 +22,8 @@ func GetRoomStatus(building string, roomName string) (base.PublicRoom, error) {
 		return base.PublicRoom{}, err
 	}
 
-	commandMap := initializeMap(room.Configuration.RoomInitKey)
-
 	log.Printf("Generating commands...")
-	commands, err := generateStatusCommands(room, commandMap)
+	commands, err := generateStatusCommands(room, DEFAULT_MAP)
 	if err != nil {
 		return base.PublicRoom{}, err
 	}
@@ -41,6 +39,9 @@ func GetRoomStatus(building string, roomName string) (base.PublicRoom, error) {
 	if err != nil {
 		return base.PublicRoom{}, err
 	}
+
+	roomStatus.Building = building
+	roomStatus.Room = roomName
 
 	return roomStatus, nil
 }
@@ -119,7 +120,7 @@ func runStatusCommands(commands []StatusCommand) (outputs []Status, err error) {
 	return
 }
 
-//builds a Status object and writes it to the channel
+//builds a Status object corresponding to a device and writes it to the channel
 func issueCommands(commands []StatusCommand, channel chan Status, control sync.WaitGroup) {
 
 	//add task to waitgroup
@@ -134,7 +135,6 @@ func issueCommands(commands []StatusCommand, channel chan Status, control sync.W
 	for _, command := range commands {
 
 		//build url
-		//TODO figure out passing status parameters
 		url := command.Action.Endpoint.Path
 		for formal, actual := range command.Parameters {
 			toReplace := ":" + formal
@@ -147,7 +147,6 @@ func issueCommands(commands []StatusCommand, channel chan Status, control sync.W
 			}
 		}
 
-		//send request
 		response, err := http.Get(url)
 		if err != nil {
 			errorMessage := err.Error()
@@ -181,15 +180,55 @@ func issueCommands(commands []StatusCommand, channel chan Status, control sync.W
 
 	//write output to channel
 	channel <- output
-	log.Printf("Done acquiring status of %s", output.DestinationDevice.Device.Name)
+	log.Printf("Done acquiring status for %s", output.DestinationDevice.Device.Name)
 	control.Done()
 }
 
 func evaluateResponses(responses []Status) (base.PublicRoom, error) {
-	return base.PublicRoom{}, nil
-}
 
-//initializes map of strings
-func initializeMap(roomInitKey string) map[string]StatusEvaluator {
-	return make(map[string]StatusEvaluator)
+	var AudioDevices []base.AudioDevice
+	var Displays []base.Display
+
+	for _, device := range responses {
+
+		if device.DestinationDevice.AudioDevice {
+
+			var audioDevice base.AudioDevice
+
+			for _, response := range device.Status {
+
+				data, ok := response.(int)
+				if ok {
+
+					audioDevice.Volume = &data
+				}
+
+				other := response.(bool)
+				audioDevice.Muted = &other
+
+			}
+
+			AudioDevices = append(AudioDevices, audioDevice)
+		}
+
+		if device.DestinationDevice.Display {
+			var display base.Display
+
+			for _, response := range device.Status {
+
+				data, ok := response.(bool)
+				if ok {
+
+					display.Blanked = &data
+
+				}
+
+				Displays = append(Displays, display)
+			}
+
+		}
+
+	}
+
+	return base.PublicRoom{Displays: Displays, AudioDevices: AudioDevices}, nil
 }

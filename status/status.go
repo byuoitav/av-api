@@ -55,7 +55,7 @@ type StatusCommand struct {
 type DestinationDevice struct {
 	Device      accessors.Device `json:"device"`
 	AudioDevice bool             `json:"audio"`
-	VideoDevice bool             `json:"video"`
+	Display     bool             `json:"video"`
 }
 
 type StatusEvaluator interface {
