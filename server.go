@@ -35,10 +35,16 @@ func main() {
 	base.Publisher, err = publisher.NewPublisher("7001", 1000, 10)
 	if err != nil {
 		log.Fatalf("Could not start published. Error: %v\n", err.Error())
-	} else {
-		log.Printf("Publisher started on port :7001")
 	}
 
+	go func() {
+		base.Publisher.Listen()
+		if err != nil {
+			log.Fatalf("Could not start published. Error: %v\n", err.Error())
+		} else {
+			log.Printf("Publisher started on port :7001")
+		}
+	}()
 	port := ":8000"
 	router := echo.New()
 	router.Pre(middleware.RemoveTrailingSlash())

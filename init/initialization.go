@@ -35,11 +35,7 @@ func CheckRoomInitialization() error {
 	  or buildling hyphen room. e.g. ITB-1001D
 	*/
 
-	//DEBUG
-	//hostname := os.Getenv("HOSTNAME")
-
-	hostname := "ITB-1006"
-	//END DEBUG
+	hostname := os.Getenv("PI_HOSTNAME")
 
 	splitValues := strings.Split(hostname, "-")
 	log.Printf("Room %v-%v", splitValues[0], splitValues[1])
