@@ -40,7 +40,7 @@ type Volume struct {
 type Status struct {
 	DestinationDevice DestinationDevice      `json:"device"`
 	Status            map[string]interface{} `json:"status"`
-	Error             bool                   `json:"error"`
+	ErrorMessage      *string                `json:"error"`
 }
 
 //StatusCommand contains information to issue a status command against a device

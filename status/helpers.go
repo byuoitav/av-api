@@ -11,6 +11,7 @@ import (
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/configuration-database-microservice/accessors"
+	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
 func GetRoomStatus(building string, roomName string) (base.PublicRoom, error) {
@@ -32,7 +33,7 @@ func GetRoomStatus(building string, roomName string) (base.PublicRoom, error) {
 	log.Printf("Running commands...")
 	responses, err := runStatusCommands(commands)
 	if err != nil {
-		return base.PublicRoom{}, err
+		log.Printf("Error issuing status commands")
 	}
 
 	log.Printf("Evaluating Responses")
@@ -73,7 +74,7 @@ func generateStatusCommands(room accessors.Room, commandMap map[string]StatusEva
 	return commands, nil
 }
 
-func runStatusCommands(commands []StatusCommand) ([]Status, error) {
+func runStatusCommands(commands []StatusCommand) (outputs []Status, err error) {
 
 	//map device names to commands
 	var commandMap map[string][]StatusCommand
@@ -101,12 +102,21 @@ func runStatusCommands(commands []StatusCommand) ([]Status, error) {
 	}
 
 	group.Wait()
-	var outputs []Status
 	for output := range channel {
+		if output.ErrorMessage != nil {
+			log.Printf("Error querying status with destination: %s", output.DestinationDevice.Device.Name)
+			event := eventinfrastructure.Event{Event: "Status Retrieval",
+				Success:  false,
+				Building: output.DestinationDevice.Device.Building.Name,
+				Room:     output.DestinationDevice.Device.Room.Name,
+				Device:   output.DestinationDevice.Device.Name,
+			}
+			base.Publish(event)
+		}
 		outputs = append(outputs, output)
 	}
 	close(channel)
-	return outputs, nil
+	return
 }
 
 //builds a Status object and writes it to the channel
@@ -126,25 +136,41 @@ func issueCommands(commands []StatusCommand, channel chan Status, control sync.W
 		//build url
 		//TODO figure out passing status parameters
 		url := command.Action.Endpoint.Path
+		for formal, actual := range command.Parameters {
+			toReplace := ":" + formal
+			if !strings.Contains(url, toReplace) {
+				errorMessage := "Could not find parameter " + toReplace + " issuing the command " + command.Action.Name
+				output.ErrorMessage = &errorMessage
+				log.Printf(errorMessage)
+			} else {
+				url = strings.Replace(url, toReplace, actual, -1)
+			}
+		}
 
 		//send request
 		response, err := http.Get(url)
 		if err != nil {
-			channel <- Status{Error: true}
+			errorMessage := err.Error()
+			output.ErrorMessage = &errorMessage
+			log.Printf("Error getting response from %s", command.Device.Name)
 			continue
 		}
 		defer response.Body.Close()
 
 		body, err := ioutil.ReadAll(response.Body)
 		if err != nil {
-			channel <- Status{Error: true}
+			errorMessage := err.Error()
+			output.ErrorMessage = &errorMessage
+			log.Printf("Error reading response from %s", command.Device.Name)
 			continue
 		}
 
 		var status map[string]interface{}
 		err = json.Unmarshal(body, &status)
 		if err != nil {
-			channel <- Status{Error: true}
+			errorMessage := err.Error()
+			output.ErrorMessage = &errorMessage
+			log.Printf("Error unmarshalling response from %s", command.Device.Name)
 			continue
 		}
 
