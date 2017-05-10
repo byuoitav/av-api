@@ -33,7 +33,7 @@ func GetRoomStatus(building string, roomName string) (base.PublicRoom, error) {
 	log.Printf("Running commands...")
 	responses, err := runStatusCommands(commands)
 	if err != nil {
-		log.Printf("Error issuing status commands")
+		return base.PublicRoom{}, err
 	}
 
 	log.Printf("Evaluating Responses")
