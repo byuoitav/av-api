@@ -2,6 +2,7 @@ package status
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -48,7 +49,7 @@ func GetRoomStatus(building string, roomName string) (base.PublicRoom, error) {
 
 func generateStatusCommands(room accessors.Room, commandMap map[string]StatusEvaluator) ([]StatusCommand, error) {
 
-	var commands []StatusCommand
+	var outputs []StatusCommand
 
 	//iterate over each status evaluator
 	for _, command := range room.Configuration.Evaluators {
@@ -69,17 +70,26 @@ func generateStatusCommands(room accessors.Room, commandMap map[string]StatusEva
 				return []StatusCommand{}, err
 			}
 
-			commands = append(commands, commands...)
+			log.Printf("Appending commands: %v to action list", commands)
+			outputs = append(outputs, commands...)
 		}
 	}
-	return commands, nil
+
+	log.Printf("Final command output: %v", outputs)
+	return outputs, nil
 }
 
 func runStatusCommands(commands []StatusCommand) (outputs []Status, err error) {
+	log.Printf("Commands: %v", commands)
+	if len(commands) == 0 {
+		err = errors.New("No commands")
+		return
+	}
 
 	//map device names to commands
-	var commandMap map[string][]StatusCommand
+	commandMap := make(map[string][]StatusCommand)
 
+	log.Printf("Building device map")
 	for _, command := range commands {
 
 		//if the command's device is not in the map, add it to the map
@@ -93,12 +103,15 @@ func runStatusCommands(commands []StatusCommand) (outputs []Status, err error) {
 	}
 
 	//make a channel with the same number of 'slots' as devices
+	log.Printf("Creating channel")
 	channel := make(chan Status, len(commandMap))
 	var group sync.WaitGroup
 
 	for _, deviceCommands := range commandMap {
 
 		//spin up new go routine
+		log.Printf("Starting new goroutine")
+		group.Add(1)
 		go issueCommands(deviceCommands, channel, group)
 	}
 
@@ -124,18 +137,17 @@ func runStatusCommands(commands []StatusCommand) (outputs []Status, err error) {
 func issueCommands(commands []StatusCommand, channel chan Status, control sync.WaitGroup) {
 
 	//add task to waitgroup
-	control.Add(1)
 
 	//final output
 	output := Status{DestinationDevice: commands[0].DestinationDevice}
-	var statuses map[string]interface{}
+	statuses := make(map[string]interface{})
 
 	//iterate over list of StatusCommands
 	//TODO:make sure devices can handle rapid-fire API requests
 	for _, command := range commands {
 
 		//build url
-		url := command.Action.Endpoint.Path
+		url := command.Action.Microservice + command.Action.Endpoint.Path
 		for formal, actual := range command.Parameters {
 			toReplace := ":" + formal
 			if !strings.Contains(url, toReplace) {
@@ -147,6 +159,7 @@ func issueCommands(commands []StatusCommand, channel chan Status, control sync.W
 			}
 		}
 
+		log.Printf("Sending requqest to %s", url)
 		response, err := http.Get(url)
 		if err != nil {
 			errorMessage := err.Error()

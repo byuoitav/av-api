@@ -25,10 +25,15 @@ func (p *PowerDefault) GenerateCommands(devices []accessors.Device) ([]StatusCom
 
 			if strings.HasPrefix(command.Name, FLAG) {
 
+				//every power command needs an address parameter
+				parameters := make(map[string]string)
+				parameters["address"] = device.Address
+
 				log.Printf("Adding command: %s to action list", command.Name)
 				output = append(output, StatusCommand{
-					Action: command,
-					Device: device,
+					Action:     command,
+					Device:     device,
+					Parameters: parameters,
 				})
 
 			}
