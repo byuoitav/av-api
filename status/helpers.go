@@ -220,33 +220,10 @@ func evaluateResponses(responses []Status) (base.PublicRoom, error) {
 
 		if device.DestinationDevice.Display {
 
-			log.Printf("Adding display: %s", device.DestinationDevice.Device.Name)
-
-			var display base.Display
-
-			blanked, ok := device.Status["blanked"]
-			blankedBool, ok := blanked.(bool)
-			if ok {
-				display.Blanked = &blankedBool
+			display, err := processDisplay(device)
+			if err == nil {
+				Displays = append(Displays, display)
 			}
-
-			power, ok := device.Status["power"]
-			powerString, ok := power.(string)
-			if ok {
-				display.Power = powerString
-			}
-
-			input, ok := device.Status["input"]
-			inputString, ok := input.(string)
-			if ok {
-				display.Input = inputString
-			}
-
-			display.Name = device.DestinationDevice.Device.Name
-
-			log.Printf("Appending device: %s to Dispaly array", display.Name)
-			Displays = append(Displays, display)
-
 		}
 
 	}
@@ -286,4 +263,33 @@ func processAudioDevice(device Status) (base.AudioDevice, error) {
 
 	audioDevice.Name = device.DestinationDevice.Device.Name
 	return audioDevice, nil
+}
+
+func processDisplay(device Status) (base.Display, error) {
+
+	log.Printf("Adding display: %s", device.DestinationDevice.Device.Name)
+
+	var display base.Display
+
+	blanked, ok := device.Status["blanked"]
+	blankedBool, ok := blanked.(bool)
+	if ok {
+		display.Blanked = &blankedBool
+	}
+
+	power, ok := device.Status["power"]
+	powerString, ok := power.(string)
+	if ok {
+		display.Power = powerString
+	}
+
+	input, ok := device.Status["input"]
+	inputString, ok := input.(string)
+	if ok {
+		display.Input = inputString
+	}
+
+	display.Name = device.DestinationDevice.Device.Name
+
+	return display, nil
 }
