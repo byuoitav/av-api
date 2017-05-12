@@ -17,25 +17,21 @@ import (
 
 func GetRoomStatus(building string, roomName string) (base.PublicRoom, error) {
 
-	//get room from database
 	room, err := dbo.GetRoomByInfo(building, roomName)
 	if err != nil {
 		return base.PublicRoom{}, err
 	}
 
-	log.Printf("Generating commands...")
 	commands, err := generateStatusCommands(room, DEFAULT_MAP)
 	if err != nil {
 		return base.PublicRoom{}, err
 	}
 
-	log.Printf("Running commands...")
 	responses, err := runStatusCommands(commands)
 	if err != nil {
 		return base.PublicRoom{}, err
 	}
 
-	log.Printf("Evaluating Responses...")
 	roomStatus, err := evaluateResponses(responses)
 	if err != nil {
 		return base.PublicRoom{}, err
@@ -49,38 +45,37 @@ func GetRoomStatus(building string, roomName string) (base.PublicRoom, error) {
 
 func generateStatusCommands(room accessors.Room, commandMap map[string]StatusEvaluator) ([]StatusCommand, error) {
 
-	var outputs []StatusCommand
+	log.Printf("Generating commands...")
 
-	//iterate over each status evaluator
-	for _, command := range room.Configuration.Evaluators {
+	var output []StatusCommand
 
-		if strings.HasPrefix(command.EvaluatorKey, FLAG) {
+	for _, possibleEvaluator := range room.Configuration.Evaluators {
 
-			evaluator := DEFAULT_MAP[command.EvaluatorKey]
+		if strings.HasPrefix(possibleEvaluator.EvaluatorKey, FLAG) {
 
-			//Idenify relevant devices
-			devices, err := evaluator.GetDevices(room)
+			currentEvaluator := DEFAULT_MAP[possibleEvaluator.EvaluatorKey]
+
+			devices, err := currentEvaluator.GetDevices(room)
 			if err != nil {
 				return []StatusCommand{}, err
 			}
 
-			//Generate actions by iterating over the commands of each device
-			commands, err := evaluator.GenerateCommands(devices)
+			commands, err := currentEvaluator.GenerateCommands(devices)
 			if err != nil {
 				return []StatusCommand{}, err
 			}
 
-			//log.Printf("Appending commands: %v to action list", commands)
-			outputs = append(outputs, commands...)
+			output = append(output, commands...)
 		}
 	}
 
-	//log.Printf("Final command output: %v", outputs)
-	return outputs, nil
+	return output, nil
 }
 
 func runStatusCommands(commands []StatusCommand) (outputs []Status, err error) {
-	//log.Printf("Commands: %v", commands)
+
+	log.Printf("Running commands...")
+
 	if len(commands) == 0 {
 		err = errors.New("No commands")
 		return
@@ -102,15 +97,11 @@ func runStatusCommands(commands []StatusCommand) (outputs []Status, err error) {
 
 	}
 
-	//make a channel with the same number of 'slots' as devices
 	log.Printf("Creating channel")
 	channel := make(chan Status, len(commandMap))
 	var group sync.WaitGroup
 
 	for device, deviceCommands := range commandMap {
-
-		//spin up new go routine
-		log.Printf("Starting new goroutine for device %s", device)
 		group.Add(1)
 		go issueCommands(deviceCommands, channel, &group)
 	}
@@ -215,23 +206,18 @@ func issueCommands(commands []StatusCommand, channel chan Status, control *sync.
 
 func evaluateResponses(responses []Status) (base.PublicRoom, error) {
 
+	log.Printf("Evaluating responses...")
+
 	var AudioDevices []base.AudioDevice
 	var Displays []base.Display
 
 	for _, device := range responses {
 
-		log.Printf("Populating struct for device %s", device.DestinationDevice.Device.Name)
-
-		log.Printf("Ranging over status")
-		for key, value := range device.Status {
-			log.Printf("Found status: %s with response %v", key, value)
-		}
-
 		if device.DestinationDevice.AudioDevice {
 
-			var audioDevice base.AudioDevice
+			log.Printf("Adding audio device: %s", device.DestinationDevice.Device.Name)
 
-			//fixME make this look like the way we get power and input
+			var audioDevice base.AudioDevice
 
 			muted, ok := device.Status["muted"]
 			mutedBool, ok := muted.(bool)
@@ -259,11 +245,13 @@ func evaluateResponses(responses []Status) (base.PublicRoom, error) {
 
 			audioDevice.Name = device.DestinationDevice.Device.Name
 
-			log.Printf("Appending device: %s to AudioDevice array", audioDevice.Name)
 			AudioDevices = append(AudioDevices, audioDevice)
 		}
 
 		if device.DestinationDevice.Display {
+
+			log.Printf("Adding display: %s", device.DestinationDevice.Device.Name)
+
 			var display base.Display
 
 			blanked, ok := device.Status["blanked"]
