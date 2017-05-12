@@ -117,9 +117,9 @@ func runStatusCommands(commands []StatusCommand) (outputs []Status, err error) {
 
 	log.Printf("Waiting for WaitGroup")
 	group.Wait()
-	log.Printf("Done waiting")
+	log.Printf("done waiting")
 
-	log.Printf("Closing channel...")
+	log.Printf("closing channel...")
 	close(channel)
 
 	for output := range channel {
@@ -193,14 +193,23 @@ func issueCommands(commands []StatusCommand, channel chan Status, control *sync.
 			continue
 		}
 
+		log.Printf("Copying data into output")
 		for device, object := range status {
 			statuses[device] = object
+			log.Printf("%s maps to %v", device, object)
 		}
 	}
 
+	//set the map of statuses to output
+	output.Status = statuses
 	//write output to channel
+	log.Printf("writing output to channel")
+	for key, value := range output.Status {
+		log.Printf("%s maps to %v", key, value)
+	}
+
 	channel <- output
-	log.Printf("Done acquiring status for %s", output.DestinationDevice.Device.Name)
+	log.Printf("done acquiring status for %s", output.DestinationDevice.Device.Name)
 	control.Done()
 }
 
@@ -211,19 +220,29 @@ func evaluateResponses(responses []Status) (base.PublicRoom, error) {
 
 	for _, device := range responses {
 
+		log.Printf("Populating struct for device %s", device.DestinationDevice.Device.Name)
+
+		log.Printf("Ranging over status")
+		for key, value := range device.Status {
+			log.Printf("Found status: %s with response %v", key, value)
+		}
+
 		if device.DestinationDevice.AudioDevice {
 
 			var audioDevice base.AudioDevice
 
-			for _, response := range device.Status {
+			//fixME make this look like the way we get power and input
 
-				data, ok := response.(int)
-				if ok {
-					audioDevice.Volume = &data
-				}
+			muted, ok := device.Status["muted"]
+			mutedBool, ok := muted.(bool)
+			if ok {
+				audioDevice.Muted = &mutedBool
+			}
 
-				other := response.(bool)
-				audioDevice.Muted = &other
+			volume, ok := device.Status["volume"]
+			volumeInt, ok := volume.(int)
+			if ok {
+				audioDevice.Volume = &volumeInt
 			}
 
 			power, ok := device.Status["power"]
@@ -247,13 +266,10 @@ func evaluateResponses(responses []Status) (base.PublicRoom, error) {
 		if device.DestinationDevice.Display {
 			var display base.Display
 
-			for _, response := range device.Status {
-
-				data, ok := response.(bool)
-				if ok {
-					display.Blanked = &data
-				}
-
+			blanked, ok := device.Status["blanked"]
+			blankedBool, ok := blanked.(bool)
+			if ok {
+				display.Blanked = &blankedBool
 			}
 
 			power, ok := device.Status["power"]
