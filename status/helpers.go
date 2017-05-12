@@ -226,13 +226,13 @@ func evaluateResponses(responses []Status) (base.PublicRoom, error) {
 				audioDevice.Muted = &other
 			}
 
-			power, ok := device.Status["Power"]
+			power, ok := device.Status["power"]
 			powerString, ok := power.(string)
 			if ok {
 				audioDevice.Power = powerString
 			}
 
-			input, ok := device.Status["Input"]
+			input, ok := device.Status["input"]
 			inputString, ok := input.(string)
 			if ok {
 				audioDevice.Input = inputString
@@ -256,13 +256,13 @@ func evaluateResponses(responses []Status) (base.PublicRoom, error) {
 
 			}
 
-			power, ok := device.Status["Power"]
+			power, ok := device.Status["power"]
 			powerString, ok := power.(string)
 			if ok {
 				display.Power = powerString
 			}
 
-			input, ok := device.Status["Input"]
+			input, ok := device.Status["input"]
 			inputString, ok := input.(string)
 			if ok {
 				display.Input = inputString
