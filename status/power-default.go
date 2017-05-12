@@ -29,11 +29,27 @@ func (p *PowerDefault) GenerateCommands(devices []accessors.Device) ([]StatusCom
 				parameters := make(map[string]string)
 				parameters["address"] = device.Address
 
+				//build destination device
+				var destinationDevice DestinationDevice
+				for _, role := range device.Roles {
+
+					if role == "AudioOut" {
+						destinationDevice.AudioDevice = true
+					}
+
+					if role == "VideoOut" {
+						destinationDevice.Display = true
+					}
+
+				}
+				destinationDevice.Device = device
+
 				log.Printf("Adding command: %s to action list", command.Name)
 				output = append(output, StatusCommand{
-					Action:     command,
-					Device:     device,
-					Parameters: parameters,
+					Action:            command,
+					Device:            device,
+					Parameters:        parameters,
+					DestinationDevice: destinationDevice,
 				})
 
 			}

@@ -35,7 +35,7 @@ func GetRoomStatus(building string, roomName string) (base.PublicRoom, error) {
 		return base.PublicRoom{}, err
 	}
 
-	log.Printf("Evaluating Responses")
+	log.Printf("Evaluating Responses...")
 	roomStatus, err := evaluateResponses(responses)
 	if err != nil {
 		return base.PublicRoom{}, err
@@ -70,17 +70,17 @@ func generateStatusCommands(room accessors.Room, commandMap map[string]StatusEva
 				return []StatusCommand{}, err
 			}
 
-			log.Printf("Appending commands: %v to action list", commands)
+			//log.Printf("Appending commands: %v to action list", commands)
 			outputs = append(outputs, commands...)
 		}
 	}
 
-	log.Printf("Final command output: %v", outputs)
+	//log.Printf("Final command output: %v", outputs)
 	return outputs, nil
 }
 
 func runStatusCommands(commands []StatusCommand) (outputs []Status, err error) {
-	log.Printf("Commands: %v", commands)
+	//log.Printf("Commands: %v", commands)
 	if len(commands) == 0 {
 		err = errors.New("No commands")
 		return
@@ -92,10 +92,10 @@ func runStatusCommands(commands []StatusCommand) (outputs []Status, err error) {
 	log.Printf("Building device map")
 	for _, command := range commands {
 
-		//if the command's device is not in the map, add it to the map
 		_, present := commandMap[command.Device.Name]
 		if !present {
 			commandMap[command.Device.Name] = []StatusCommand{command}
+			log.Printf("Device %s identified", command.Device.Name)
 		} else {
 			commandMap[command.Device.Name] = append(commandMap[command.Device.Name], command)
 		}
@@ -107,15 +107,21 @@ func runStatusCommands(commands []StatusCommand) (outputs []Status, err error) {
 	channel := make(chan Status, len(commandMap))
 	var group sync.WaitGroup
 
-	for _, deviceCommands := range commandMap {
+	for device, deviceCommands := range commandMap {
 
 		//spin up new go routine
-		log.Printf("Starting new goroutine")
+		log.Printf("Starting new goroutine for device %s", device)
 		group.Add(1)
-		go issueCommands(deviceCommands, channel, group)
+		go issueCommands(deviceCommands, channel, &group)
 	}
 
+	log.Printf("Waiting for WaitGroup")
 	group.Wait()
+	log.Printf("Done waiting")
+
+	log.Printf("Closing channel...")
+	close(channel)
+
 	for output := range channel {
 		if output.ErrorMessage != nil {
 			log.Printf("Error querying status with destination: %s", output.DestinationDevice.Device.Name)
@@ -127,14 +133,14 @@ func runStatusCommands(commands []StatusCommand) (outputs []Status, err error) {
 			}
 			base.Publish(event)
 		}
+		log.Printf("Appending results of %s to output", output.DestinationDevice.Device.Name)
 		outputs = append(outputs, output)
 	}
-	close(channel)
 	return
 }
 
 //builds a Status object corresponding to a device and writes it to the channel
-func issueCommands(commands []StatusCommand, channel chan Status, control sync.WaitGroup) {
+func issueCommands(commands []StatusCommand, channel chan Status, control *sync.WaitGroup) {
 
 	//add task to waitgroup
 
@@ -176,6 +182,7 @@ func issueCommands(commands []StatusCommand, channel chan Status, control sync.W
 			log.Printf("Error reading response from %s", command.Device.Name)
 			continue
 		}
+		log.Printf("Microservice returned: %s", body)
 
 		var status map[string]interface{}
 		err = json.Unmarshal(body, &status)
@@ -212,15 +219,28 @@ func evaluateResponses(responses []Status) (base.PublicRoom, error) {
 
 				data, ok := response.(int)
 				if ok {
-
 					audioDevice.Volume = &data
 				}
 
 				other := response.(bool)
 				audioDevice.Muted = &other
-
 			}
 
+			power, ok := device.Status["Power"]
+			powerString, ok := power.(string)
+			if ok {
+				audioDevice.Power = powerString
+			}
+
+			input, ok := device.Status["Input"]
+			inputString, ok := input.(string)
+			if ok {
+				audioDevice.Input = inputString
+			}
+
+			audioDevice.Name = device.DestinationDevice.Device.Name
+
+			log.Printf("Appending device: %s to AudioDevice array", audioDevice.Name)
 			AudioDevices = append(AudioDevices, audioDevice)
 		}
 
@@ -231,13 +251,27 @@ func evaluateResponses(responses []Status) (base.PublicRoom, error) {
 
 				data, ok := response.(bool)
 				if ok {
-
 					display.Blanked = &data
-
 				}
 
-				Displays = append(Displays, display)
 			}
+
+			power, ok := device.Status["Power"]
+			powerString, ok := power.(string)
+			if ok {
+				display.Power = powerString
+			}
+
+			input, ok := device.Status["Input"]
+			inputString, ok := input.(string)
+			if ok {
+				display.Input = inputString
+			}
+
+			display.Name = device.DestinationDevice.Device.Name
+
+			log.Printf("Appending device: %s to Dispaly array", display.Name)
+			Displays = append(Displays, display)
 
 		}
 
