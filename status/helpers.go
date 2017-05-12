@@ -101,16 +101,14 @@ func runStatusCommands(commands []StatusCommand) (outputs []Status, err error) {
 	channel := make(chan Status, len(commandMap))
 	var group sync.WaitGroup
 
-	for device, deviceCommands := range commandMap {
+	for _, deviceCommands := range commandMap {
 		group.Add(1)
 		go issueCommands(deviceCommands, channel, &group)
 	}
 
-	log.Printf("Waiting for WaitGroup")
+	log.Printf("Waiting for commands to issue...")
 	group.Wait()
-	log.Printf("done waiting")
-
-	log.Printf("closing channel...")
+	log.Printf("Done. Closing channel...")
 	close(channel)
 
 	for output := range channel {
@@ -194,13 +192,13 @@ func issueCommands(commands []StatusCommand, channel chan Status, control *sync.
 	//set the map of statuses to output
 	output.Status = statuses
 	//write output to channel
-	log.Printf("writing output to channel")
+	log.Printf("Writing output to channel...")
 	for key, value := range output.Status {
 		log.Printf("%s maps to %v", key, value)
 	}
 
 	channel <- output
-	log.Printf("done acquiring status for %s", output.DestinationDevice.Device.Name)
+	log.Printf("Done acquiring status of %s", output.DestinationDevice.Device.Name)
 	control.Done()
 }
 
@@ -214,38 +212,10 @@ func evaluateResponses(responses []Status) (base.PublicRoom, error) {
 	for _, device := range responses {
 
 		if device.DestinationDevice.AudioDevice {
-
-			log.Printf("Adding audio device: %s", device.DestinationDevice.Device.Name)
-
-			var audioDevice base.AudioDevice
-
-			muted, ok := device.Status["muted"]
-			mutedBool, ok := muted.(bool)
-			if ok {
-				audioDevice.Muted = &mutedBool
+			audioDevice, err := processAudioDevice(device)
+			if err == nil {
+				AudioDevices = append(AudioDevices, audioDevice)
 			}
-
-			volume, ok := device.Status["volume"]
-			volumeInt, ok := volume.(int)
-			if ok {
-				audioDevice.Volume = &volumeInt
-			}
-
-			power, ok := device.Status["power"]
-			powerString, ok := power.(string)
-			if ok {
-				audioDevice.Power = powerString
-			}
-
-			input, ok := device.Status["input"]
-			inputString, ok := input.(string)
-			if ok {
-				audioDevice.Input = inputString
-			}
-
-			audioDevice.Name = device.DestinationDevice.Device.Name
-
-			AudioDevices = append(AudioDevices, audioDevice)
 		}
 
 		if device.DestinationDevice.Display {
@@ -282,4 +252,38 @@ func evaluateResponses(responses []Status) (base.PublicRoom, error) {
 	}
 
 	return base.PublicRoom{Displays: Displays, AudioDevices: AudioDevices}, nil
+}
+
+func processAudioDevice(device Status) (base.AudioDevice, error) {
+
+	log.Printf("Adding audio device: %s", device.DestinationDevice.Device.Name)
+
+	var audioDevice base.AudioDevice
+
+	muted, ok := device.Status["muted"]
+	mutedBool, ok := muted.(bool)
+	if ok {
+		audioDevice.Muted = &mutedBool
+	}
+
+	volume, ok := device.Status["volume"]
+	volumeInt, ok := volume.(int)
+	if ok {
+		audioDevice.Volume = &volumeInt
+	}
+
+	power, ok := device.Status["power"]
+	powerString, ok := power.(string)
+	if ok {
+		audioDevice.Power = powerString
+	}
+
+	input, ok := device.Status["input"]
+	inputString, ok := input.(string)
+	if ok {
+		audioDevice.Input = inputString
+	}
+
+	audioDevice.Name = device.DestinationDevice.Device.Name
+	return audioDevice, nil
 }
