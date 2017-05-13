@@ -12,7 +12,6 @@ import (
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/configuration-database-microservice/accessors"
-	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
 func GetRoomStatus(building string, roomName string) (base.PublicRoom, error) {
@@ -114,13 +113,6 @@ func runStatusCommands(commands []StatusCommand) (outputs []Status, err error) {
 	for output := range channel {
 		if output.ErrorMessage != nil {
 			log.Printf("Error querying status with destination: %s", output.DestinationDevice.Device.Name)
-			event := eventinfrastructure.Event{Event: "Status Retrieval",
-				Success:  false,
-				Building: output.DestinationDevice.Device.Building.Name,
-				Room:     output.DestinationDevice.Device.Room.Name,
-				Device:   output.DestinationDevice.Device.Name,
-			}
-			base.Publish(event)
 		}
 		log.Printf("Appending results of %s to output", output.DestinationDevice.Device.Name)
 		outputs = append(outputs, output)
