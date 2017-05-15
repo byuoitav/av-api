@@ -53,9 +53,9 @@ type StatusCommand struct {
 
 //DestinationDevice represents the device a status command is issued to
 type DestinationDevice struct {
-	Device      accessors.Device `json:"device"`
-	AudioDevice bool             `json:"audio"`
-	Display     bool             `json:"video"`
+	accessors.Device
+	AudioDevice bool `json:"audio"`
+	Display     bool `json:"video"`
 }
 
 type StatusEvaluator interface {
