@@ -64,14 +64,11 @@ func main() {
 
 	router.GET("/health", echo.WrapHandler(http.HandlerFunc(health.Check)))
 
-	// router.Get("/buildings", handlers.GetAllBuildings, wso2jwt.ValidateJWT())
-	secure.GET("/buildings/:building/rooms/:room", handlers.GetRoomByNameAndBuilding)
-
 	// PUT requests
 	secure.PUT("/buildings/:building/rooms/:room", handlers.SetRoomState)
 
 	// room status
-	secure.GET("/buildings/:building/rooms/:room/status", handlers.GetRoomStatus)
+	secure.GET("/buildings/:building/rooms/:room", handlers.GetRoomStatus)
 
 	server := http.Server{
 		Addr:           port,
