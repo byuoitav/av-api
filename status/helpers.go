@@ -113,13 +113,13 @@ func runStatusCommands(commands []StatusCommand) (outputs []Status, err error) {
 
 	for output := range channel {
 		if output.ErrorMessage != nil {
-			log.Printf("Error querying status with destination: %s", output.DestinationDevice.Device.Name)
+			log.Printf("Error querying status with destination: %s", output.DestinationDevice.Name)
 			cause := eventinfrastructure.INTERNAL
 			message := *output.ErrorMessage
-			message = "Error querying status for destination" + output.DestinationDevice.Device.Name + ":" + message
+			message = "Error querying status for destination" + output.DestinationDevice.Name + ":" + message
 			base.PublishError(message, cause)
 		}
-		log.Printf("Appending results of %s to output", output.DestinationDevice.Device.Name)
+		log.Printf("Appending results of %s to output", output.DestinationDevice.Name)
 		outputs = append(outputs, output)
 	}
 	return
@@ -195,7 +195,7 @@ func issueCommands(commands []StatusCommand, channel chan Status, control *sync.
 	}
 
 	channel <- output
-	log.Printf("Done acquiring status of %s", output.DestinationDevice.Device.Name)
+	log.Printf("Done acquiring status of %s", output.DestinationDevice.Name)
 	control.Done()
 }
 
@@ -230,7 +230,7 @@ func evaluateResponses(responses []Status) (base.PublicRoom, error) {
 
 func processAudioDevice(device Status) (base.AudioDevice, error) {
 
-	log.Printf("Adding audio device: %s", device.DestinationDevice.Device.Name)
+	log.Printf("Adding audio device: %s", device.DestinationDevice.Name)
 
 	var audioDevice base.AudioDevice
 
@@ -258,13 +258,13 @@ func processAudioDevice(device Status) (base.AudioDevice, error) {
 		audioDevice.Input = inputString
 	}
 
-	audioDevice.Name = device.DestinationDevice.Device.Name
+	audioDevice.Name = device.DestinationDevice.Name
 	return audioDevice, nil
 }
 
 func processDisplay(device Status) (base.Display, error) {
 
-	log.Printf("Adding display: %s", device.DestinationDevice.Device.Name)
+	log.Printf("Adding display: %s", device.DestinationDevice.Name)
 
 	var display base.Display
 
@@ -286,7 +286,7 @@ func processDisplay(device Status) (base.Display, error) {
 		display.Input = inputString
 	}
 
-	display.Name = device.DestinationDevice.Device.Name
+	display.Name = device.DestinationDevice.Name
 
 	return display, nil
 }
