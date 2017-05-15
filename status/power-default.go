@@ -21,6 +21,8 @@ func (p *PowerDefault) GenerateCommands(devices []accessors.Device) ([]StatusCom
 	//iterate over each device
 	for _, device := range devices {
 
+		log.Printf("Considering device: %s", device.Name)
+
 		for _, command := range device.Commands {
 
 			if strings.HasPrefix(command.Name, FLAG) {
@@ -44,7 +46,7 @@ func (p *PowerDefault) GenerateCommands(devices []accessors.Device) ([]StatusCom
 				}
 				destinationDevice.Device = device
 
-				log.Printf("Adding command: %s to action list", command.Name)
+				log.Printf("Adding command: %s to action list with device %s", command.Name, device.Name)
 				output = append(output, StatusCommand{
 					Action:            command,
 					Device:            device,
