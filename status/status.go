@@ -16,20 +16,16 @@ type MuteStatus struct {
 	Muted bool `json:"muted"`
 }
 
-type VideoInput struct {
-	Input string `json:"input"`
-}
-
-type AudioInput struct {
+type Input struct {
 	Input string `json:"input"`
 }
 
 type AudioList struct {
-	Inputs []AudioInput `json"inputs"`
+	Inputs []Input `json"inputs"`
 }
 
 type VideoList struct {
-	Inputs []VideoInput `json:"inputs"`
+	Inputs []Input `json:"inputs"`
 }
 
 type Volume struct {
