@@ -142,7 +142,7 @@ func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionRe
 				eventinfrastructure.USERINPUT,
 				a.Device.GetFullName(),
 				a.Device.Room.Name,
-				a.Device.Name,
+				a.Device.Building.Name,
 				cmd.Name,
 				er.Error(),
 				true)
@@ -161,7 +161,7 @@ func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionRe
 				eventinfrastructure.USERINPUT,
 				a.Device.GetFullName(),
 				a.Device.Room.Name,
-				a.Device.Name,
+				a.Device.Building.Name,
 				Vals[0],
 				Vals[1],
 				false)

@@ -69,6 +69,7 @@ func main() {
 
 	// room status
 	secure.GET("/buildings/:building/rooms/:room", handlers.GetRoomStatus)
+	secure.GET("/buildings/:building/rooms/:room/configuration", handlers.GetRoomByNameAndBuilding)
 
 	server := http.Server{
 		Addr:           port,

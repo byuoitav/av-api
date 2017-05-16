@@ -4,14 +4,14 @@ import "github.com/byuoitav/configuration-database-microservice/accessors"
 
 //PublicRoom is the struct that is returned (or put) as part of the public API
 type PublicRoom struct {
-	Building          string        `json:"building, omitempty"`
-	Room              string        `json:"room, omitempty"`
-	CurrentVideoInput string        `json:"currentVideoInput"`
-	CurrentAudioInput string        `json:"currentAudioInput"`
-	Power             string        `json:"power"`
-	Blanked           *bool         `json:"blanked"`
-	Muted             *bool         `json:"muted"`
-	Volume            *int          `json:"volume"`
+	Building          string        `json:"building,omitempty"`
+	Room              string        `json:"room,omitempty"`
+	CurrentVideoInput string        `json:"currentVideoInput,omitempty"`
+	CurrentAudioInput string        `json:"currentAudioInput,omitempty"`
+	Power             string        `json:"power,omitempty"`
+	Blanked           *bool         `json:"blanked,omitempty"`
+	Muted             *bool         `json:"muted,omitempty"`
+	Volume            *int          `json:"volume,omitempty"`
 	Displays          []Display     `json:"displays"`
 	AudioDevices      []AudioDevice `json:"audioDevices"`
 }
@@ -43,7 +43,7 @@ type ActionStructure struct {
 	GeneratingEvaluator string            `json:"generatingEvaluator"`
 	Device              accessors.Device  `json:"device"`
 	Parameters          map[string]string `json:"parameters"`
-	DeviceSpecific      bool              `json:"deviceSpecific, omitempty"`
+	DeviceSpecific      bool              `json:"deviceSpecific,omitempty"`
 	Overridden          bool              `json:"overridden"`
 }
 
