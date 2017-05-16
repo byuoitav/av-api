@@ -42,7 +42,7 @@ func Publish(e eventinfrastructure.Event, Error bool) error {
 		copy(header[:], eventinfrastructure.APIError)
 	}
 
-	log.Printf("Publishing event: %+v", toSend)
+	log.Printf("Publishing event: %s", toSend)
 	Publisher.Write(common.Message{MessageHeader: header, MessageBody: toSend})
 
 	return err

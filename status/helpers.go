@@ -132,11 +132,12 @@ func issueCommands(commands []StatusCommand, channel chan Status, control *sync.
 
 	//final output
 	output := Status{DestinationDevice: commands[0].DestinationDevice}
-	statuses := make(map[string]interface{})
+	statuses := []StatusResponse{}
 
 	//iterate over list of StatusCommands
 	//TODO:make sure devices can handle rapid-fire API requests
 	for _, command := range commands {
+		statusResponseMap := make(map[string]interface{})
 
 		//build url
 		url := command.Action.Microservice + command.Action.Endpoint.Path
@@ -181,13 +182,15 @@ func issueCommands(commands []StatusCommand, channel chan Status, control *sync.
 
 		log.Printf("Copying data into output")
 		for device, object := range status {
-			statuses[device] = object
+			statusResponseMap[device] = object
 			log.Printf("%s maps to %v", device, object)
 		}
+		//add the full status response
+		statuses = append(statuses, StatusResponse{Generator: command.Generator, Status: statusResponseMap})
 	}
 
 	//set the map of statuses to output
-	output.Status = statuses
+	output.Responses = statuses
 	//write output to channel
 	log.Printf("Writing output to channel...")
 	for key, value := range output.Status {
@@ -207,6 +210,22 @@ func evaluateResponses(responses []Status) (base.PublicRoom, error) {
 	var Displays []base.Display
 
 	for _, device := range responses {
+		newMap := make(map[string]interface{})
+		//as the first step, we're gonna run it through processing, to allow the evaluator a chance to
+		//tweak the values.
+		for _, response := range device.Responses {
+			for key, value := range response.Status {
+				k, v, err := DEFAULT_MAP[response.Generator].EvaluateResponse(key, value)
+				if err != nil {
+					//log an error
+					log.Printf("There was a problem procesing the response %v - %v with evaluator %v: %s",
+						key, value, response.Generator, err.Error())
+					continue
+				}
+				newMap[k] = v
+			}
+			device.Status = newMap
+		}
 
 		if device.DestinationDevice.AudioDevice {
 			audioDevice, err := processAudioDevice(device)
@@ -231,6 +250,7 @@ func evaluateResponses(responses []Status) (base.PublicRoom, error) {
 func processAudioDevice(device Status) (base.AudioDevice, error) {
 
 	log.Printf("Adding audio device: %s", device.DestinationDevice.Name)
+	log.Printf("Status map: %v", device.Status)
 
 	var audioDevice base.AudioDevice
 
@@ -241,9 +261,21 @@ func processAudioDevice(device Status) (base.AudioDevice, error) {
 	}
 
 	volume, ok := device.Status["volume"]
-	volumeInt, ok := volume.(int)
 	if ok {
-		audioDevice.Volume = &volumeInt
+		//Default unmarshals to a float 64 - so we have to coerce it to an int
+		var volumeInt int
+		if volFloat, ok := volume.(float64); ok {
+			volumeInt = int(volFloat)
+		} else {
+			volumeInt, ok = volume.(int)
+		}
+
+		//volumeint should be set now
+		if ok {
+			audioDevice.Volume = &volumeInt
+		} else {
+			log.Printf("Volume type assertion failed for %v", volume)
+		}
 	}
 
 	power, ok := device.Status["power"]
@@ -289,4 +321,54 @@ func processDisplay(device Status) (base.Display, error) {
 	display.Name = device.DestinationDevice.Name
 
 	return display, nil
+}
+
+func generateStandardStatusCommand(devices []accessors.Device, evaluatorName string, commandName string) ([]StatusCommand, error) {
+	log.Printf("Generating status commands from %v", evaluatorName)
+	var output []StatusCommand
+
+	//iterate over each device
+	for _, device := range devices {
+
+		log.Printf("Considering device: %s", device.Name)
+
+		for _, command := range device.Commands {
+			if strings.HasPrefix(command.Name, FLAG) && strings.Contains(command.Name, commandName) {
+				log.Printf("Command found")
+
+				//every power command needs an address parameter
+				parameters := make(map[string]string)
+				parameters["address"] = device.Address
+
+				//build destination device
+				var destinationDevice DestinationDevice
+				for _, role := range device.Roles {
+
+					if role == "AudioOut" {
+						destinationDevice.AudioDevice = true
+					}
+
+					if role == "VideoOut" {
+						destinationDevice.Display = true
+					}
+
+				}
+				destinationDevice.Device = device
+
+				log.Printf("Adding command: %s to action list with device %s", command.Name, device.Name)
+				output = append(output, StatusCommand{
+					Action:            command,
+					Device:            device,
+					Parameters:        parameters,
+					DestinationDevice: destinationDevice,
+					Generator:         evaluatorName,
+				})
+
+			}
+
+		}
+
+	}
+	return output, nil
+
 }
