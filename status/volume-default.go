@@ -20,7 +20,7 @@ func (p *VolumeDefault) GenerateCommands(devices []accessors.Device) ([]StatusCo
 	return generateStandardStatusCommand(devices, VolumeDefaultName, VolumeDefaultCommandName)
 }
 
-func (p *VolumeDefault) EvaluateResponse(label string, value interface{}) (string, interface{}, error) {
+func (p *VolumeDefault) EvaluateResponse(label string, value interface{}, Source accessors.Device, dest DestinationDevice) (string, interface{}, error) {
 	log.Printf("Evaluating response: %s, %s in evaluator %v", label, value, VolumeDefaultCommandName)
 	return label, value, nil
 }

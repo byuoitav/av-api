@@ -20,7 +20,7 @@ func (p *MutedDefault) GenerateCommands(devices []accessors.Device) ([]StatusCom
 	return generateStandardStatusCommand(devices, MutedDefaultName, MutedDefaultCommandName)
 }
 
-func (p *MutedDefault) EvaluateResponse(label string, value interface{}) (string, interface{}, error) {
+func (p *MutedDefault) EvaluateResponse(label string, value interface{}, Source accessors.Device, dest DestinationDevice) (string, interface{}, error) {
 	log.Printf("Evaluating response: %s, %s in evaluator %v", label, value, MutedDefaultCommandName)
 	return label, value, nil
 }

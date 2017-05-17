@@ -34,16 +34,17 @@ type Volume struct {
 
 //represents output from a device, use Error field to flag errors
 type Status struct {
-	DestinationDevice DestinationDevice      `json:"device"`
-	Responses         []StatusResponse       `json:"responses"`
 	Status            map[string]interface{} `json:"status"`
-	ErrorMessage      *string                `json:"error"`
+	DestinationDevice DestinationDevice      `json:"destination_device"`
 }
 
 //represents a status response, including the generator that created the command that returned the status
 type StatusResponse struct {
-	Generator string                 `json:"generator"`
-	Status    map[string]interface{} `json:"status"`
+	SourceDevice      accessors.Device       `json:"source_device"`
+	DestinationDevice DestinationDevice      `json:"destination_device"`
+	Generator         string                 `json:"generator"`
+	Status            map[string]interface{} `json:"status"`
+	ErrorMessage      *string                `json:"error"`
 }
 
 //StatusCommand contains information to issue a status command against a device
@@ -71,7 +72,7 @@ type StatusEvaluator interface {
 	GenerateCommands(devices []accessors.Device) ([]StatusCommand, error)
 
 	//Evaluate Response
-	EvaluateResponse(label string, value interface{}) (string, interface{}, error)
+	EvaluateResponse(label string, value interface{}, Source accessors.Device, Destination DestinationDevice) (string, interface{}, error)
 }
 
 const FLAG = "STATUS"
