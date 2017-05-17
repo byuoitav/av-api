@@ -225,7 +225,6 @@ func evaluateResponses(responses []StatusResponse) (base.PublicRoom, error) {
 	//make our array of Statuses by device
 	responsesByDestinationDevice := make(map[string]Status)
 	for _, resp := range responses {
-		newMap := make(map[string]interface{})
 		for key, value := range resp.Status {
 			k, v, err := DEFAULT_MAP[resp.Generator].EvaluateResponse(key, value, resp.SourceDevice, resp.DestinationDevice)
 			if err != nil {
@@ -234,13 +233,19 @@ func evaluateResponses(responses []StatusResponse) (base.PublicRoom, error) {
 					key, value, resp.Generator, err.Error())
 				continue
 			}
-			newMap[k] = v
+			if _, ok := responsesByDestinationDevice[resp.DestinationDevice.GetFullName()]; ok {
+				responsesByDestinationDevice[resp.DestinationDevice.GetFullName()].Status[k] = v
+			} else {
+				newMap := make(map[string]interface{})
+				newMap[k] = v
+				statusForDevice := Status{
+					Status:            newMap,
+					DestinationDevice: resp.DestinationDevice,
+				}
+				responsesByDestinationDevice[resp.DestinationDevice.GetFullName()] = statusForDevice
+				log.Printf("Adding Device %v to the map", resp.DestinationDevice.GetFullName())
+			}
 		}
-		statusForDevice := Status{
-			Status:            newMap,
-			DestinationDevice: resp.DestinationDevice,
-		}
-		responsesByDestinationDevice[resp.DestinationDevice.GetFullName()] = statusForDevice
 	}
 	for _, v := range responsesByDestinationDevice {
 		if v.DestinationDevice.AudioDevice {
