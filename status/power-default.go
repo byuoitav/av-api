@@ -21,7 +21,7 @@ func (p *PowerDefault) GenerateCommands(devices []accessors.Device) ([]StatusCom
 	return generateStandardStatusCommand(devices, PowerDefaultEvaluatorName, PowerDefaultCommand)
 }
 
-func (p *PowerDefault) EvaluateResponse(label string, value interface{}) (string, interface{}, error) {
+func (p *PowerDefault) EvaluateResponse(label string, value interface{}, Source accessors.Device, dest DestinationDevice) (string, interface{}, error) {
 	log.Printf("Evaluating response: %s, %s in evaluator %v", label, value, PowerDefaultEvaluatorName)
 	return label, value, nil
 }

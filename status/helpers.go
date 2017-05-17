@@ -72,7 +72,7 @@ func generateStatusCommands(room accessors.Room, commandMap map[string]StatusEva
 	return output, nil
 }
 
-func runStatusCommands(commands []StatusCommand) (outputs []Status, err error) {
+func runStatusCommands(commands []StatusCommand) (outputs []StatusResponse, err error) {
 
 	log.Printf("Running commands...")
 
@@ -98,7 +98,7 @@ func runStatusCommands(commands []StatusCommand) (outputs []Status, err error) {
 	}
 
 	log.Printf("Creating channel")
-	channel := make(chan Status, len(commandMap))
+	channel := make(chan []StatusResponse, len(commandMap))
 	var group sync.WaitGroup
 
 	for _, deviceCommands := range commandMap {
@@ -111,32 +111,38 @@ func runStatusCommands(commands []StatusCommand) (outputs []Status, err error) {
 	log.Printf("Done. Closing channel...")
 	close(channel)
 
-	for output := range channel {
-		if output.ErrorMessage != nil {
-			log.Printf("Error querying status with destination: %s", output.DestinationDevice.Name)
-			cause := eventinfrastructure.INTERNAL
-			message := *output.ErrorMessage
-			message = "Error querying status for destination" + output.DestinationDevice.Name + ":" + message
-			base.PublishError(message, cause)
+	for outputList := range channel {
+		for _, output := range outputList {
+			if output.ErrorMessage != nil {
+				log.Printf("Error querying status with destination: %s", output.DestinationDevice.Name)
+				cause := eventinfrastructure.INTERNAL
+				message := *output.ErrorMessage
+				message = "Error querying status for destination" + output.DestinationDevice.Name + ":" + message
+				base.PublishError(message, cause)
+			}
+			log.Printf("Appending results of %s to output", output.DestinationDevice.Name)
+			outputs = append(outputs, output)
 		}
-		log.Printf("Appending results of %s to output", output.DestinationDevice.Name)
-		outputs = append(outputs, output)
 	}
 	return
 }
 
 //builds a Status object corresponding to a device and writes it to the channel
-func issueCommands(commands []StatusCommand, channel chan Status, control *sync.WaitGroup) {
+func issueCommands(commands []StatusCommand, channel chan []StatusResponse, control *sync.WaitGroup) {
 
 	//add task to waitgroup
 
 	//final output
-	output := Status{DestinationDevice: commands[0].DestinationDevice}
-	statuses := []StatusResponse{}
+	outputs := []StatusResponse{}
 
 	//iterate over list of StatusCommands
 	//TODO:make sure devices can handle rapid-fire API requests
 	for _, command := range commands {
+		output := StatusResponse{
+			Generator:         command.Generator,
+			SourceDevice:      command.Device,
+			DestinationDevice: command.DestinationDevice,
+		}
 		statusResponseMap := make(map[string]interface{})
 
 		//build url
@@ -146,6 +152,7 @@ func issueCommands(commands []StatusCommand, channel chan Status, control *sync.
 			if !strings.Contains(url, toReplace) {
 				errorMessage := "Could not find parameter " + toReplace + " issuing the command " + command.Action.Name
 				output.ErrorMessage = &errorMessage
+				outputs = append(outputs, output)
 				log.Printf(errorMessage)
 			} else {
 				url = strings.Replace(url, toReplace, actual, -1)
@@ -157,6 +164,7 @@ func issueCommands(commands []StatusCommand, channel chan Status, control *sync.
 		if err != nil {
 			errorMessage := err.Error()
 			output.ErrorMessage = &errorMessage
+			outputs = append(outputs, output)
 			log.Printf("Error getting response from %s", command.Device.Name)
 			continue
 		}
@@ -166,6 +174,7 @@ func issueCommands(commands []StatusCommand, channel chan Status, control *sync.
 		if err != nil {
 			errorMessage := err.Error()
 			output.ErrorMessage = &errorMessage
+			outputs = append(outputs, output)
 			log.Printf("Error reading response from %s", command.Device.Name)
 			continue
 		}
@@ -176,6 +185,7 @@ func issueCommands(commands []StatusCommand, channel chan Status, control *sync.
 		if err != nil {
 			errorMessage := err.Error()
 			output.ErrorMessage = &errorMessage
+			outputs = append(outputs, output)
 			log.Printf("Error unmarshalling response from %s", command.Device.Name)
 			continue
 		}
@@ -185,63 +195,72 @@ func issueCommands(commands []StatusCommand, channel chan Status, control *sync.
 			statusResponseMap[device] = object
 			log.Printf("%s maps to %v", device, object)
 		}
+
+		output.Status = statusResponseMap
 		//add the full status response
-		statuses = append(statuses, StatusResponse{Generator: command.Generator, Status: statusResponseMap})
+		outputs = append(outputs, output)
 	}
 
-	//set the map of statuses to output
-	output.Responses = statuses
 	//write output to channel
 	log.Printf("Writing output to channel...")
-	for key, value := range output.Status {
-		log.Printf("%s maps to %v", key, value)
+	for _, output := range outputs {
+		log.Printf("outputs from device %v", output.SourceDevice.GetFullName())
+		for key, value := range output.Status {
+			log.Printf("%s maps to %v", key, value)
+		}
 	}
 
-	channel <- output
-	log.Printf("Done acquiring status of %s", output.DestinationDevice.Name)
+	channel <- outputs
+	log.Printf("Done acquiring statuses from  %s", commands[0].Device.GetFullName())
 	control.Done()
 }
 
-func evaluateResponses(responses []Status) (base.PublicRoom, error) {
+func evaluateResponses(responses []StatusResponse) (base.PublicRoom, error) {
 
 	log.Printf("Evaluating responses...")
 
 	var AudioDevices []base.AudioDevice
 	var Displays []base.Display
 
-	for _, device := range responses {
-		newMap := make(map[string]interface{})
-		//as the first step, we're gonna run it through processing, to allow the evaluator a chance to
-		//tweak the values.
-		for _, response := range device.Responses {
-			for key, value := range response.Status {
-				k, v, err := DEFAULT_MAP[response.Generator].EvaluateResponse(key, value)
-				if err != nil {
-					//log an error
-					log.Printf("There was a problem procesing the response %v - %v with evaluator %v: %s",
-						key, value, response.Generator, err.Error())
-					continue
-				}
-				newMap[k] = v
+	//make our array of Statuses by device
+	responsesByDestinationDevice := make(map[string]Status)
+	for _, resp := range responses {
+		for key, value := range resp.Status {
+			k, v, err := DEFAULT_MAP[resp.Generator].EvaluateResponse(key, value, resp.SourceDevice, resp.DestinationDevice)
+			if err != nil {
+				//log an error
+				log.Printf("There was a problem procesing the response %v - %v with evaluator %v: %s",
+					key, value, resp.Generator, err.Error())
+				continue
 			}
-			device.Status = newMap
+			if _, ok := responsesByDestinationDevice[resp.DestinationDevice.GetFullName()]; ok {
+				responsesByDestinationDevice[resp.DestinationDevice.GetFullName()].Status[k] = v
+			} else {
+				newMap := make(map[string]interface{})
+				newMap[k] = v
+				statusForDevice := Status{
+					Status:            newMap,
+					DestinationDevice: resp.DestinationDevice,
+				}
+				responsesByDestinationDevice[resp.DestinationDevice.GetFullName()] = statusForDevice
+				log.Printf("Adding Device %v to the map", resp.DestinationDevice.GetFullName())
+			}
 		}
-
-		if device.DestinationDevice.AudioDevice {
-			audioDevice, err := processAudioDevice(device)
+	}
+	for _, v := range responsesByDestinationDevice {
+		if v.DestinationDevice.AudioDevice {
+			audioDevice, err := processAudioDevice(v)
 			if err == nil {
 				AudioDevices = append(AudioDevices, audioDevice)
 			}
 		}
+		if v.DestinationDevice.Display {
 
-		if device.DestinationDevice.Display {
-
-			display, err := processDisplay(device)
+			display, err := processDisplay(v)
 			if err == nil {
 				Displays = append(Displays, display)
 			}
 		}
-
 	}
 
 	return base.PublicRoom{Displays: Displays, AudioDevices: AudioDevices}, nil
