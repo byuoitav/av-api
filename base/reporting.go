@@ -1,67 +1,103 @@
 package base
 
 import (
-	"bytes"
 	"encoding/json"
 	"log"
-	"net/http"
 	"os"
+	"strings"
 	"time"
+
+	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	"github.com/xuther/go-message-router/common"
+	"github.com/xuther/go-message-router/publisher"
 )
 
-/*
-Event is the struct we push up to ELK.
-{
-  hostname: "",
-  timestamp: RFC 3339 Format,
-  localEnvironment: bool,
-  callingIP: "",
-  event: " ",
-  responseCode: int,
-  building: "",
-  room: ""
-}
-*/
-type Event struct {
-	Hostname         string `json:"hostname,omitempty"`
-	Timestamp        string `json:"timestamp,omitempty"`
-	LocalEnvironment bool   `json:"localEnvironment,omitempty"`
-	Event            string `json:"event,omitempty"`
-	ResponseCode     int    `json:"responseCode,omitempty"`
-	Success          bool   `json:"success,omitempty"`
-	Building         string `json:"building,omitempty"`
-	Room             string `json:"room,omitempty"`
-	Device           string `json:"device,omitempty"`
-}
+var Publisher publisher.Publisher
 
-func ReportToELK(e Event) error {
+func Publish(e eventinfrastructure.Event, Error bool) error {
 	var err error
 
+	// create the event
 	e.Timestamp = time.Now().Format(time.RFC3339)
 	if len(os.Getenv("LOCAL_ENVIRONMENT")) > 0 {
 		e.Hostname = os.Getenv("PI_HOSTNAME")
 	} else {
 		e.Hostname, err = os.Hostname()
 	}
-
 	if err != nil {
 		return err
 	}
 
 	e.LocalEnvironment = len(os.Getenv("LOCAL_ENVIRONMENT")) > 0
 
-	log.Printf("Elastic event to send: %+v", e)
-
 	toSend, err := json.Marshal(&e)
 	if err != nil {
 		return err
 	}
 
-	log.Print("Sending event to: " + os.Getenv("ELASTIC_API_EVENTS"))
+	header := [24]byte{}
+	if Error {
+		copy(header[:], eventinfrastructure.APISuccess)
+	} else {
+		copy(header[:], eventinfrastructure.APIError)
+	}
 
-	_, err = http.Post(os.Getenv("ELASTIC_API_EVENTS"),
-		"application/json",
-		bytes.NewBuffer(toSend))
+	log.Printf("Publishing event: %s", toSend)
+	Publisher.Write(common.Message{MessageHeader: header, MessageBody: toSend})
 
 	return err
+}
+
+func SendEvent(Type eventinfrastructure.EventType,
+	Cause eventinfrastructure.EventCause,
+	Device string,
+	Room string,
+	Building string,
+	InfoKey string,
+	InfoValue string,
+	Error bool) error {
+
+	e := eventinfrastructure.EventInfo{
+		Type:           Type,
+		EventCause:     Cause,
+		Device:         Device,
+		EventInfoKey:   InfoKey,
+		EventInfoValue: InfoValue,
+	}
+
+	err := Publish(eventinfrastructure.Event{
+		Event:    e,
+		Building: Building,
+		Room:     Room,
+	}, Error)
+
+	return err
+}
+
+func PublishError(errorStr string, cause eventinfrastructure.EventCause) {
+	e := eventinfrastructure.EventInfo{
+		Type:           eventinfrastructure.ERROR,
+		EventCause:     cause,
+		EventInfoKey:   "Error String",
+		EventInfoValue: errorStr,
+	}
+
+	building := ""
+	room := ""
+
+	if len(os.Getenv("LOCAL_ENVIRONMENT")) > 0 {
+		if len(os.Getenv("PI_HOSTNAME")) > 0 {
+			name := os.Getenv("PI_HOSTNAME")
+			roomInfo := strings.Split(name, "-")
+			building = roomInfo[0]
+			room = roomInfo[1]
+			e.Device = roomInfo[2]
+		}
+	}
+
+	Publish(eventinfrastructure.Event{
+		Event:    e,
+		Building: building,
+		Room:     room,
+	}, true)
 }

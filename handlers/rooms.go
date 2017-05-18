@@ -7,8 +7,21 @@ import (
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/av-api/helpers"
+	"github.com/byuoitav/av-api/status"
 	"github.com/labstack/echo"
 )
+
+func GetRoomStatus(context echo.Context) error {
+
+	building, room := context.Param("building"), context.Param("room")
+
+	status, err := status.GetRoomStatus(building, room)
+	if err != nil {
+		return context.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	return context.JSON(http.StatusOK, status)
+}
 
 //GetRoomByNameAndBuilding is almost identical to GetRoomByName
 func GetRoomByNameAndBuilding(context echo.Context) error {
