@@ -73,10 +73,12 @@ func generateChangeInputByDevice(dev base.Device, room string, building string, 
 	}
 
 	paramMap := make(map[string]string)
+	var portSource string
 
 	for _, port := range curDevice.Ports {
 		if strings.EqualFold(port.Source, dev.Input) {
 			paramMap["port"] = port.Name
+			portSource = port.Source
 			break
 		}
 	}
@@ -91,7 +93,7 @@ func generateChangeInputByDevice(dev base.Device, room string, building string, 
 		EventCause:     eventinfrastructure.USERINPUT,
 		Device:         dev.Name,
 		EventInfoKey:   "input",
-		EventInfoValue: paramMap["port"],
+		EventInfoValue: portSource,
 	}
 
 	action = base.ActionStructure{
@@ -113,6 +115,8 @@ func generateChangeInputByRole(role string, input string, room string, building 
 		return
 	}
 
+	var source string
+
 	for _, d := range devicesToChange { // Loop through the devices in the room
 		paramMap := make(map[string]string) // Start building parameter map
 
@@ -122,6 +126,7 @@ func generateChangeInputByRole(role string, input string, room string, building 
 			if strings.EqualFold(curPort.Source, input) {
 
 				paramMap["port"] = curPort.Name
+				source = curPort.Source
 				break
 
 			}
@@ -138,7 +143,7 @@ func generateChangeInputByRole(role string, input string, room string, building 
 			EventCause:     eventinfrastructure.USERINPUT,
 			Device:         d.Name,
 			EventInfoKey:   "input",
-			EventInfoValue: paramMap["port"],
+			EventInfoValue: source,
 		}
 
 		action := base.ActionStructure{
