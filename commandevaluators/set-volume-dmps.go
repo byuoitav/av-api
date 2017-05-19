@@ -8,6 +8,7 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
+	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
 type SetVolumeDMPS struct {
@@ -16,7 +17,13 @@ type SetVolumeDMPS struct {
 //Validate checks for a volume for the entire room or the volume of a specific device
 func (*SetVolumeDMPS) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
 
-	actions := []base.ActionStructure{}
+	var actions []base.ActionStructure
+
+	eventInfo := eventinfrastructure.EventInfo{
+		Type:         eventinfrastructure.USERACTION,
+		EventCause:   eventinfrastructure.USERINPUT,
+		EventInfoKey: "volume",
+	}
 
 	// general room volume
 	if room.Volume != nil {
@@ -30,19 +37,22 @@ func (*SetVolumeDMPS) Evaluate(room base.PublicRoom) ([]base.ActionStructure, er
 			return []base.ActionStructure{}, err
 		}
 
-		for i := range devices {
+		for _, device := range devices {
 
-			if devices[i].Output {
+			if device.Output {
 
 				parameters := make(map[string]string)
 				parameters["level"] = fmt.Sprintf("%v", newVol)
 
+				eventInfo.Device = device.Name
+				eventInfo.EventInfoValue = string(*room.Volume)
 				actions = append(actions, base.ActionStructure{
 					Action:              "SetVolume",
 					Parameters:          parameters,
 					GeneratingEvaluator: "SetVolumeDMPS",
-					Device:              devices[i],
+					Device:              device,
 					DeviceSpecific:      false,
+					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 				})
 
 			}
@@ -71,12 +81,15 @@ func (*SetVolumeDMPS) Evaluate(room base.PublicRoom) ([]base.ActionStructure, er
 				parameters := make(map[string]string)
 				parameters["level"] = fmt.Sprintf("%v", newVol)
 
+				eventInfo.Device = device.Name
+				eventInfo.EventInfoValue = string(*audioDevice.Volume)
 				actions = append(actions, base.ActionStructure{
 					Action:              "SetVolume",
 					GeneratingEvaluator: "SetVolumeDMPS",
 					Parameters:          parameters,
 					Device:              device,
 					DeviceSpecific:      true,
+					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 				})
 
 			}

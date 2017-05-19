@@ -22,12 +22,6 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStruc
 
 	var actions []base.ActionStructure
 
-	// Get all devices
-	devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "VideoOut")
-	if err != nil {
-		return []base.ActionStructure{}, err
-	}
-
 	//build event info
 	eventInfo := eventinfrastructure.EventInfo{
 		Type:           eventinfrastructure.USERACTION,
@@ -39,6 +33,12 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStruc
 	// Check for room-wide blanking
 	if room.Blanked != nil && *room.Blanked {
 		log.Printf("Room-wide blank request received. Retrieving all devices.")
+
+		// Get all devices
+		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "VideoOut")
+		if err != nil {
+			return []base.ActionStructure{}, err
+		}
 
 		fmt.Printf("VideoOut devices: %+v\n", devices)
 
