@@ -7,6 +7,7 @@ import (
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/configuration-database-microservice/accessors"
+	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
 //ChangeVideoInputDefault is struct that implements the CommandEvaluation struct
@@ -63,6 +64,7 @@ func (p *ChangeVideoInputDefault) GetIncompatibleCommands() (incompatableActions
 }
 
 func generateChangeInputByDevice(dev base.Device, room string, building string, generatingEvaluator string) (action base.ActionStructure, err error) {
+
 	var curDevice accessors.Device
 
 	curDevice, err = dbo.GetDeviceByName(building, room, dev.Name)
@@ -71,10 +73,12 @@ func generateChangeInputByDevice(dev base.Device, room string, building string, 
 	}
 
 	paramMap := make(map[string]string)
+	var portSource string
 
 	for _, port := range curDevice.Ports {
 		if strings.EqualFold(port.Source, dev.Input) {
 			paramMap["port"] = port.Name
+			portSource = port.Source
 			break
 		}
 	}
@@ -84,6 +88,14 @@ func generateChangeInputByDevice(dev base.Device, room string, building string, 
 		return
 	}
 
+	eventInfo := eventinfrastructure.EventInfo{
+		Type:           eventinfrastructure.USERACTION,
+		EventCause:     eventinfrastructure.USERINPUT,
+		Device:         dev.Name,
+		EventInfoKey:   "input",
+		EventInfoValue: portSource,
+	}
+
 	action = base.ActionStructure{
 		Action:              "ChangeInput",
 		GeneratingEvaluator: generatingEvaluator,
@@ -91,6 +103,7 @@ func generateChangeInputByDevice(dev base.Device, room string, building string, 
 		Parameters:          paramMap,
 		DeviceSpecific:      true,
 		Overridden:          false,
+		EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 	}
 
 	return
@@ -102,20 +115,35 @@ func generateChangeInputByRole(role string, input string, room string, building 
 		return
 	}
 
+	var source string
+
 	for _, d := range devicesToChange { // Loop through the devices in the room
 		paramMap := make(map[string]string) // Start building parameter map
 
 		//Get the port mapping for the device
 		for _, curPort := range d.Ports { // Loop through the found ports
+
 			if strings.EqualFold(curPort.Source, input) {
+
 				paramMap["port"] = curPort.Name
+				source = curPort.Source
 				break
+
 			}
+
 		}
 
 		if len(paramMap) == 0 {
 			err = errors.New("No port found for input.")
 			return
+		}
+
+		eventInfo := eventinfrastructure.EventInfo{
+			Type:           eventinfrastructure.USERACTION,
+			EventCause:     eventinfrastructure.USERINPUT,
+			Device:         d.Name,
+			EventInfoKey:   "input",
+			EventInfoValue: source,
 		}
 
 		action := base.ActionStructure{
@@ -125,6 +153,7 @@ func generateChangeInputByRole(role string, input string, room string, building 
 			Parameters:          paramMap,
 			DeviceSpecific:      false,
 			Overridden:          false,
+			EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 		}
 
 		actions = append(actions, action)
