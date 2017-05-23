@@ -1,6 +1,7 @@
 package commandevaluators
 
 import (
+	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/configuration-database-microservice/accessors"
+	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
 //CommandExecutionReporting is a struct we use to keep track of command execution
@@ -131,24 +133,20 @@ func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionRe
 		}
 
 		resp, er := client.Do(req)
-
-		toReport := base.Event{
-			Event:    a.Action,
-			Building: a.Device.Building.Shortname,
-			Room:     a.Device.Room.Name,
-			Device:   a.Device.Name,
-		}
+		defer resp.Body.Close()
 
 		//if error, record it
 		if er != nil {
+			base.SendEvent(
+				eventinfrastructure.ERROR,
+				eventinfrastructure.USERINPUT,
+				a.Device.GetFullName(),
+				a.Device.Room.Name,
+				a.Device.Building.Name,
+				cmd.Name,
+				er.Error(),
+				true)
 			log.Printf("ERROR: %s. Continuing.", er.Error())
-
-			if resp != nil {
-				toReport.ResponseCode = resp.StatusCode
-			}
-
-			toReport.Success = false
-			base.ReportToELK(toReport)
 
 			status = append(status, CommandExecutionReporting{
 				Success: false,
@@ -157,10 +155,17 @@ func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionRe
 				Err:     er.Error(),
 			})
 		} else {
+			Vals := getKeyValueFromCommmand(a)
+			base.SendEvent(
+				eventinfrastructure.CORESTATE,
+				eventinfrastructure.USERINPUT,
+				a.Device.GetFullName(),
+				a.Device.Room.Name,
+				a.Device.Building.Name,
+				Vals[0],
+				Vals[1],
+				false)
 			log.Printf("Successfully sent command %s to device %s.", a.Action, a.Device.Name)
-
-			toReport.Success = false
-			base.ReportToELK(toReport)
 
 			status = append(status, CommandExecutionReporting{
 				Success: true,
@@ -169,10 +174,31 @@ func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionRe
 				Err:     "",
 			})
 		}
-
 	}
-
 	return
+}
+
+func getKeyValueFromCommmand(action base.ActionStructure) []string {
+	switch action.Action {
+	case "PowerOn":
+		return []string{"power", "on"}
+	case "Standby":
+		return []string{"power", "standby"}
+	case "ChangeInput":
+		b, _ := json.Marshal(action.Parameters)
+		return []string{"input", string(b)}
+	case "SetVolume":
+		return []string{"volume", action.Parameters["level"]}
+	case "BlankDisplay":
+		return []string{"blanked", "true"}
+	case "UnblankDisplay":
+		return []string{"blanked", "false"}
+	case "Mute":
+		return []string{"Muted", "true"}
+	case "UnMute":
+		return []string{"Muted", "false"}
+	}
+	return []string{}
 }
 
 /*

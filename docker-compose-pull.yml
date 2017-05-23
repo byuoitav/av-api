@@ -11,14 +11,6 @@ services:
             - ELASTIC_API_EVENTS=$ELASTIC_API_EVENTS
         network_mode: "host"
         restart: always
-    telnet-microservice:
-        image: byuoitav/telnet-microservice:${DOCKER_HUB_TAG}
-        ports:
-            - "8001:8001"
-        environment:
-            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
-        network_mode: "host"
-        restart: always
     crestron-control-microservice:
         image: byuoitav/crestron-control-microservice:${DOCKER_HUB_TAG}
         ports:
@@ -117,5 +109,23 @@ services:
             - "9999:9999"
         environment:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+            - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
         network_mode: "host"
         restart: always
+    event-router-microservice:
+        image: byuoitav/event-router-microservice:${DOCKER_HUB_TAG}
+        ports:
+            - "7000:7000"
+        environment:
+            - PI_HOSTNAME=$PI_HOSTNAME
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+            - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
+        network_mode: "host"
+    event-translator-microservice:
+        image: byuoitav/event-translator-microservice:${DOCKER_HUB_TAG}
+        ports:
+            - "7002:7002"
+        environment:
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+            - ELASTIC_API_EVENTS=$ELASTIC_API_EVENTS
+        network_mode: "host"
