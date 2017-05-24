@@ -8,6 +8,7 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
+	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
 //MuteDefault implements CommandEvaluation
@@ -22,15 +23,19 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, er
 
 	log.Printf("Evaluating for Mute command.")
 
-	//create array of type ActionStructure
-	actions := []base.ActionStructure{}
+	var actions []base.ActionStructure
+
+	eventInfo := eventinfrastructure.EventInfo{
+		Type:           eventinfrastructure.USERACTION,
+		EventCause:     eventinfrastructure.USERINPUT,
+		EventInfoKey:   "muted",
+		EventInfoValue: "true",
+	}
 
 	if room.Muted != nil && *room.Muted {
 
-		//general mute command
 		log.Printf("Room-wide Mute request recieved. Retrieving all devices.")
 
-		//get all devices
 		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "AudioOut")
 		if err != nil {
 			return []base.ActionStructure{}, err
@@ -38,15 +43,17 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, er
 
 		log.Printf("Muting all devices in room.")
 
-		for i := range devices {
-			if devices[i].Output {
-				log.Printf("Adding device %+v", devices[i].Name)
+		for _, device := range devices {
+			if device.Output {
+				log.Printf("Adding device %+v", device.Name)
 
+				eventInfo.Device = device.Name
 				actions = append(actions, base.ActionStructure{
 					Action:              "Mute",
 					GeneratingEvaluator: "MuteDefault",
-					Device:              devices[i],
+					Device:              device,
 					DeviceSpecific:      false,
+					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 				})
 			}
 		}
@@ -65,11 +72,13 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, er
 				return []base.ActionStructure{}, err
 			}
 
+			eventInfo.Device = device.Name
 			actions = append(actions, base.ActionStructure{
 				Action:              "Mute",
 				GeneratingEvaluator: "MuteDefault",
 				Device:              device,
 				DeviceSpecific:      true,
+				EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 			})
 
 		}

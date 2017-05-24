@@ -8,8 +8,9 @@ type ChangeAudioInputDefault struct {
 
 //Evaluate f
 func (p *ChangeAudioInputDefault) Evaluate(room base.PublicRoom) (actions []base.ActionStructure, err error) {
-	//RoomWideSetAudioInput
+
 	if len(room.CurrentAudioInput) > 0 { // Check if the user sent a PUT body changing the current audio input
+
 		var tempActions []base.ActionStructure
 
 		//generate action

@@ -155,16 +155,22 @@ func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionRe
 				Err:     er.Error(),
 			})
 		} else {
-			Vals := getKeyValueFromCommmand(a)
-			base.SendEvent(
-				eventinfrastructure.CORESTATE,
-				eventinfrastructure.USERINPUT,
-				a.Device.GetFullName(),
-				a.Device.Room.Name,
-				a.Device.Building.Name,
-				Vals[0],
-				Vals[1],
-				false)
+			//Vals := getKeyValueFromCommmand(a)
+
+			for _, event := range a.EventLog {
+
+				base.SendEvent(
+					event.Type,
+					event.EventCause,
+					event.Device,
+					a.Device.Room.Name,
+					a.Device.Building.Name,
+					event.EventInfoKey,
+					event.EventInfoValue,
+					false,
+				)
+			}
+
 			log.Printf("Successfully sent command %s to device %s.", a.Action, a.Device.Name)
 
 			status = append(status, CommandExecutionReporting{
