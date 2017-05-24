@@ -79,7 +79,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure,
 				parameters["level"] = fmt.Sprintf("%v", *audioDevice.Volume)
 				log.Printf("%+v", parameters)
 
-				eventInfo.EventInfoValue = fmt.Sprintf("%v", *room.Volume)
+				eventInfo.EventInfoValue = fmt.Sprintf("%v", *audioDevice.Volume)
 				eventInfo.Device = device.Name
 				actions = append(actions, base.ActionStructure{
 					Action:              "SetVolume",
