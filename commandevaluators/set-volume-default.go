@@ -87,6 +87,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure,
 					Device:              device,
 					DeviceSpecific:      true,
 					Parameters:          parameters,
+					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 				})
 
 			}
