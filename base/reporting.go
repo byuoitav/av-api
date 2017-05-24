@@ -36,7 +36,7 @@ func Publish(e eventinfrastructure.Event, Error bool) error {
 	}
 
 	header := [24]byte{}
-	if Error {
+	if !Error {
 		copy(header[:], eventinfrastructure.APISuccess)
 	} else {
 		copy(header[:], eventinfrastructure.APIError)
