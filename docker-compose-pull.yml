@@ -11,14 +11,6 @@ services:
             - ELASTIC_API_EVENTS=$ELASTIC_API_EVENTS
         network_mode: "host"
         restart: always
-    crestron-control-microservice:
-        image: byuoitav/crestron-control-microservice:${DOCKER_HUB_TAG}
-        ports:
-            - "8004:8004"
-        environment:
-            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
-        network_mode: "host"
-        restart: always
     pjlink-microservice:
         image: byuoitav/pjlink-microservice:${DOCKER_HUB_TAG}
         ports:
@@ -59,14 +51,6 @@ services:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
         network_mode: "host"
         restart: always
-    cgi-microservice:
-        image: byuoitav/cgi-microservice:${DOCKER_HUB_TAG}
-        ports:
-            - "8010:8010"
-        environment:
-            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
-        network_mode: "host"
-        restart: always
     pulse-eight-neo-microservice:
         image: byuoitav/pulse-eight-neo-microservice:${DOCKER_HUB_TAG}
         ports:
@@ -81,17 +65,6 @@ services:
             - "8012:8012"
         environment:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
-        network_mode: "host"
-        restart: always
-    av-api-rpc:
-        image: byuoitav/av-api-rpc:${DOCKER_HUB_TAG}
-        ports:
-            - "8100:8100"
-        environment:
-            - PI_HOSTNAME=$PI_HOSTNAME
-            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
-            - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
-            - ELASTIC_API_EVENTS=$ELASTIC_API_EVENTS
         network_mode: "host"
         restart: always
     touchpanel-ui-microservice:
