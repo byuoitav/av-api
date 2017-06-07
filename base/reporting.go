@@ -14,6 +14,10 @@ import (
 
 var Publisher publisher.Publisher
 
+func PublishHealth(e eventinfrastructure.Event) {
+	Publish(e, false)
+}
+
 func Publish(e eventinfrastructure.Event, Error bool) error {
 	var err error
 

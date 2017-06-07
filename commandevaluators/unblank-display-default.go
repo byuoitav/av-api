@@ -18,7 +18,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStr
 
 	var actions []base.ActionStructure
 	eventInfo := eventinfrastructure.EventInfo{
-		Type:           eventinfrastructure.USERACTION,
+		Type:           eventinfrastructure.CORESTATE,
 		EventCause:     eventinfrastructure.USERINPUT,
 		EventInfoKey:   "blanked",
 		EventInfoValue: "false",

@@ -103,7 +103,7 @@ func GetSwitcherAndCreateAction(room base.PublicRoom, device accessors.Device, s
 			m["output"] = port.Name
 
 			eventInfo := eventinfrastructure.EventInfo{
-				Type:           eventinfrastructure.USERACTION,
+				Type:           eventinfrastructure.CORESTATE,
 				EventCause:     eventinfrastructure.USERINPUT,
 				Device:         switcher[0].Name,
 				EventInfoKey:   "input",

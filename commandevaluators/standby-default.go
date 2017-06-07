@@ -22,7 +22,7 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom) (actions []base.ActionSt
 
 	var devices []accessors.Device
 	eventInfo := eventinfrastructure.EventInfo{
-		Type:           eventinfrastructure.USERACTION,
+		Type:           eventinfrastructure.CORESTATE,
 		EventCause:     eventinfrastructure.USERINPUT,
 		EventInfoKey:   "power",
 		EventInfoValue: "standby",

@@ -21,7 +21,7 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom) (actions []base.ActionSt
 	log.Printf("Evaluating for PowerOn command.")
 
 	eventInfo := eventinfrastructure.EventInfo{
-		Type:           eventinfrastructure.USERACTION,
+		Type:           eventinfrastructure.CORESTATE,
 		EventCause:     eventinfrastructure.USERINPUT,
 		EventInfoKey:   "power",
 		EventInfoValue: "on",

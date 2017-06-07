@@ -98,5 +98,7 @@ func main() {
 		MaxHeaderBytes: 1024 * 10,
 	}
 
+	go health.StartupCheckAndReport()
+
 	router.StartServer(&server)
 }
