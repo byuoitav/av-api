@@ -10,14 +10,17 @@ import (
 	"github.com/labstack/echo"
 )
 
+const version = "0.9.1"
+
 func GetHealth() map[string]string {
 
 	log.Printf("[HealthCheck] Checking microservice health: ")
 
 	healthReport := make(map[string]string)
 
-	healthReport["Web Server Status"] = "ok"
 	healthReport["Initialized"] = "ok"
+	healthReport["Web Server Status"] = "ok"
+	healthReport["Version"] = version
 
 	vals, err := dbo.GetBuildings()
 
