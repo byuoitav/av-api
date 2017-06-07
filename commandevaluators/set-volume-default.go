@@ -20,7 +20,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure,
 	var actions []base.ActionStructure
 
 	eventInfo := eventinfrastructure.EventInfo{
-		Type:         eventinfrastructure.USERACTION,
+		Type:         eventinfrastructure.CORESTATE,
 		EventCause:   eventinfrastructure.USERINPUT,
 		EventInfoKey: "volume",
 	}

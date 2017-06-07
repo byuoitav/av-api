@@ -89,7 +89,7 @@ func generateChangeInputByDevice(dev base.Device, room string, building string, 
 	}
 
 	eventInfo := eventinfrastructure.EventInfo{
-		Type:           eventinfrastructure.USERACTION,
+		Type:           eventinfrastructure.CORESTATE,
 		EventCause:     eventinfrastructure.USERINPUT,
 		Device:         dev.Name,
 		EventInfoKey:   "input",
