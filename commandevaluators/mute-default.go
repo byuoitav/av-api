@@ -26,7 +26,7 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, er
 	var actions []base.ActionStructure
 
 	eventInfo := eventinfrastructure.EventInfo{
-		Type:           eventinfrastructure.USERACTION,
+		Type:           eventinfrastructure.CORESTATE,
 		EventCause:     eventinfrastructure.USERINPUT,
 		EventInfoKey:   "muted",
 		EventInfoValue: "true",

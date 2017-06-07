@@ -11,11 +11,12 @@ import (
 	"github.com/byuoitav/authmiddleware"
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/handlers"
+	"github.com/byuoitav/av-api/health"
 	avapi "github.com/byuoitav/av-api/init"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 	"github.com/byuoitav/event-router-microservice/subscription"
 	"github.com/byuoitav/hateoas"
-	"github.com/jessemillar/health"
+	jh "github.com/jessemillar/health"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/xuther/go-message-router/publisher"
@@ -84,7 +85,8 @@ func main() {
 	// GET requests
 	router.GET("/", echo.WrapHandler(http.HandlerFunc(hateoas.RootResponse)))
 
-	router.GET("/health", echo.WrapHandler(http.HandlerFunc(health.Check)))
+	router.GET("/health", echo.WrapHandler(http.HandlerFunc(jh.Check)))
+	secure.GET("/status", health.Status)
 
 	// PUT requests
 	secure.PUT("/buildings/:building/rooms/:room", handlers.SetRoomState)
@@ -97,6 +99,8 @@ func main() {
 		Addr:           port,
 		MaxHeaderBytes: 1024 * 10,
 	}
+
+	go health.StartupCheckAndReport()
 
 	router.StartServer(&server)
 }
