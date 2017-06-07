@@ -86,6 +86,7 @@ func main() {
 	router.GET("/", echo.WrapHandler(http.HandlerFunc(hateoas.RootResponse)))
 
 	router.GET("/health", echo.WrapHandler(http.HandlerFunc(jh.Check)))
+	secure.GET("/status", health.Status)
 
 	// PUT requests
 	secure.PUT("/buildings/:building/rooms/:room", handlers.SetRoomState)
