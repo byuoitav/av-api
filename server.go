@@ -31,13 +31,6 @@ func main() {
 		log.Fatalf("Could not initialize room. Error: %v\n", err.Error())
 	}
 
-	err = hateoas.Load("https://raw.githubusercontent.com/byuoitav/av-api/master/swagger.json")
-	if err != nil {
-		base.PublishError("Fail to run init script. Terminating.", eventinfrastructure.INTERNAL)
-
-		log.Fatalf("Could not load Swagger file. Error: %s\b", err.Error())
-	}
-
 	base.Publisher, err = publisher.NewPublisher("7001", 1000, 10)
 	if err != nil {
 		errstr := fmt.Sprintf("Could not start publisher. Error: %v\n", err.Error())
