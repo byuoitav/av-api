@@ -114,7 +114,7 @@ func runStatusCommands(commands []StatusCommand) (outputs []StatusResponse, err 
 	for outputList := range channel {
 		for _, output := range outputList {
 			if output.ErrorMessage != nil {
-				log.Printf("Error querying status of device: %s:", output.Device.Name)
+				log.Printf("Error querying status of device: %s:", output.SourceDevice.Name)
 				cause := eventinfrastructure.INTERNAL
 				message := *output.ErrorMessage
 				message = "Error querying status for destination: " + output.DestinationDevice.Name + ": " + message
