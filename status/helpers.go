@@ -117,7 +117,7 @@ func runStatusCommands(commands []StatusCommand) (outputs []StatusResponse, err 
 				log.Printf("Error querying status with destination: %s", output.DestinationDevice.Name)
 				cause := eventinfrastructure.INTERNAL
 				message := *output.ErrorMessage
-				message = "Error querying status for destination" + output.DestinationDevice.Name + ":" + message
+				message = "Error querying status for destination: " + output.DestinationDevice.Name + ": " + message
 				base.PublishError(message, cause)
 			}
 			log.Printf("Appending results of %s to output", output.DestinationDevice.Name)
@@ -178,12 +178,12 @@ func issueCommands(commands []StatusCommand, channel chan []StatusResponse, cont
 			log.Printf("Error reading response from %s", command.Device.Name)
 			continue
 		}
-		log.Printf("Microservice returned: %s", body)
+		log.Printf("microservice returned: %s", body)
 
 		var status map[string]interface{}
 		err = json.Unmarshal(body, &status)
 		if err != nil {
-			errorMessage := err.Error()
+			errorMessage := err.Error() + "microservice returned: " + body
 			output.ErrorMessage = &errorMessage
 			outputs = append(outputs, output)
 			log.Printf("Error unmarshalling response from %s", command.Device.Name)
