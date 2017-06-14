@@ -183,7 +183,7 @@ func issueCommands(commands []StatusCommand, channel chan []StatusResponse, cont
 		var status map[string]interface{}
 		err = json.Unmarshal(body, &status)
 		if err != nil {
-			errorMessage := err.Error() + "microservice returned: " + body
+			errorMessage := err.Error() + "microservice returned: " + string(body)
 			output.ErrorMessage = &errorMessage
 			outputs = append(outputs, output)
 			log.Printf("Error unmarshalling response from %s", command.Device.Name)
