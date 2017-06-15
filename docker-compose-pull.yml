@@ -74,6 +74,7 @@ services:
         environment:
             - PI_HOSTNAME=$PI_HOSTNAME
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+            - HELP_SLACKBOT_WEBHOOK=$HELP_SLACKBOT_WEBHOOK
         network_mode: "host"
         restart: always
     configuration-database-tool:
