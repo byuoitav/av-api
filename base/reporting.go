@@ -25,7 +25,11 @@ func Publish(e eventinfrastructure.Event, Error bool) error {
 	e.Timestamp = time.Now().Format(time.RFC3339)
 	if len(os.Getenv("LOCAL_ENVIRONMENT")) > 0 {
 		e.Hostname = os.Getenv("PI_HOSTNAME")
+		if len(os.Getenv("DEVELOPMENT_HOSTNAME")) > 0 {
+			e.Hostname = os.Getenv("DEVELOPMENT_HOSTNAME")
+		}
 	} else {
+		// isn't it running in a docker container in aws? this won't work?
 		e.Hostname, err = os.Hostname()
 	}
 	if err != nil {
