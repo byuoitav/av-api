@@ -94,6 +94,7 @@ services:
             - PI_HOSTNAME=$PI_HOSTNAME
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
+            - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
         network_mode: "host"
     event-translator-microservice:
         image: byuoitav/event-translator-microservice:${DOCKER_HUB_TAG}
