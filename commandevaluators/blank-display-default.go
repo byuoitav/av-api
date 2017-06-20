@@ -8,17 +8,27 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
+	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
 // BlankDisplay is struct that implements the CommandEvaluation struct
 type BlankDisplayDefault struct {
 }
 
-// Evaluate fulfills the CommmandEvaluation evaluate requirement.
+// Takes a PublicRoom and builds a slice of ActionStructures
 func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
+
 	log.Printf("Evaluating for BlankDisplay command.")
 
-	actions := []base.ActionStructure{}
+	var actions []base.ActionStructure
+
+	//build event info
+	eventInfo := eventinfrastructure.EventInfo{
+		Type:           eventinfrastructure.CORESTATE,
+		EventCause:     eventinfrastructure.USERINPUT,
+		EventInfoKey:   "blanked",
+		EventInfoValue: "true",
+	}
 
 	// Check for room-wide blanking
 	if room.Blanked != nil && *room.Blanked {
@@ -32,40 +42,43 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStruc
 
 		fmt.Printf("VideoOut devices: %+v\n", devices)
 
-		log.Printf("Blanking all displays in room.")
+		log.Printf("Assigning BlankDisplayCommands")
 		// Currently we only check for output devices
-		for i := range devices {
-			if devices[i].Output {
-				log.Printf("Adding device %+v", devices[i].Name)
+		for _, device := range devices {
+			if device.Output {
+				log.Printf("Adding device %+v", device.Name)
 
+				eventInfo.Device = device.Name
 				actions = append(actions, base.ActionStructure{
 					Action:              "BlankDisplay",
 					GeneratingEvaluator: "BlankDisplayDefault",
-					Device:              devices[i],
+					Device:              device,
 					DeviceSpecific:      false,
+					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 				})
 			}
 		}
 	}
 
-	// Now we go through and check if blank was set for a specific device
 	log.Printf("Evaluating individual displays for blanking.")
 
-	for _, display := range room.Displays { // Loop through the provided displays array from the PUT body
+	for _, display := range room.Displays {
 		log.Printf("Adding device %+v", display.Name)
 
-		if display.Blanked != nil && *display.Blanked { // If the user passed in a blanked state with the device
+		if display.Blanked != nil && *display.Blanked {
 
 			device, err := dbo.GetDeviceByName(room.Building, room.Room, display.Name)
 			if err != nil {
 				return []base.ActionStructure{}, err
 			}
 
+			eventInfo.Device = device.Name
 			actions = append(actions, base.ActionStructure{
 				Action:              "BlankDisplay",
 				GeneratingEvaluator: "BlankDisplayDefault",
 				Device:              device,
 				DeviceSpecific:      true,
+				EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 			})
 		}
 	}

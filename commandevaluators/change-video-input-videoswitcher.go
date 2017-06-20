@@ -8,6 +8,7 @@ import (
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/configuration-database-microservice/accessors"
+	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
 /*
@@ -83,18 +84,31 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom) ([]base.A
 //GetSwitcherAndCreateAction gets the videoswitcher in a room, matches the destination port to the new port
 // and creates an action
 func GetSwitcherAndCreateAction(room base.PublicRoom, device accessors.Device, selectedInput string, generatingEvaluator string) (base.ActionStructure, error) {
+
 	switcher, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "VideoSwitcher")
 	if err != nil {
 		return base.ActionStructure{}, err
 	}
+
 	if len(switcher) != 1 {
 		return base.ActionStructure{}, errors.New("too many switchers/none available")
 	}
+
 	log.Printf("Evaluating device %s for a port connecting %s to %s", switcher[0].GetFullName(), selectedInput, device.GetFullName())
 	for _, port := range switcher[0].Ports {
+
 		if port.Destination == device.Name && port.Source == selectedInput {
+
 			m := make(map[string]string)
 			m["output"] = port.Name
+
+			eventInfo := eventinfrastructure.EventInfo{
+				Type:           eventinfrastructure.CORESTATE,
+				EventCause:     eventinfrastructure.USERINPUT,
+				Device:         switcher[0].Name,
+				EventInfoKey:   "input",
+				EventInfoValue: m["output"],
+			}
 
 			tempAction := base.ActionStructure{
 				Action:              "ChangeInput",
@@ -103,6 +117,7 @@ func GetSwitcherAndCreateAction(room base.PublicRoom, device accessors.Device, s
 				Parameters:          m,
 				DeviceSpecific:      false,
 				Overridden:          false,
+				EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 			}
 
 			return tempAction, nil

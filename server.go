@@ -1,17 +1,22 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/byuoitav/authmiddleware"
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/handlers"
+	"github.com/byuoitav/av-api/health"
 	avapi "github.com/byuoitav/av-api/init"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	"github.com/byuoitav/event-router-microservice/subscription"
 	"github.com/byuoitav/hateoas"
-	"github.com/jessemillar/health"
+	jh "github.com/jessemillar/health"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/xuther/go-message-router/publisher"
@@ -24,13 +29,6 @@ func main() {
 		base.PublishError("Fail to run init script. Terminating. ERROR:"+err.Error(), eventinfrastructure.INTERNAL)
 
 		log.Fatalf("Could not initialize room. Error: %v\n", err.Error())
-	}
-
-	err = hateoas.Load("https://raw.githubusercontent.com/byuoitav/av-api/master/swagger.json")
-	if err != nil {
-		base.PublishError("Fail to run init script. Terminating.", eventinfrastructure.INTERNAL)
-
-		log.Fatalf("Could not load Swagger file. Error: %s\b", err.Error())
 	}
 
 	base.Publisher, err = publisher.NewPublisher("7001", 1000, 10)
@@ -51,6 +49,24 @@ func main() {
 			log.Printf("Publisher started on port :7001")
 		}
 	}()
+
+	go func() {
+		var s subscription.SubscribeRequest
+		s.Address = "localhost:7001"
+		body, err := json.Marshal(s)
+		if err != nil {
+			log.Printf("[error] %s", err.Error())
+		}
+		_, err = http.Post("http://localhost:6999/subscribe", "application/json", bytes.NewBuffer(body))
+
+		for err != nil {
+			_, err = http.Post("http://localhost:6999/subscribe", "application/json", bytes.NewBuffer(body))
+			log.Printf("[error] The router hasn't subscribed to me yet. Trying again...")
+			time.Sleep(3 * time.Second)
+		}
+		log.Printf("Router is subscribed to me")
+	}()
+
 	port := ":8000"
 	router := echo.New()
 	router.Pre(middleware.RemoveTrailingSlash())
@@ -62,7 +78,8 @@ func main() {
 	// GET requests
 	router.GET("/", echo.WrapHandler(http.HandlerFunc(hateoas.RootResponse)))
 
-	router.GET("/health", echo.WrapHandler(http.HandlerFunc(health.Check)))
+	router.GET("/health", echo.WrapHandler(http.HandlerFunc(jh.Check)))
+	secure.GET("/status", health.Status)
 
 	// PUT requests
 	secure.PUT("/buildings/:building/rooms/:room", handlers.SetRoomState)
@@ -75,6 +92,8 @@ func main() {
 		Addr:           port,
 		MaxHeaderBytes: 1024 * 10,
 	}
+
+	go health.StartupCheckAndReport()
 
 	router.StartServer(&server)
 }

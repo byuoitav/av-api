@@ -1,6 +1,9 @@
 package base
 
-import "github.com/byuoitav/configuration-database-microservice/accessors"
+import (
+	"github.com/byuoitav/configuration-database-microservice/accessors"
+	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
+)
 
 //PublicRoom is the struct that is returned (or put) as part of the public API
 type PublicRoom struct {
@@ -38,13 +41,15 @@ type Display struct {
 
 //ActionStructure is the internal struct we use to pass commands around once
 //they've been evaluated.
+//also contains a list of Events to be published
 type ActionStructure struct {
-	Action              string            `json:"action"`
-	GeneratingEvaluator string            `json:"generatingEvaluator"`
-	Device              accessors.Device  `json:"device"`
-	Parameters          map[string]string `json:"parameters"`
-	DeviceSpecific      bool              `json:"deviceSpecific,omitempty"`
-	Overridden          bool              `json:"overridden"`
+	Action              string                          `json:"action"`
+	GeneratingEvaluator string                          `json:"generatingEvaluator"`
+	Device              accessors.Device                `json:"device"`
+	Parameters          map[string]string               `json:"parameters"`
+	DeviceSpecific      bool                            `json:"deviceSpecific,omitempty"`
+	Overridden          bool                            `json:"overridden"`
+	EventLog            []eventinfrastructure.EventInfo `json:"events"`
 }
 
 //Equals checks if the action structures are equal

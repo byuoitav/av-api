@@ -7,6 +7,7 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
+	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
 type UnBlankDisplayDefault struct {
@@ -15,7 +16,13 @@ type UnBlankDisplayDefault struct {
 //Evaluate creates UnBlank actions for the entire room and for individual devices
 func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
 
-	actions := []base.ActionStructure{}
+	var actions []base.ActionStructure
+	eventInfo := eventinfrastructure.EventInfo{
+		Type:           eventinfrastructure.CORESTATE,
+		EventCause:     eventinfrastructure.USERINPUT,
+		EventInfoKey:   "blanked",
+		EventInfoValue: "false",
+	}
 
 	if room.Blanked != nil && !*room.Blanked {
 
@@ -28,17 +35,19 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStr
 
 		log.Printf("Un-Blanking all displays in room.")
 
-		for i := range devices {
+		for _, device := range devices {
 
-			if devices[i].Output {
+			if device.Output {
 
-				log.Printf("Adding Device %+v", devices[i].Name)
+				log.Printf("Adding Device %+v", device.Name)
 
+				eventInfo.Device = device.Name
 				actions = append(actions, base.ActionStructure{
 					Action:              "UnblankDisplay",
 					GeneratingEvaluator: "UnBlankDisplayDefault",
-					Device:              devices[i],
+					Device:              device,
 					DeviceSpecific:      false,
+					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 				})
 			}
 
@@ -59,18 +68,19 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStr
 				return []base.ActionStructure{}, err
 			}
 
+			eventInfo.Device = device.Name
 			actions = append(actions, base.ActionStructure{
 				Action:              "UnblankDisplay",
 				GeneratingEvaluator: "UnBlankDisplayDefault",
 				Device:              device,
 				DeviceSpecific:      true,
+				EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 			})
 
 		}
 	}
 
-	log.Printf("%v actions generated.", len(actions))
-	log.Printf("Evaluation complete.")
+	log.Printf("Evaluation complete; %v actions generated.", len(actions))
 
 	return actions, nil
 }

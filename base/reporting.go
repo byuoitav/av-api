@@ -14,6 +14,10 @@ import (
 
 var Publisher publisher.Publisher
 
+func PublishHealth(e eventinfrastructure.Event) {
+	Publish(e, false)
+}
+
 func Publish(e eventinfrastructure.Event, Error bool) error {
 	var err error
 
@@ -36,7 +40,7 @@ func Publish(e eventinfrastructure.Event, Error bool) error {
 	}
 
 	header := [24]byte{}
-	if Error {
+	if !Error {
 		copy(header[:], eventinfrastructure.APISuccess)
 	} else {
 		copy(header[:], eventinfrastructure.APIError)

@@ -12,16 +12,6 @@ services:
             - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
         network_mode: "host"
         restart: always
-    crestron-control-microservice:
-        build: 
-            context: ../crestron-control-microservice
-            dockerfile: Dockerfile-development
-        ports:
-            - "8004:8004"
-        environment:
-            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
-        network_mode: "host"
-        restart: always
     pjlink-microservice:
         build: 
             context: ../pjlink-microservice
@@ -66,16 +56,6 @@ services:
             dockerfile: Dockerfile-development
         ports:
             - "8009:8009"
-        environment:
-            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
-        network_mode: "host"
-        restart: always
-    cgi-microservice:
-        build: 
-            context: ../cgi-microservice
-            dockerfile: Dockerfile-development
-        ports:
-            - "8010:8010"
         environment:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
         network_mode: "host"

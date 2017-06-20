@@ -7,6 +7,7 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
+	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
 type UnMuteDefault struct {
@@ -15,7 +16,13 @@ type UnMuteDefault struct {
 func (p *UnMuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
 	log.Printf("Evaluating UnMute command.")
 
-	actions := []base.ActionStructure{}
+	var actions []base.ActionStructure
+	eventInfo := eventinfrastructure.EventInfo{
+		Type:           eventinfrastructure.CORESTATE,
+		EventCause:     eventinfrastructure.USERINPUT,
+		EventInfoKey:   "muted",
+		EventInfoValue: "false",
+	}
 
 	//check if request is a roomwide unmute
 	if room.Muted != nil && !*room.Muted {
@@ -29,17 +36,19 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, 
 
 		log.Printf("UnMuting alll devices in room.")
 
-		for i := range devices {
+		for _, device := range devices {
 
-			if devices[i].Output {
+			if device.Output {
 
-				log.Printf("Adding device %+v", devices[i].Name)
+				log.Printf("Adding device %+v", device.Name)
 
+				eventInfo.Device = device.Name
 				actions = append(actions, base.ActionStructure{
 					Action:              "UnMute",
 					GeneratingEvaluator: "UnMuteDefault",
-					Device:              devices[i],
+					Device:              device,
 					DeviceSpecific:      false,
+					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 				})
 
 			}
@@ -62,11 +71,13 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, 
 				return []base.ActionStructure{}, err
 			}
 
+			eventInfo.Device = device.Name
 			actions = append(actions, base.ActionStructure{
 				Action:              "UnMute",
 				GeneratingEvaluator: "UnMuteDefault",
 				Device:              device,
 				DeviceSpecific:      true,
+				EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 			})
 
 		}
