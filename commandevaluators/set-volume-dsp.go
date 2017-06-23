@@ -1,8 +1,10 @@
 package commandevaluators
 
 import (
+	"errors"
 	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
@@ -45,15 +47,31 @@ func (p *SetVolumeDSP) Evaluate(room base.PublicRoom) ([]base.ActionStructure, e
 
 	}
 
+	log.Printf("%v actions generated.", len(actions))
+	log.Printf("Evaluation complete.")
+
 	return actions, nil
 }
 
 func (p *SetVolumeDSP) Validate(action base.ActionStructure) (err error) {
+	maximum := 100
+	minimum := 0
+
+	level, err := strconv.Atoi(action.Parameters["level"])
+	if err != nil {
+		return err
+	}
+
+	if level > maximum || level < minimum {
+		log.Printf("ERROR. %v is an invalid volume level for %s", action.Parameters["level"], action.Device.Name)
+		return errors.New(action.Action + " is an invalid command for " + action.Device.Name)
+	}
+
 	return
 }
 
 func (p *SetVolumeDSP) GetIncompatibleCommands() (incompatibleActions []string) {
-	return []string{}
+	return nil
 }
 
 func EvaluateGeneral(eventInfo ei.EventInfo, room base.PublicRoom) ([]base.ActionStructure, error) {
