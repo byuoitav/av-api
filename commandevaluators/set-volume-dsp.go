@@ -29,18 +29,20 @@ func (p *SetVolumeDSP) Evaluate(room base.PublicRoom) ([]base.ActionStructure, e
 	if room.Volume != nil {
 
 		log.Printf("General volume request detected.")
-		actions, err := EvaluateGeneral(eventInfo, room)
+		generalActions, err := EvaluateGeneral(eventInfo, room)
 		if err != nil {
-			return actions, err
+			return []base.ActionStructure{}, err
 		}
+
+		actions = generalActions
 	}
 
 	if len(room.AudioDevices) != 0 {
 
 		log.Printf("Device-specific request detected.")
-		specializedActions, err := EvaluateSpecific(eventInfo, room)
+		specializedActions, err := EvaluateSpecificVolume(eventInfo, room)
 		if err != nil {
-			return specializedActions, err
+			return []base.ActionStructure{}, err
 		}
 
 		actions = append(actions, specializedActions...)
@@ -109,7 +111,7 @@ func EvaluateGeneral(eventInfo ei.EventInfo, room base.PublicRoom) ([]base.Actio
 	return actions, nil
 }
 
-func EvaluateSpecific(eventInfo ei.EventInfo, room base.PublicRoom) ([]base.ActionStructure, error) {
+func EvaluateSpecificVolume(eventInfo ei.EventInfo, room base.PublicRoom) ([]base.ActionStructure, error) {
 
 	log.Printf("Scanning devices")
 
@@ -126,49 +128,57 @@ func EvaluateSpecific(eventInfo ei.EventInfo, room base.PublicRoom) ([]base.Acti
 				return []base.ActionStructure{}, err
 			}
 
+			parameters := make(map[string]string)
+			parameters["level"] = fmt.Sprintf("%v", *audioDevice.Volume)
+			eventInfo.EventInfoValue = fmt.Sprintf("%v", *room.Volume)
+			eventInfo.Device = device.Name
 			//trying to set the volume on an audio input device implies using the DSP
-			for _, role := range device.Roles {
+			if device.HasRole("AudioIn") {
 
-				if role == "AudioIn" {
+				ports, err := dbo.GetPortConfigurationsBySourceDevice(device)
+				if err != nil {
+					log.Printf("Error getting port configurations of device %s: %s", device.Name, err.Error())
+					continue
+				}
 
-					//send command to DSP
+				for _, port := range ports {
 
-					//figure out which port the mic corresponds to
-					//the name of the port the mic has is a parameter for the SetVolumeDSP endpoint
+					destinationDevice, err := dbo.GetDeviceByName(room.Building, room.Room, port.Destination)
+					if err != nil {
+						log.Printf("Error getting destination device %s: %s", port.Destination, err.Error())
+						continue
+					}
 
-					//identify the correct ports
+					if destinationDevice.HasRole("DSP") {
 
-					for _, port := range device.Ports {
+						log.Printf("Identified DSP: %s corresponding to audio input device %s:", destinationDevice.Name, device.Name)
 
-						destinationDevice, err := dbo.GetDeviceByName(room.Building, room.Room, port.Destination)
-						if err != nil {
-							return []base.ActionStructure{}, err
-						}
+						parameters["input"] = port.Name
 
-						for _, destRole := range destinationDevice.Roles {
-
-							if destRole == "DSP" { //we found a DSP to send the command to
-								parameters := make(map[string]string)
-								parameters["level"] = fmt.Sprintf("%v", *audioDevice.Volume)
-								parameters["input"] = port.Name
-
-								eventInfo.EventInfoValue = fmt.Sprintf("%v", *room.Volume)
-								eventInfo.Device = device.Name
-								actions = append(actions, base.ActionStructure{
-									Action:              "SetVolume",
-									GeneratingEvaluator: "SetVolumeDSP",
-									Device:              destinationDevice,
-									DeviceSpecific:      true,
-									Parameters:          parameters,
-									EventLog:            []ei.EventInfo{eventInfo},
-								})
-							}
-						}
+						actions = append(actions, base.ActionStructure{
+							Action:              "SetVolume",
+							GeneratingEvaluator: "SetVolumeDSP",
+							Device:              destinationDevice,
+							DeviceSpecific:      true,
+							Parameters:          parameters,
+							EventLog:            []ei.EventInfo{eventInfo},
+						})
 					}
 				}
 			}
+
+			if device.HasRole("AudioOut") {
+
+				actions = append(actions, base.ActionStructure{
+					Action:              "SetVolume",
+					GeneratingEvaluator: "SetVolumeDSP",
+					Device:              device,
+					DeviceSpecific:      true,
+					Parameters:          parameters,
+					EventLog:            []ei.EventInfo{eventInfo},
+				})
+			}
 		}
 	}
-
 	return actions, nil
 }

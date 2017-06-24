@@ -446,3 +446,10 @@ func AddDevice(toAdd accessors.Device) (accessors.Device, error) {
 
 	return toFill, nil
 }
+
+func GetPortConfigurationsBySourceDevice(device accessors.Device) ([]accessors.Port, error) {
+
+	//TODO implement me!
+
+	return []accessors.Port{}, nil
+}
