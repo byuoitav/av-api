@@ -1,10 +1,23 @@
 package commandevaluators
 
+/**
+ASSUMPTIONS:
+
+a) there is only 1 DSP in a given room
+
+b) microphones only have one port configuration and the DSP is the destination device
+
+c) room-wide requests do not affect microphones
+
+**/
+
 import (
+	"errors"
 	"log"
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
+	"github.com/byuoitav/configuration-database-microservice/accessors"
 	ei "github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
@@ -22,28 +35,60 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error)
 		EventInfoValue: "true",
 	}
 
-	if room.Muted != nil {
+	if room.Muted != nil && *room.Muted {
 
-		generalActions, err := evaluateGeneralMute(room, eventInfo)
+		generalActions, err := GetGeneralMuteRequestActionsDSP(room, eventInfo)
 		if err != nil {
-			log.Printf("Error evaluating general mute command %s", err.Error())
-			return []base.ActionStructure{}, err
+			errorMessage := "Could not generate actions for room-wide \"Mute\" request: " + err.Error()
+			log.Printf(errorMessage)
+			return []base.ActionStructure{}, errors.New(errorMessage)
 		}
 
-		actions = generalActions
-
+		actions = append(actions, generalActions...)
 	}
 
 	if len(room.AudioDevices) > 0 {
 
-		specializedActions, err := evaluateSpecificMute(room, eventInfo)
-		if err != nil {
-			log.Printf("Error evalutating mute commands %s", err.Error())
-			return []base.ActionStructure{}, err
+		for _, audioDevice := range room.AudioDevices {
+
+			device, err := dbo.GetDeviceByName(room.Building, room.Room, audioDevice.Name)
+			if err != nil {
+				log.Printf("Error getting device %s from database: %s", audioDevice.Name, err.Error())
+			}
+
+			if device.HasRole("Microphone") && audioDevice.Volume != nil {
+
+				action, err := GetMicMuteAction(device, room, eventInfo)
+				if err != nil {
+					return []base.ActionStructure{}, err
+				}
+
+				actions = append(actions, action)
+
+			} else if device.HasRole("DSP") && device.Volume != nil {
+
+				action, err := GetDSPMediaMuteAction(device, room, eventInfo, true)
+				if err != nil {
+					return []base.ActionStructure{}, err
+				}
+
+				actions = append(actions, action)
+
+			} else if device.HasRole("AudioOut") && device.Volume != nil {
+
+				action, err := GetDisplayMuteAction(device, room, eventInfo, true)
+				if err != nil {
+					return []base.ActionStructure{}, err
+				}
+
+				actions = append(actions, action)
+
+			} else { //bad device
+				errorMessage := "Cannot set volume of device " + device.Name
+				log.Printf(errorMessage)
+				return []base.ActionStructure{}, errors.New(errorMessage)
+			}
 		}
-
-		actions = append(actions, specializedActions...)
-
 	}
 
 	log.Printf("%s actions generated.", len(actions))
@@ -62,107 +107,121 @@ func (p *MuteDSP) GetIncompatibleCommands() []string {
 	return nil
 }
 
-func evaluateGeneralMute(room base.PublicRoom, eventInfo ei.EventInfo) ([]base.ActionStructure, error) {
+//assumes only one DSP, but allows for the possiblity of multiple devices not routed through the DSP
+//room-wide mute requests DO NOT include mics
+func GetGeneralMuteRequestActionsDSP(room base.PublicRoom, eventInfo ei.EventInfo) ([]base.ActionStructure, error) {
 
-	log.Printf("Detected general mute request")
+	log.Printf("Generating actions for room-wide \"Mute\" request")
 
 	var actions []base.ActionStructure
 
-	devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "AudioOut")
+	dsp, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "DSP")
 	if err != nil {
 		log.Printf("Error getting devices %s", err.Error())
 		return []base.ActionStructure{}, err
 	}
 
-	for _, device := range devices {
+	if len(dsp) != 1 {
+		errorMessage := "Invalid number of DSP devices found in room: " + room.Room + " in building " + room.Building
+		log.Printf(errorMessage)
+		return []base.ActionStructure{}, errors.New(errorMessage)
+	}
 
-		if device.Output {
+	action, err := GetDSPMediaMuteAction(dsp[0], room, eventInfo, false)
+	if err != nil {
+		errorMessage := "Could not generate action corresponding to general mute request in room " + room.Room + ", building " + room.Building + ": " + err.Error()
+		log.Printf(errorMessage)
+		return []base.ActionStructure{}, errors.New(errorMessage)
+	}
 
-			log.Printf("Adding mute command for device %s", device.Name)
+	actions = append(actions, action)
 
-			eventInfo.Device = device.Name
-			actions = append(actions, base.ActionStructure{
-				Action:              "Mute",
-				GeneratingEvaluator: "MuteDSP",
-				Device:              device,
-				DeviceSpecific:      false,
-				EventLog:            []ei.EventInfo{eventInfo},
-			})
+	audioDevices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "AudioOut")
+	if err != nil {
+		log.Printf("Error getting devices %s", err.Error())
+		return []base.ActionStructure{}, err
+	}
 
+	for _, device := range audioDevices {
+
+		action, err := GetDisplayMuteAction(device, room, eventInfo, false)
+		if err != nil {
+			errorMessage := "Could not generate mute action for display " + device.Name + " in room " + room.Room + ", building " + room.Building + ": " + err.Error()
+			log.Printf(errorMessage)
+			return []base.ActionStructure{}, errors.New(errorMessage)
 		}
+
+		actions = append(actions, action)
 	}
 
 	return actions, nil
-
 }
 
-func evaluateSpecificMute(room base.PublicRoom, eventInfo ei.EventInfo) ([]base.ActionStructure, error) {
+//assumes the mic is only connected to a single DSP
+func GetMicMuteAction(mic accessors.Device, room base.PublicRoom, eventInfo ei.EventInfo) (base.ActionStructure, error) {
 
-	log.Printf("Detected specific mute requests. Evaluating devices...")
+	log.Printf("Generating action for command \"Mute\" on microphone %s", mic.Name)
 
-	var actions []base.ActionStructure
+	parameters := make(map[string]string)
+	parameters["input"] = mic.Ports[0].Name
 
-	for _, audioDevice := range room.AudioDevices {
+	dsp, err := dbo.GetDeviceByName(room.Building, room.Room, mic.Ports[0].Destination)
+	if err != nil {
+		errorMessage := "Could not get DSP corresponding to mic " + mic.Name + ": " + err.Error()
+		log.Printf(errorMessage)
+		return base.ActionStructure{}, errors.New(errorMessage)
+	}
+	return base.ActionStructure{
+		Action:              "Mute",
+		GeneratingEvaluator: "MuteDSP",
+		Device:              dsp,
+		DeviceSpecific:      true,
+		EventLog:            []ei.EventInfo{eventInfo},
+		Parameters:          parameters,
+	}, nil
+}
 
-		if *audioDevice.Muted {
+func GetDSPMediaMuteAction(dsp accessors.Device, room base.PublicRoom, eventInfo ei.EventInfo, deviceSpecific bool) (base.ActionStructure, error) {
 
-			log.Printf("Adding device %s", audioDevice.Name)
+	log.Printf("Generating action for command Mute on media routed through DSP")
 
-			device, err := dbo.GetDeviceByName(room.Building, room.Room, audioDevice.Name)
-			if err != nil {
-				log.Printf("Error getting device from database %s", err.Error())
-				return []base.ActionStructure{}, err
-			}
+	parameters := make(map[string]string)
 
-			parameters := make(map[string]string)
-			if device.HasRole("AudioIn") {
+	for _, port := range dsp.Ports {
 
-				ports, err := dbo.GetPortConfigurationsBySourceDevice(device)
-				if err != nil {
-					log.Printf("Error getting port configurations of device %s: %s", device.Name, err.Error())
-					return []base.ActionStructure{}, err
-				}
+		sourceDevice, err := dbo.GetDeviceByName(room.Building, room.Room, port.Source)
+		if err != nil {
+			errorMessage := "Could not get device " + port.Source + " from database " + err.Error()
+			log.Printf(errorMessage)
+			return base.ActionStructure{}, errors.New(errorMessage)
+		}
 
-				for _, port := range ports {
+		if sourceDevice.HasRole("AudioOut") {
 
-					destinationDevice, err := dbo.GetDeviceByName(room.Building, room.Room, port.Destination)
-					if err != nil {
-						log.Printf("Error getting destination device %s: %s", port.Destination, err.Error())
-						return []base.ActionStructure{}, err
-					}
-
-					if destinationDevice.HasRole("DSP") { //identified DSP
-
-						log.Printf("Identified DSP: %s corresponding to audio input device %s", destinationDevice.Name, device.Name)
-
-						parameters["input"] = port.Name
-						parameters["address"] = destinationDevice.Address
-						actions = append(actions, base.ActionStructure{
-							Action:              "Mute",
-							GeneratingEvaluator: "MuteDSP",
-							Device:              destinationDevice,
-							Parameters:          parameters,
-							EventLog:            []ei.EventInfo{eventInfo},
-						})
-					}
-				}
-
-			}
-			if device.HasRole("AudioOut") { //business as usual
-
-				parameters["address"] = device.Address
-				actions = append(actions, base.ActionStructure{
-					Action:              "Mute",
-					GeneratingEvaluator: "MuteDSP",
-					Device:              device,
-					Parameters:          parameters,
-					EventLog:            []ei.EventInfo{eventInfo},
-				})
-
-			}
-
+			parameters["input"] = port.Name
+			return base.ActionStructure{
+				Action:              "Mute",
+				GeneratingEvaluator: "MuteDSP",
+				Device:              dsp,
+				DeviceSpecific:      deviceSpecific,
+				EventLog:            []ei.EventInfo{eventInfo},
+				Parameters:          parameters,
+			}, nil
 		}
 	}
 
-	return actions, nil
+	return base.ActionStructure{}, nil
+}
+
+func GetDisplayMuteAction(device accessors.Device, room base.PublicRoom, eventInfo ei.EventInfo, deviceSpecific bool) (base.ActionStructure, error) {
+
+	log.Printf("Generating action for command \"Mute\" for device %s external to DSP", device.Name)
+
+	return base.ActionStructure{
+		Action:              "Mute",
+		GeneratingEvaluator: "MuteDSP",
+		Device:              device,
+		DeviceSpecific:      deviceSpecific,
+		EventLog:            []ei.EventInfo{eventInfo},
+	}, nil
 }
