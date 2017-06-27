@@ -104,64 +104,61 @@ func evaluateSpecificUnMute(room base.PublicRoom, eventInfo ei.EventInfo) ([]bas
 
 	for _, audioDevice := range room.AudioDevices {
 
-		if *audioDevice.Muted != nil && *audioDevice.Muted == false {
+		log.Printf("Adding device %s", audioDevice.Name)
 
-			log.Printf("Adding device %s", audioDevice.Name)
+		device, err := dbo.GetDeviceByName(room.Building, room.Room, audioDevice.Name)
+		if err != nil {
+			log.Printf("Error getting device from database %s", err.Error())
+			return []base.ActionStructure{}, err
+		}
 
-			device, err := dbo.GetDeviceByName(room.Building, room.Room, audioDevice.Name)
+		parameters := make(map[string]string)
+		if device.HasRole("AudioIn") {
+
+			ports, err := dbo.GetPortConfigurationsBySourceDevice(device)
 			if err != nil {
-				log.Printf("Error getting device from database %s", err.Error())
+				log.Printf("Error getting port configurations of device %s: %s", device.Name, err.Error())
 				return []base.ActionStructure{}, err
 			}
 
-			parameters := make(map[string]string)
-			if device.HasRole("AudioIn") {
+			for _, port := range ports {
 
-				ports, err := dbo.GetPortConfigurationsBySourceDevice(device)
+				destinationDevice, err := dbo.GetDeviceByName(room.Building, room.Room, port.Destination)
 				if err != nil {
-					log.Printf("Error getting port configurations of device %s: %s", device.Name, err.Error())
+					log.Printf("Error getting destination device %s: %s", port.Destination, err.Error())
 					return []base.ActionStructure{}, err
 				}
 
-				for _, port := range ports {
+				if destinationDevice.HasRole("DSP") { //identified DSP
 
-					destinationDevice, err := dbo.GetDeviceByName(room.Building, room.Room, port.Destination)
-					if err != nil {
-						log.Printf("Error getting destination device %s: %s", port.Destination, err.Error())
-						return []base.ActionStructure{}, err
-					}
+					log.Printf("Identified DSP: %s corresponding to audio input device %s", destinationDevice.Name, device.Name)
 
-					if destinationDevice.HasRole("DSP") { //identified DSP
-
-						log.Printf("Identified DSP: %s corresponding to audio input device %s", destinationDevice.Name, device.Name)
-
-						parameters["input"] = port.Name
-						parameters["address"] = destinationDevice.Address
-						actions = append(actions, base.ActionStructure{
-							Action:              "UnMute",
-							GeneratingEvaluator: "UnMuteDSP",
-							Device:              destinationDevice,
-							Parameters:          parameters,
-							EventLog:            []ei.EventInfo{eventInfo},
-						})
-					}
+					parameters["input"] = port.Name
+					parameters["address"] = destinationDevice.Address
+					actions = append(actions, base.ActionStructure{
+						Action:              "UnMute",
+						GeneratingEvaluator: "UnMuteDSP",
+						Device:              destinationDevice,
+						Parameters:          parameters,
+						EventLog:            []ei.EventInfo{eventInfo},
+					})
 				}
-
-			}
-			if device.HasRole("AudioOut") { //business as usual
-
-				parameters["address"] = device.Address
-				actions = append(actions, base.ActionStructure{
-					Action:              "UnMute",
-					GeneratingEvaluator: "UnMuteDSP",
-					Device:              device,
-					Parameters:          parameters,
-					EventLog:            []ei.EventInfo{eventInfo},
-				})
-
 			}
 
 		}
+		if device.HasRole("AudioOut") { //business as usual
+
+			parameters["address"] = device.Address
+			actions = append(actions, base.ActionStructure{
+				Action:              "UnMute",
+				GeneratingEvaluator: "UnMuteDSP",
+				Device:              device,
+				Parameters:          parameters,
+				EventLog:            []ei.EventInfo{eventInfo},
+			})
+
+		}
+
 	}
 
 	return actions, nil
