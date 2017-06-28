@@ -105,9 +105,9 @@ func GetSwitcherAndCreateAction(room base.PublicRoom, device accessors.Device, s
 			eventInfo := eventinfrastructure.EventInfo{
 				Type:           eventinfrastructure.CORESTATE,
 				EventCause:     eventinfrastructure.USERINPUT,
-				Device:         switcher[0].Name,
+				Device:         device.GetFullName(),
 				EventInfoKey:   "input",
-				EventInfoValue: m["output"],
+				EventInfoValue: selectedInput,
 			}
 
 			tempAction := base.ActionStructure{
