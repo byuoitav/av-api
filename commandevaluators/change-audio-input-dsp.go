@@ -13,7 +13,7 @@ import (
 /**
 ASSUMPTIONS:
 
-a) there is only 1 DSP in a given room
+a) there is only 1 DSP in a given room and it is the only device with an 'AudioOut' role
 
 b) there is only 1 video switcher in a given room
 
@@ -40,8 +40,6 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom) ([]base.ActionStruc
 	}
 
 	if len(room.CurrentAudioInput) > 0 { //
-
-		log.Printf("Room-wide audio input request detected")
 
 		generalAction, err := GetDSPMediaInputAction(room, eventInfo, room.CurrentAudioInput, false)
 		if err != nil {
