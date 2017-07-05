@@ -78,9 +78,10 @@ type StatusEvaluator interface {
 const FLAG = "STATUS"
 
 var DEFAULT_MAP = map[string]StatusEvaluator{
-	"STATUS_PowerDefault":   &PowerDefault{},
-	"STATUS_BlankedDefault": &BlankedDefault{},
-	"STATUS_MutedDefault":   &MutedDefault{},
-	"STATUS_InputDefault":   &InputDefault{},
-	"STATUS_VolumeDefault":  &VolumeDefault{},
+	"STATUS_PowerDefault":       &PowerDefault{},
+	"STATUS_BlankedDefault":     &BlankedDefault{},
+	"STATUS_MutedDefault":       &MutedDefault{},
+	"STATUS_InputDefault":       &InputDefault{},
+	"STATUS_VolumeDefault":      &VolumeDefault{},
+	"STATUS_InputVideoSwitcher": &InputVideoSwitcher{},
 }

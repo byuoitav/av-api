@@ -8,7 +8,7 @@ services:
             - PI_HOSTNAME=$PI_HOSTNAME
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
-            - ELASTIC_API_EVENTS=$ELASTIC_API_EVENTS
+            - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
         network_mode: "host"
         restart: always
     pjlink-microservice:
@@ -74,6 +74,8 @@ services:
         environment:
             - PI_HOSTNAME=$PI_HOSTNAME
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+            - HELP_SLACKBOT_WEBHOOK=$HELP_SLACKBOT_WEBHOOK
+            - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
         network_mode: "host"
         restart: always
     configuration-database-tool:
@@ -93,6 +95,7 @@ services:
             - PI_HOSTNAME=$PI_HOSTNAME
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
+            - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
         network_mode: "host"
     event-translator-microservice:
         image: byuoitav/event-translator-microservice:${DOCKER_HUB_TAG}
@@ -101,4 +104,6 @@ services:
         environment:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - ELASTIC_API_EVENTS=$ELASTIC_API_EVENTS
+            - ELASTIC_API_EVENTS_DEV=$ELASTIC_API_EVENTS_DEV
+            - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
         network_mode: "host"
