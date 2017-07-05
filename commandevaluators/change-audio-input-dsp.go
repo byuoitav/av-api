@@ -50,6 +50,30 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom) ([]base.ActionStruc
 
 		actions = append(actions, generalAction)
 
+		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "AudioOut")
+		if err != nil {
+			errorMessage := "Could not generate actions for room-wide \"ChangeInput\" request: " + err.Error()
+			log.Printf(errorMessage)
+			return []base.ActionStructure{}, errors.New(errorMessage)
+		}
+
+		for _, device := range devices {
+
+			if device.Output {
+				log.Printf("Adding device %+v", device.Name)
+
+				eventInfo.Device = device.Name
+				actions = append(actions, base.ActionStructure{
+					Action:              "Mute",
+					GeneratingEvaluator: "ChangeAudioInputDSP",
+					Device:              device,
+					DeviceSpecific:      false,
+					EventLog:            []ei.EventInfo{eventInfo},
+				})
+			}
+
+		}
+
 	}
 
 	//TODO can you range over a nil slice?
