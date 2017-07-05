@@ -34,8 +34,6 @@ func main() {
 	base.Publisher, err = publisher.NewPublisher("7001", 1000, 10)
 	if err != nil {
 		errstr := fmt.Sprintf("Could not start publisher. Error: %v\n", err.Error())
-		base.PublishError(errstr, eventinfrastructure.INTERNAL)
-
 		log.Fatalf(errstr)
 	}
 
@@ -43,7 +41,6 @@ func main() {
 		base.Publisher.Listen()
 		if err != nil {
 			errstr := fmt.Sprintf("Could not start publisher listening. Error: %v\n", err.Error())
-			base.PublishError(errstr, eventinfrastructure.INTERNAL)
 			log.Fatalf(errstr)
 		} else {
 			log.Printf("Publisher started on port :7001")
