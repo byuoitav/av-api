@@ -17,7 +17,7 @@ type MuteStatus struct {
 }
 
 type Input struct {
-	Input string `json:"input"`
+	Input string `json:"input",omitempty`
 }
 
 type AudioList struct {
