@@ -22,7 +22,7 @@ func GetRoomStatus(building string, roomName string) (base.PublicRoom, error) {
 		return base.PublicRoom{}, err
 	}
 
-	commands, err := generateStatusCommands(room, DEFAULT_MAP)
+	commands, err := generateStatusCommands(room, STATUS_EVALUATORS)
 	if err != nil {
 		return base.PublicRoom{}, err
 	}
@@ -53,7 +53,7 @@ func generateStatusCommands(room accessors.Room, commandMap map[string]StatusEva
 
 		if strings.HasPrefix(possibleEvaluator.EvaluatorKey, FLAG) {
 
-			currentEvaluator := DEFAULT_MAP[possibleEvaluator.EvaluatorKey]
+			currentEvaluator := STATUS_EVALUATORS[possibleEvaluator.EvaluatorKey]
 
 			devices, err := currentEvaluator.GetDevices(room)
 			if err != nil {
@@ -129,8 +129,6 @@ func runStatusCommands(commands []StatusCommand) (outputs []StatusResponse, err 
 
 //builds a Status object corresponding to a device and writes it to the channel
 func issueCommands(commands []StatusCommand, channel chan []StatusResponse, control *sync.WaitGroup) {
-
-	//add task to waitgroup
 
 	//final output
 	outputs := []StatusResponse{}
@@ -235,7 +233,7 @@ func evaluateResponses(responses []StatusResponse) (base.PublicRoom, error) {
 	responsesByDestinationDevice := make(map[string]Status)
 	for _, resp := range responses {
 		for key, value := range resp.Status {
-			k, v, err := DEFAULT_MAP[resp.Generator].EvaluateResponse(key, value, resp.SourceDevice, resp.DestinationDevice)
+			k, v, err := STATUS_EVALUATORS[resp.Generator].EvaluateResponse(key, value, resp.SourceDevice, resp.DestinationDevice)
 			if err != nil {
 				//log an error
 				log.Printf("There was a problem procesing the response %v - %v with evaluator %v: %s",
@@ -381,6 +379,7 @@ func generateStandardStatusCommand(devices []accessors.Device, evaluatorName str
 					}
 
 				}
+
 				destinationDevice.Device = device
 
 				log.Printf("Adding command: %s to action list with device %s", command.Name, device.Name)

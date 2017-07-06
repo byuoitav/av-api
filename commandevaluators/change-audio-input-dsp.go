@@ -13,13 +13,13 @@ import (
 /**
 ASSUMPTIONS:
 
-a) there is only 1 DSP in a given room and it is the only device with an 'AudioOut' role
+a) there is only 1 DSP in a given room
 
 b) there is only 1 video switcher in a given room
 
-c) all the media audio is routed through the switcher
+c) the switcher has access to all the media audio
 
-d) all audio inputs are routed throught the switcher and are found exactly one edge away from the video switcher
+d) a room-wide audio input request implies sending a command to the DSP and muting all devices designatied as 'AudioOut'
 
 e) microphones are not affected by actions generated in this command evaluator
 
@@ -49,18 +49,71 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom) ([]base.ActionStruc
 		}
 
 		actions = append(actions, generalAction)
-	}
 
-	if len(room.AudioDevices) == 1 { //the only device coming here is going to be the DSP
-
-		specificAction, err := GetDSPMediaInputAction(room, eventInfo, room.AudioDevices[0].Input, true)
+		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "AudioOut")
 		if err != nil {
-			errorMessage := "Could not generate actions for specific \"ChangeInput\" requests: " + err.Error()
+			errorMessage := "Could not generate actions for room-wide \"ChangeInput\" request: " + err.Error()
 			log.Printf(errorMessage)
 			return []base.ActionStructure{}, errors.New(errorMessage)
 		}
 
-		actions = append(actions, specificAction)
+		for _, device := range devices {
+
+			if device.Output && !device.HasRole("Microphone") {
+
+				log.Printf("Adding device %+v", device.Name)
+
+				eventInfo.Device = device.Name
+				actions = append(actions, base.ActionStructure{
+					Action:              "Mute",
+					GeneratingEvaluator: "ChangeAudioInputDSP",
+					Device:              device,
+					DeviceSpecific:      false,
+					EventLog:            []ei.EventInfo{eventInfo},
+				})
+			}
+
+		}
+
+	}
+
+	//TODO will this be a problem if the slice is nil?
+	if len(room.AudioDevices) > 0 {
+
+		for _, audioDevice := range room.AudioDevices {
+
+			if len(audioDevice.Input) > 0 {
+
+				device, err := dbo.GetDeviceByName(room.Building, room.Room, audioDevice.Name)
+				if err != nil {
+					errorMessage := "Could not get device: " + audioDevice.Name + " from database: " + err.Error()
+					log.Printf(errorMessage)
+					return []base.ActionStructure{}, errors.New(errorMessage)
+				}
+
+				if device.HasRole("DSP") {
+
+					dspAction, err := GetDSPMediaInputAction(room, eventInfo, room.AudioDevices[0].Input, true)
+					if err != nil {
+						errorMessage := "Could not generate actions for specific \"ChangeInput\" requests: " + err.Error()
+						log.Printf(errorMessage)
+						return []base.ActionStructure{}, errors.New(errorMessage)
+					}
+
+					actions = append(actions, dspAction)
+
+				} else if device.HasRole("AudioOut") && !device.HasRole("Microphone") {
+
+					mediaAction, err := generateChangeInputByDevice(audioDevice.Device, room.Room, room.Building, "ChangeAudioInputDefault")
+					if err != nil {
+						errorMessage := "Could not generate actions for specific \"ChangeInput\" request for deivce: " + device.Name + ": " + err.Error()
+						log.Printf(errorMessage)
+						return []base.ActionStructure{}, errors.New(errorMessage)
+					}
+					actions = append(actions, mediaAction)
+				}
+			}
+		}
 	}
 
 	log.Printf("%s actions generated.", len(actions))
@@ -109,16 +162,8 @@ func GetDSPMediaInputAction(room base.PublicRoom, eventInfo ei.EventInfo, input 
 		return base.ActionStructure{}, errors.New(errorMessage)
 	}
 
-	//get the port configurations where the requested device is source
-	ports, err := dbo.GetPortConfigurationsBySourceDevice(device)
-	if err != nil {
-		errorMessage := "Problem getting port configurations where device " + device.Name + " is source: " + err.Error()
-		log.Printf(errorMessage)
-		return base.ActionStructure{}, errors.New(errorMessage)
-	}
-
 	//find the port where the host is the switcher and the destination is the DSP
-	for _, port := range ports {
+	for _, port := range device.Ports {
 
 		if port.Host == switchers[0].Name && port.Destination == dsp[0].Name {
 			//once we find the port, send the command to the switcher

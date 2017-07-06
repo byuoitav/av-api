@@ -291,6 +291,9 @@ func Init() map[string]CommandEvaluator {
 		CommandMap["SetVolumeDMPS"] = &SetVolumeDMPS{}
 		CommandMap["SetVolumeTecLite"] = &SetVolumeTecLite{}
 		CommandMap["ChangeVideoInputDMPS"] = &ChangeVideoInputDMPS{}
+		CommandMap["MuteDSP"] = &MuteDSP{}
+		CommandMap["UnmuteDSP"] = &UnMuteDSP{}
+		CommandMap["SetVolumeDSP"] = &SetVolumeDSP{}
 
 		commandMapInitialized = true
 	}

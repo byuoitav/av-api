@@ -77,12 +77,12 @@ func (p *SetVolumeDSP) Evaluate(room base.PublicRoom) ([]base.ActionStructure, e
 
 				} else if device.HasRole("DSP") {
 
-					action, err := GetDSPMediaVolumeAction(device, room, eventInfo)
+					dspActions, err := GetDSPMediaVolumeAction(device, room, eventInfo)
 					if err != nil {
 						return []base.ActionStructure{}, err
 					}
 
-					actions = append(actions, action)
+					actions = append(actions, dspActions...)
 
 				} else if device.HasRole("AudioOut") {
 
@@ -140,14 +140,14 @@ func GetGeneralVolumeRequestActionsDSP(room base.PublicRoom, eventInfo ei.EventI
 		return []base.ActionStructure{}, err
 	}
 
-	action, err := GetDSPMediaVolumeAction(dsp[0], room, eventInfo)
+	dspActions, err := GetDSPMediaVolumeAction(dsp[0], room, eventInfo)
 	if err != nil {
 		errorMessage := "Could not generate action corresponding to general mute request in room " + room.Room + ", building " + room.Building + ": " + err.Error()
 		log.Printf(errorMessage)
 		return []base.ActionStructure{}, errors.New(errorMessage)
 	}
 
-	actions = append(actions, action)
+	actions = append(actions, dspActions...)
 
 	audioDevices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "AudioOut")
 	if err != nil {
@@ -200,7 +200,7 @@ func GetMicVolumeAction(mic accessors.Device, room base.PublicRoom, eventInfo ei
 
 }
 
-func GetDSPMediaVolumeAction(device accessors.Device, room base.PublicRoom, eventInfo ei.EventInfo) (base.ActionStructure, error) { //commands are issued to whatever port doesn't have a mic connected
+func GetDSPMediaVolumeAction(device accessors.Device, room base.PublicRoom, eventInfo ei.EventInfo) ([]base.ActionStructure, error) { //commands are issued to whatever port doesn't have a mic connected
 
 	log.Printf("Generating action for command SetVolume on media routed through DSP")
 
@@ -209,13 +209,15 @@ func GetDSPMediaVolumeAction(device accessors.Device, room base.PublicRoom, even
 
 	eventInfo.EventInfoValue = string(*device.Volume)
 
+	var output []base.ActionStructure
+
 	for _, port := range device.Ports {
 
 		sourceDevice, err := dbo.GetDeviceByName(room.Building, room.Room, port.Source)
 		if err != nil {
 			errorMessage := "Could not get device " + port.Source + " from database: " + err.Error()
 			log.Printf(errorMessage)
-			return base.ActionStructure{}, errors.New(errorMessage)
+			return []base.ActionStructure{}, errors.New(errorMessage)
 		}
 
 		if !(sourceDevice.HasRole("Microphone")) {
@@ -229,11 +231,11 @@ func GetDSPMediaVolumeAction(device accessors.Device, room base.PublicRoom, even
 				EventLog:            []ei.EventInfo{eventInfo},
 			}
 
-			return action, nil
+			output = append(output, action)
 		}
 	}
 
-	return base.ActionStructure{}, nil
+	return output, nil
 
 }
 
