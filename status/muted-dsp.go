@@ -15,7 +15,7 @@ a) a mic has only one port configuration with the DSP as a destination device
 */
 
 const MUTED_DSP = "MutedDSP"
-const MUTE_DSP_STATUS = "STATUS_Muted"
+const MUTE_DSP_STATUS = "STATUS_MutedDSP"
 
 type MutedDSP struct{}
 
@@ -31,12 +31,12 @@ func (p *MutedDSP) GenerateCommands(devices []accessors.Device) ([]StatusCommand
 
 	for _, device := range devices {
 
-		if device.HasRole("AudioOut") {
-
-			audioDevices = append(audioDevices, device)
-		} else if device.HasRole("Microphone") {
+		if device.HasRole("Microphone") {
 
 			mics = append(mics, device)
+		} else if device.HasRole("AudioOut") {
+
+			audioDevices = append(audioDevices, device)
 		} else if device.HasRole("DSP") {
 
 			dsp = append(dsp, device)
@@ -74,21 +74,6 @@ func (p *MutedDSP) GenerateCommands(devices []accessors.Device) ([]StatusCommand
 }
 
 func (p *MutedDSP) EvaluateResponse(label string, value interface{}, source accessors.Device, destintation DestinationDevice) (string, interface{}, error) {
-
-	log.Printf("Evaluating response: %s, %s in evaluator %v", label, value, BlankedDefaultName)
-
-	if destintation.Device.HasRole("DSP") {
-
-		for _, port := range destintation.Ports {
-
-			valueString, ok := value.(string)
-			if ok && port.Name == valueString {
-
-				value = port.Source
-			}
-		}
-
-	}
 
 	return label, value, nil
 }
@@ -133,6 +118,42 @@ func generateMicStatusCommands(mics []accessors.Device, evaluator string, comman
 func generateDSPStatusCommands(dsp []accessors.Device, evaluator string, command string) ([]StatusCommand, error) {
 
 	var commands []StatusCommand
+
+	//validate the correct number of dsps
+	if dsp == nil || len(dsp) != 1 {
+		return []StatusCommand{}, errors.New("Incorrect DSP configuration detected")
+	}
+
+	parameters := make(map[string]string)
+	parameters["address"] = dsp[0].Address
+
+	statusCommand := dsp[0].GetCommandByName(command)
+
+	destinationDevice := DestinationDevice{
+		Device:      dsp[0],
+		AudioDevice: true,
+	}
+
+	//one command for each port that's not a mic
+	for _, port := range dsp[0].Ports {
+
+		device, err := dbo.GetDeviceByName(dsp[0].Building.Name, dsp[0].Room.Name, port.Source)
+		if err != nil {
+			return []StatusCommand{}, err
+		}
+
+		if !device.HasRole("Microphone") {
+
+			parameters["input"] = port.Name
+			commands = append(commands, StatusCommand{
+				Action:            statusCommand,
+				Device:            dsp[0],
+				Generator:         evaluator,
+				DestinationDevice: destinationDevice,
+				Parameters:        parameters,
+			})
+		}
+	}
 
 	return commands, nil
 }

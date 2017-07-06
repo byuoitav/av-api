@@ -130,8 +130,6 @@ func runStatusCommands(commands []StatusCommand) (outputs []StatusResponse, err 
 //builds a Status object corresponding to a device and writes it to the channel
 func issueCommands(commands []StatusCommand, channel chan []StatusResponse, control *sync.WaitGroup) {
 
-	//add task to waitgroup
-
 	//final output
 	outputs := []StatusResponse{}
 
