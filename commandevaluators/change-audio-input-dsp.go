@@ -60,6 +60,7 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom) ([]base.ActionStruc
 		for _, device := range devices {
 
 			if device.Output {
+
 				log.Printf("Adding device %+v", device.Name)
 
 				eventInfo.Device = device.Name
@@ -76,38 +77,41 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom) ([]base.ActionStruc
 
 	}
 
-	//TODO can you range over a nil slice?
-	for _, audioDevice := range room.AudioDevices {
+	//TODO will this be a problem if the slice is nil?
+	if len(room.AudioDevices) > 0 {
 
-		if len(audioDevice.Input) > 0 {
+		for _, audioDevice := range room.AudioDevices {
 
-			device, err := dbo.GetDeviceByName(room.Building, room.Room, audioDevice.Name)
-			if err != nil {
-				errorMessage := "Could not get device: " + audioDevice.Name + " from database: " + err.Error()
-				log.Printf(errorMessage)
-				return []base.ActionStructure{}, errors.New(errorMessage)
-			}
+			if len(audioDevice.Input) > 0 {
 
-			if device.HasRole("DSP") {
-
-				dspAction, err := GetDSPMediaInputAction(room, eventInfo, room.AudioDevices[0].Input, true)
+				device, err := dbo.GetDeviceByName(room.Building, room.Room, audioDevice.Name)
 				if err != nil {
-					errorMessage := "Could not generate actions for specific \"ChangeInput\" requests: " + err.Error()
+					errorMessage := "Could not get device: " + audioDevice.Name + " from database: " + err.Error()
 					log.Printf(errorMessage)
 					return []base.ActionStructure{}, errors.New(errorMessage)
 				}
 
-				actions = append(actions, dspAction)
+				if device.HasRole("DSP") {
 
-			} else if device.HasRole("AudioOut") {
+					dspAction, err := GetDSPMediaInputAction(room, eventInfo, room.AudioDevices[0].Input, true)
+					if err != nil {
+						errorMessage := "Could not generate actions for specific \"ChangeInput\" requests: " + err.Error()
+						log.Printf(errorMessage)
+						return []base.ActionStructure{}, errors.New(errorMessage)
+					}
 
-				mediaAction, err := generateChangeInputByDevice(audioDevice.Device, room.Room, room.Building, "ChangeAudioInputDefault")
-				if err != nil {
-					errorMessage := "Could not generate actions for specific \"ChangeInput\" request for deivce: " + device.Name + ": " + err.Error()
-					log.Printf(errorMessage)
-					return []base.ActionStructure{}, errors.New(errorMessage)
+					actions = append(actions, dspAction)
+
+				} else if device.HasRole("AudioOut") {
+
+					mediaAction, err := generateChangeInputByDevice(audioDevice.Device, room.Room, room.Building, "ChangeAudioInputDefault")
+					if err != nil {
+						errorMessage := "Could not generate actions for specific \"ChangeInput\" request for deivce: " + device.Name + ": " + err.Error()
+						log.Printf(errorMessage)
+						return []base.ActionStructure{}, errors.New(errorMessage)
+					}
+					actions = append(actions, mediaAction)
 				}
-				actions = append(actions, mediaAction)
 			}
 		}
 	}
