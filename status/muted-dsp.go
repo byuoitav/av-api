@@ -26,6 +26,8 @@ func (p *MutedDSP) GetDevices(room accessors.Room) ([]accessors.Device, error) {
 
 func (p *MutedDSP) GenerateCommands(devices []accessors.Device) ([]StatusCommand, error) {
 
+	log.Printf("Generating \"Muted\" status commands...")
+
 	//sort mics out of audio devices:w
 	var audioDevices, mics, dsp []accessors.Device
 

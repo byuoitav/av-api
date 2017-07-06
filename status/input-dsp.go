@@ -9,7 +9,7 @@ import (
 )
 
 const INPUT_DSP = "InputDSP"
-const STATUS_INPUT_DSP = "STATUS_InputDSP"
+const STATUS_INPUT_DSP = "STATUS_Input"
 
 type InputDSP struct{}
 
@@ -58,6 +58,7 @@ func (p *InputDSP) GenerateCommands(devices []accessors.Device) ([]StatusCommand
 		return []StatusCommand{}, errors.New(errorMessage)
 	}
 
+	//validate number of switchers
 	if switchers == nil || len(switchers) != 1 {
 		return []StatusCommand{}, errors.New("Invalid video switcher configuration detected")
 	}
@@ -71,14 +72,15 @@ func (p *InputDSP) GenerateCommands(devices []accessors.Device) ([]StatusCommand
 			parameters["port"] = port.Name
 
 			destinationDevice := DestinationDevice{
-				Device: switchers[0],
+				Device:      dsp,
+				AudioDevice: true,
 			}
 
 			command := switchers[0].GetCommandByName(STATUS_INPUT_DSP)
 
 			statusCommand := StatusCommand{
 				Action:            command,
-				Device:            dsp,
+				Device:            switchers[0],
 				Parameters:        parameters,
 				DestinationDevice: destinationDevice,
 				Generator:         INPUT_DSP,
