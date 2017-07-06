@@ -25,7 +25,7 @@ type MuteDSP struct{}
 
 func (p *MuteDSP) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
 
-	log.Printf("Evaluating PUT body for MUTE command in DSP context...")
+	log.Printf("Evaluating PUT body for \"Mute\" command in DSP context...")
 
 	var actions []base.ActionStructure
 	eventInfo := ei.EventInfo{

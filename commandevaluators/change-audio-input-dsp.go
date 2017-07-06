@@ -59,7 +59,7 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom) ([]base.ActionStruc
 
 		for _, device := range devices {
 
-			if device.Output {
+			if device.Output && !device.HasRole("Microphone") {
 
 				log.Printf("Adding device %+v", device.Name)
 
@@ -102,7 +102,7 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom) ([]base.ActionStruc
 
 					actions = append(actions, dspAction)
 
-				} else if device.HasRole("AudioOut") {
+				} else if device.HasRole("AudioOut") && !device.HasRole("Microphone") {
 
 					mediaAction, err := generateChangeInputByDevice(audioDevice.Device, room.Room, room.Building, "ChangeAudioInputDefault")
 					if err != nil {
@@ -162,16 +162,8 @@ func GetDSPMediaInputAction(room base.PublicRoom, eventInfo ei.EventInfo, input 
 		return base.ActionStructure{}, errors.New(errorMessage)
 	}
 
-	//get the port configurations where the requested device is source
-	ports, err := dbo.GetPortConfigurationsBySourceDevice(device)
-	if err != nil {
-		errorMessage := "Problem getting port configurations where device " + device.Name + " is source: " + err.Error()
-		log.Printf(errorMessage)
-		return base.ActionStructure{}, errors.New(errorMessage)
-	}
-
 	//find the port where the host is the switcher and the destination is the DSP
-	for _, port := range ports {
+	for _, port := range device.Ports {
 
 		if port.Host == switchers[0].Name && port.Destination == dsp[0].Name {
 			//once we find the port, send the command to the switcher
