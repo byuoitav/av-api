@@ -17,7 +17,7 @@ type MuteStatus struct {
 }
 
 type Input struct {
-	Input string `json:"input"`
+	Input string `json:"input,omitempty"`
 }
 
 type AudioList struct {
@@ -56,7 +56,7 @@ type StatusCommand struct {
 	Parameters        map[string]string `json:"parameters"`
 }
 
-//DestinationDevice represents the device a status command is issued to
+//DestinationDevice represents the device whose status is being queried by user
 type DestinationDevice struct {
 	accessors.Device
 	AudioDevice bool `json:"audio"`
@@ -77,11 +77,15 @@ type StatusEvaluator interface {
 
 const FLAG = "STATUS"
 
-var DEFAULT_MAP = map[string]StatusEvaluator{
+//TODO: we shoud grab the keys from constants in the evaluators themselves
+var STATUS_EVALUATORS = map[string]StatusEvaluator{
 	"STATUS_PowerDefault":       &PowerDefault{},
 	"STATUS_BlankedDefault":     &BlankedDefault{},
 	"STATUS_MutedDefault":       &MutedDefault{},
 	"STATUS_InputDefault":       &InputDefault{},
 	"STATUS_VolumeDefault":      &VolumeDefault{},
 	"STATUS_InputVideoSwitcher": &InputVideoSwitcher{},
+	"STATUS_InputDSP":           &InputDSP{},
+	"STATUS_MutedDSP":           &MutedDSP{},
+	"STATUS_VolumeDSP":          &VolumeDSP{},
 }
