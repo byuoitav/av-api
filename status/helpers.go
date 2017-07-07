@@ -120,7 +120,7 @@ func runStatusCommands(commands []StatusCommand) (outputs []StatusResponse, err 
 				message = "Error querying status for destination: " + output.DestinationDevice.Name + ": " + message
 				base.PublishError(message, cause)
 			}
-			log.Printf("Appending results of %s to output", output.DestinationDevice.Name)
+			log.Printf("Appending status: %v of %s to output", output.Status, output.DestinationDevice.Name)
 			outputs = append(outputs, output)
 		}
 	}

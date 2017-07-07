@@ -109,7 +109,7 @@ func generateMicStatusCommands(mics []accessors.Device, evaluator string, comman
 			if port.Source == mic.Name {
 				log.Printf("Port configuration identified for mic %s and DSP %s", mic.Name, dsp[0].Name)
 				destinationDevice := DestinationDevice{
-					Device:      dsp[0],
+					Device:      mic,
 					AudioDevice: true,
 				}
 
@@ -119,10 +119,11 @@ func generateMicStatusCommands(mics []accessors.Device, evaluator string, comman
 				parameters["input"] = port.Name
 				parameters["address"] = dsp[0].Address
 
+				log.Printf("parameters: %v", parameters)
 				//issue status command to DSP
 				commands = append(commands, StatusCommand{
 					Action:            statusCommand,
-					Device:            mic,
+					Device:            dsp[0],
 					Generator:         MUTED_DSP,
 					DestinationDevice: destinationDevice,
 					Parameters:        parameters,

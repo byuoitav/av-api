@@ -67,5 +67,8 @@ func (p *VolumeDSP) GenerateCommands(devices []accessors.Device) ([]StatusComman
 
 func (p *VolumeDSP) EvaluateResponse(label string, value interface{}, source accessors.Device, destination DestinationDevice) (string, interface{}, error) {
 
+	if destination.Device.HasRole("Microphone") {
+		log.Printf("Evaluating response pertaining to microphone: %s", destination.Device.Name)
+	}
 	return label, value, nil
 }
