@@ -7,7 +7,7 @@ import (
 	"github.com/byuoitav/configuration-database-microservice/accessors"
 )
 
-const VOLUME_DSP = "VolumeDSP"
+const VOLUME_DSP = "STATUS_VolumeDSP"
 const STATUS_VOLUME_DSP = "STATUS_VolumeDSP"
 
 type VolumeDSP struct{}
@@ -26,12 +26,12 @@ func (p *VolumeDSP) GenerateCommands(devices []accessors.Device) ([]StatusComman
 		if device.HasRole("Microhphone") {
 
 			mics = append(mics, device)
-		} else if device.HasRole("AudioOut") {
-
-			audioDevices = append(audioDevices, device)
 		} else if device.HasRole("DSP") {
 
 			dsp = append(dsp, device)
+		} else if device.HasRole("AudioOut") {
+
+			audioDevices = append(audioDevices, device)
 		} else {
 			continue
 		}

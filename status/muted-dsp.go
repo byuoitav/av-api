@@ -3,6 +3,7 @@ package status
 import (
 	"errors"
 	"log"
+	"strconv"
 
 	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/configuration-database-microservice/accessors"
@@ -14,7 +15,7 @@ a) a mic has only one port configuration with the DSP as a destination device
 
 */
 
-const MUTED_DSP = "MutedDSP"
+const MUTED_DSP = "STATUS_MutedDSP"
 const MUTE_DSP_STATUS = "STATUS_MutedDSP"
 
 type MutedDSP struct{}
@@ -33,15 +34,17 @@ func (p *MutedDSP) GenerateCommands(devices []accessors.Device) ([]StatusCommand
 
 	for _, device := range devices {
 
+		log.Printf("Considering device: %s", device.Name)
+
 		if device.HasRole("Microphone") {
 
 			mics = append(mics, device)
-		} else if device.HasRole("AudioOut") {
-
-			audioDevices = append(audioDevices, device)
 		} else if device.HasRole("DSP") {
 
 			dsp = append(dsp, device)
+		} else if device.HasRole("AudioOut") {
+
+			audioDevices = append(audioDevices, device)
 		} else {
 			continue
 		}
@@ -82,36 +85,51 @@ func (p *MutedDSP) EvaluateResponse(label string, value interface{}, source acce
 
 func generateMicStatusCommands(mics []accessors.Device, evaluator string, command string) ([]StatusCommand, error) {
 
+	log.Printf("Generating %s commands agains mics...", command)
+
 	var commands []StatusCommand
 
 	for _, mic := range mics {
 
-		//address DSP based on the (only) port a mic has
-		port := mic.Ports[0]
-		dsp, err := dbo.GetDeviceByName(mic.Building.Name, mic.Room.Name, port.Destination)
+		log.Printf("Considering mic %s...", mic.Name)
+
+		//find the only DSP the room has
+		dsp, err := dbo.GetDevicesByBuildingAndRoomAndRole(mic.Building.Shortname, mic.Room.Name, "DSP")
 		if err != nil {
 			return []StatusCommand{}, err
 		}
 
-		destinationDevice := DestinationDevice{
-			Device:      dsp,
-			AudioDevice: true,
+		if len(dsp) != 1 {
+			errorMessage := "Invalid number of DSP devices found in room: " + strconv.Itoa(len(dsp))
+			return []StatusCommand{}, errors.New(errorMessage)
 		}
 
-		statusCommand := mic.GetCommandByName(command)
+		for _, port := range dsp[0].Ports {
 
-		parameters := make(map[string]string)
-		parameters["input"] = port.Name
-		parameters["address"] = dsp.Address
+			if port.Source == mic.Name {
+				log.Printf("Port configuration identified for mic %s and DSP %s", mic.Name, dsp[0].Name)
+				destinationDevice := DestinationDevice{
+					Device:      dsp[0],
+					AudioDevice: true,
+				}
 
-		//issue status command to DSP
-		commands = append(commands, StatusCommand{
-			Action:            statusCommand,
-			Device:            mic,
-			Generator:         MUTED_DSP,
-			DestinationDevice: destinationDevice,
-			Parameters:        parameters,
-		})
+				statusCommand := mic.GetCommandByName(command)
+
+				parameters := make(map[string]string)
+				parameters["input"] = port.Name
+				parameters["address"] = dsp[0].Address
+
+				//issue status command to DSP
+				commands = append(commands, StatusCommand{
+					Action:            statusCommand,
+					Device:            mic,
+					Generator:         MUTED_DSP,
+					DestinationDevice: destinationDevice,
+					Parameters:        parameters,
+				})
+			}
+		}
+
 	}
 
 	return commands, nil
@@ -123,8 +141,11 @@ func generateDSPStatusCommands(dsp []accessors.Device, evaluator string, command
 
 	//validate the correct number of dsps
 	if dsp == nil || len(dsp) != 1 {
-		return []StatusCommand{}, errors.New("Incorrect DSP configuration detected")
+		errorMessage := "Invalide number of DSP devices found in room: " + strconv.Itoa(len(dsp))
+		return []StatusCommand{}, errors.New(errorMessage)
 	}
+
+	log.Printf("Generating DSP status command: %s against device: %s", command, dsp[0])
 
 	parameters := make(map[string]string)
 	parameters["address"] = dsp[0].Address

@@ -1,6 +1,7 @@
 package status
 
 import (
+	"errors"
 	"log"
 
 	"github.com/byuoitav/configuration-database-microservice/accessors"
@@ -23,5 +24,9 @@ func (p *PowerDefault) GenerateCommands(devices []accessors.Device) ([]StatusCom
 
 func (p *PowerDefault) EvaluateResponse(label string, value interface{}, Source accessors.Device, dest DestinationDevice) (string, interface{}, error) {
 	log.Printf("Evaluating response: %s, %s in evaluator %v", label, value, PowerDefaultEvaluatorName)
+	if value == nil {
+		return label, value, errors.New("cannot process nil value")
+	}
+
 	return label, value, nil
 }
