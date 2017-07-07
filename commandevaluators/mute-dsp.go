@@ -56,7 +56,7 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error)
 				log.Printf("Error getting device %s from database: %s", audioDevice.Name, err.Error())
 			}
 
-			if device.HasRole("Microphone") && audioDevice.Volume != nil {
+			if device.HasRole("Microphone") {
 
 				action, err := GetMicMuteAction(device, room, eventInfo)
 				if err != nil {
@@ -65,7 +65,7 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error)
 
 				actions = append(actions, action)
 
-			} else if device.HasRole("DSP") && device.Volume != nil {
+			} else if device.HasRole("DSP") {
 
 				dspActions, err := GetDSPMediaMuteAction(device, room, eventInfo, true)
 				if err != nil {
@@ -74,7 +74,7 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error)
 
 				actions = append(actions, dspActions...)
 
-			} else if device.HasRole("AudioOut") && device.Volume != nil {
+			} else if device.HasRole("AudioOut") {
 
 				action, err := GetDisplayMuteAction(device, room, eventInfo, true)
 				if err != nil {
