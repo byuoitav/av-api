@@ -3,6 +3,7 @@ package status
 import (
 	"errors"
 	"log"
+	"strings"
 
 	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/configuration-database-microservice/accessors"
@@ -69,7 +70,9 @@ func (p *InputDSP) GenerateCommands(devices []accessors.Device) ([]StatusCommand
 
 			parameters := make(map[string]string)
 			parameters["address"] = switchers[0].Address
-			parameters["port"] = port.Name
+			//split on ':' and take the second field
+			realPorts := strings.Split(port.Name, ":")
+			parameters["port"] = realPorts[1]
 
 			destinationDevice := DestinationDevice{
 				Device:      dsp,
