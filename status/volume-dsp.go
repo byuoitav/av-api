@@ -23,21 +23,26 @@ func (p *VolumeDSP) GenerateCommands(devices []accessors.Device) ([]StatusComman
 
 	for _, device := range devices {
 
-		if device.HasRole("Microhphone") {
+		log.Printf("Considering device: %s", device.GetFullName())
 
+		if device.HasRole("Microphone") {
+
+			log.Printf("Appending %s to mic array...", device.Name)
 			mics = append(mics, device)
 		} else if device.HasRole("DSP") {
 
+			log.Printf("Appending %s to DSP array...", device.Name)
 			dsp = append(dsp, device)
 		} else if device.HasRole("AudioOut") {
 
+			log.Printf("Appending %s to audio devices array...", device.Name)
 			audioDevices = append(audioDevices, device)
 		} else {
 			continue
 		}
 	}
 
-	commands, err := generateStandardStatusCommand(audioDevices, VOLUME_DSP, STATUS_VOLUME_DSP)
+	commands, err := generateStandardStatusCommand(audioDevices, VOLUME_DSP, VolumeDefaultCommandName)
 	if err != nil {
 		errorMessage := "Could not generate " + STATUS_VOLUME_DSP + "commands for audio devices: " + err.Error()
 		log.Printf(errorMessage)

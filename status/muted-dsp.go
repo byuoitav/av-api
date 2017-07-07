@@ -51,7 +51,7 @@ func (p *MutedDSP) GenerateCommands(devices []accessors.Device) ([]StatusCommand
 	}
 
 	//business as ususal for audioDevices
-	commands, err := generateStandardStatusCommand(audioDevices, MUTED_DSP, MUTE_DSP_STATUS)
+	commands, err := generateStandardStatusCommand(audioDevices, MUTED_DSP, MutedDefaultCommandName)
 	if err != nil {
 		errorMessage := "Could not generate audio device status commands: " + err.Error()
 		log.Printf(errorMessage)
@@ -74,6 +74,14 @@ func (p *MutedDSP) GenerateCommands(devices []accessors.Device) ([]StatusCommand
 
 	commands = append(commands, dspCommands...)
 
+	for _, command := range commands {
+
+		log.Printf("action: %v", command.Action)
+		log.Printf("Device: %v", command.Device)
+		log.Printf("Destination device: %v", command.DestinationDevice)
+		log.Printf("Parameters: %v", command.Parameters)
+
+	}
 	return commands, nil
 
 }
@@ -89,20 +97,26 @@ func generateMicStatusCommands(mics []accessors.Device, evaluator string, comman
 
 	var commands []StatusCommand
 
+	if len(mics) == 0 {
+		errorMessage := "No mics"
+		return []StatusCommand{}, errors.New(errorMessage)
+	}
+
+	dsp, err := dbo.GetDevicesByBuildingAndRoomAndRole(mics[0].Building.Shortname, mics[0].Room.Name, "DSP")
+	if err != nil {
+		return []StatusCommand{}, err
+	}
+
+	if len(dsp) != 1 {
+		errorMessage := "Invalid number of DSP devices found in room: " + strconv.Itoa(len(dsp))
+		return []StatusCommand{}, errors.New(errorMessage)
+	}
+
 	for _, mic := range mics {
 
 		log.Printf("Considering mic %s...", mic.Name)
 
 		//find the only DSP the room has
-		dsp, err := dbo.GetDevicesByBuildingAndRoomAndRole(mic.Building.Shortname, mic.Room.Name, "DSP")
-		if err != nil {
-			return []StatusCommand{}, err
-		}
-
-		if len(dsp) != 1 {
-			errorMessage := "Invalid number of DSP devices found in room: " + strconv.Itoa(len(dsp))
-			return []StatusCommand{}, errors.New(errorMessage)
-		}
 
 		for _, port := range dsp[0].Ports {
 
@@ -119,7 +133,6 @@ func generateMicStatusCommands(mics []accessors.Device, evaluator string, comman
 				parameters["input"] = port.Name
 				parameters["address"] = dsp[0].Address
 
-				log.Printf("parameters: %v", parameters)
 				//issue status command to DSP
 				commands = append(commands, StatusCommand{
 					Action:            statusCommand,
@@ -161,7 +174,7 @@ func generateDSPStatusCommands(dsp []accessors.Device, evaluator string, command
 	//one command for each port that's not a mic
 	for _, port := range dsp[0].Ports {
 
-		device, err := dbo.GetDeviceByName(dsp[0].Building.Name, dsp[0].Room.Name, port.Source)
+		device, err := dbo.GetDeviceByName(dsp[0].Building.Shortname, dsp[0].Room.Name, port.Source)
 		if err != nil {
 			return []StatusCommand{}, err
 		}

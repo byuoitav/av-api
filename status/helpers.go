@@ -69,6 +69,10 @@ func generateStatusCommands(room accessors.Room, commandMap map[string]StatusEva
 		}
 	}
 
+	log.Printf("All commands generated: \n\n")
+	for _, command := range output {
+		log.Printf("Command: %s against device %s, destination device: %s, parameters: %v", command.Action.Name, command.Device.Name, command.DestinationDevice.Device.Name, command.Parameters)
+	}
 	return output, nil
 }
 
@@ -84,13 +88,14 @@ func runStatusCommands(commands []StatusCommand) (outputs []StatusResponse, err 
 	//map device names to commands
 	commandMap := make(map[string][]StatusCommand)
 
-	log.Printf("Building device map")
+	log.Printf("Building device map\n\n")
 	for _, command := range commands {
 
+		log.Printf("Command: %s against device %s, destination device: %s, parameters: %v", command.Action.Name, command.Device.Name, command.DestinationDevice.Device.Name, command.Parameters)
 		_, present := commandMap[command.Device.Name]
 		if !present {
 			commandMap[command.Device.Name] = []StatusCommand{command}
-			log.Printf("Device %s identified", command.Device.Name)
+			//	log.Printf("Device %s identified", command.Device.Name)
 		} else {
 			commandMap[command.Device.Name] = append(commandMap[command.Device.Name], command)
 		}
@@ -104,6 +109,12 @@ func runStatusCommands(commands []StatusCommand) (outputs []StatusResponse, err 
 	for _, deviceCommands := range commandMap {
 		group.Add(1)
 		go issueCommands(deviceCommands, channel, &group)
+
+		log.Printf("Commands getting issued: \n\n")
+
+		for _, command := range deviceCommands {
+			log.Printf("Command: %s against device %s, destination device: %s, parameters: %v", command.Action.Name, command.Device.Name, command.DestinationDevice.Device.Name, command.Parameters)
+		}
 	}
 
 	log.Printf("Waiting for commands to issue...")
@@ -114,7 +125,7 @@ func runStatusCommands(commands []StatusCommand) (outputs []StatusResponse, err 
 	for outputList := range channel {
 		for _, output := range outputList {
 			if output.ErrorMessage != nil {
-				log.Printf("Error querying status of device: %s:", output.SourceDevice.Name)
+				log.Printf("Error querying status of device: %s: %s", output.SourceDevice.Name, *output.ErrorMessage)
 				cause := eventinfrastructure.INTERNAL
 				message := *output.ErrorMessage
 				message = "Error querying status for destination: " + output.DestinationDevice.Name + ": " + message
@@ -130,12 +141,17 @@ func runStatusCommands(commands []StatusCommand) (outputs []StatusResponse, err 
 //builds a Status object corresponding to a device and writes it to the channel
 func issueCommands(commands []StatusCommand, channel chan []StatusResponse, control *sync.WaitGroup) {
 
+	log.Printf("Issuing commands...\n\n")
+
 	//final output
 	outputs := []StatusResponse{}
 
 	//iterate over list of StatusCommands
 	//TODO:make sure devices can handle rapid-fire API requests
 	for _, command := range commands {
+
+		log.Printf("Command: %s against device %s, destination device: %s, parameters: %v", command.Action.Name, command.Device.Name, command.DestinationDevice.Device.Name, command.Parameters)
+
 		output := StatusResponse{
 			Generator:         command.Generator,
 			SourceDevice:      command.Device,
@@ -146,6 +162,9 @@ func issueCommands(commands []StatusCommand, channel chan []StatusResponse, cont
 		//build url
 		url := command.Action.Microservice + command.Action.Endpoint.Path
 		for formal, actual := range command.Parameters {
+
+			log.Printf("Formal: %s, actual: %s", formal, actual)
+
 			toReplace := ":" + formal
 			if !strings.Contains(url, toReplace) {
 				errorMessage := "Could not find parameter " + toReplace + " issuing the command " + command.Action.Name
