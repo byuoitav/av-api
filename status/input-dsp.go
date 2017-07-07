@@ -8,7 +8,7 @@ import (
 	"github.com/byuoitav/configuration-database-microservice/accessors"
 )
 
-const INPUT_DSP = "InputDSP"
+const INPUT_DSP = "STATUS_InputDSP"
 const STATUS_INPUT_DSP = "STATUS_Input"
 
 type InputDSP struct{}
@@ -51,9 +51,9 @@ func (p *InputDSP) GenerateCommands(devices []accessors.Device) ([]StatusCommand
 
 	//get switcher associated with DSP
 
-	switchers, err := dbo.GetDevicesByBuildingAndRoomAndRole(dsp.Building.Name, dsp.Room.Name, "VideoSwitcher")
+	switchers, err := dbo.GetDevicesByBuildingAndRoomAndRole(dsp.Building.Shortname, dsp.Room.Name, "VideoSwitcher")
 	if err != nil {
-		errorMessage := "Could not get video switcher in building: " + dsp.Building.Name + ", room: " + dsp.Room.Name + "" + err.Error()
+		errorMessage := "Could not get video switcher in building: " + dsp.Building.Shortname + ", room: " + dsp.Room.Name + "" + err.Error()
 		log.Printf(errorMessage)
 		return []StatusCommand{}, errors.New(errorMessage)
 	}
@@ -94,5 +94,13 @@ func (p *InputDSP) GenerateCommands(devices []accessors.Device) ([]StatusCommand
 }
 
 func (p *InputDSP) EvaluateResponse(label string, value interface{}, source accessors.Device, destination DestinationDevice) (string, interface{}, error) {
+	for _, port := range destination.Ports {
+
+		valueString, ok := value.(string)
+		if ok && port.Name == valueString {
+			value = port.Source
+		}
+	}
+
 	return label, value, nil
 }

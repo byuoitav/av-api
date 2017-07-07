@@ -233,6 +233,7 @@ func evaluateResponses(responses []StatusResponse) (base.PublicRoom, error) {
 	responsesByDestinationDevice := make(map[string]Status)
 	for _, resp := range responses {
 		for key, value := range resp.Status {
+			log.Printf("Checking generator: %s", resp.Generator)
 			k, v, err := STATUS_EVALUATORS[resp.Generator].EvaluateResponse(key, value, resp.SourceDevice, resp.DestinationDevice)
 			if err != nil {
 				//log an error

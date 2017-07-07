@@ -17,7 +17,7 @@ type MuteStatus struct {
 }
 
 type Input struct {
-	Input string `json:"input",omitempty`
+	Input string `json:"input,omitempty"`
 }
 
 type AudioList struct {
@@ -77,6 +77,7 @@ type StatusEvaluator interface {
 
 const FLAG = "STATUS"
 
+//TODO: we shoud grab the keys from constants in the evaluators themselves
 var STATUS_EVALUATORS = map[string]StatusEvaluator{
 	"STATUS_PowerDefault":       &PowerDefault{},
 	"STATUS_BlankedDefault":     &BlankedDefault{},
