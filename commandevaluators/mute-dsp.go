@@ -50,6 +50,9 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error)
 	if len(room.AudioDevices) > 0 {
 
 		for _, audioDevice := range room.AudioDevices {
+			if audioDevice.Muted == nil || !(*audioDevice.Muted) {
+				continue
+			}
 
 			device, err := dbo.GetDeviceByName(room.Building, room.Room, audioDevice.Name)
 			if err != nil {
@@ -185,11 +188,10 @@ func GetDSPMediaMuteAction(dsp accessors.Device, room base.PublicRoom, eventInfo
 
 	log.Printf("Generating action for command Mute on media routed through DSP")
 
-	parameters := make(map[string]string)
-
 	var output []base.ActionStructure
 
 	for _, port := range dsp.Ports {
+		parameters := make(map[string]string)
 
 		sourceDevice, err := dbo.GetDeviceByName(room.Building, room.Room, port.Source)
 		if err != nil {
