@@ -256,7 +256,7 @@ func GetDisplayVolumeAction(device accessors.Device, room base.PublicRoom, event
 	parameters := make(map[string]string)
 
 	eventInfo.EventInfoValue = strconv.Itoa(volume)
-	parameters["level"] = string(volume)
+	parameters["level"] = strconv.Itoa(volume)
 
 	action := base.ActionStructure{
 		Action:              "SetVolume",
