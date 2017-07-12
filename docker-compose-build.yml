@@ -92,6 +92,7 @@ services:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - HELP_SLACKBOT_WEBHOOK=$HELP_SLACKBOT_WEBHOOK
             - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
+            - UI_CONFIGURATION_ADDRESS=$UI_CONFIGURATION_ADDRESS
         network_mode: "host"
         restart: always
     configuration-database-tool:
