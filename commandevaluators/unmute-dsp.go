@@ -190,16 +190,18 @@ func GetMicUnMuteAction(mic accessors.Device, room base.PublicRoom, eventInfo ei
 
 		if port.Source == mic.Name {
 			parameters["input"] = port.Name
+			eventInfo.Device = mic.Name
+
+			return base.ActionStructure{
+				Action:              "UnMute",
+				GeneratingEvaluator: "UnMuteDSP",
+				Device:              dsp,
+				DeviceSpecific:      true,
+				EventLog:            []ei.EventInfo{eventInfo},
+				Parameters:          parameters,
+			}, nil
 		}
 
-		return base.ActionStructure{
-			Action:              "UnMute",
-			GeneratingEvaluator: "UnMuteDSP",
-			Device:              dsp,
-			DeviceSpecific:      true,
-			EventLog:            []ei.EventInfo{eventInfo},
-			Parameters:          parameters,
-		}, nil
 	}
 
 	return base.ActionStructure{}, errors.New("Couldn't find port configuration for mic " + mic.Name)
@@ -227,6 +229,8 @@ func GetDSPMediaUnMuteAction(dsp accessors.Device, room base.PublicRoom, eventIn
 		if sourceDevice.HasRole("AudioOut") || sourceDevice.HasRole("VideoSwitcher") {
 
 			parameters["input"] = port.Name
+			eventInfo.Device = dsp.Name
+
 			toReturn = append(toReturn, base.ActionStructure{
 				Action:              "UnMute",
 				GeneratingEvaluator: "UnMuteDSP",
@@ -244,6 +248,8 @@ func GetDSPMediaUnMuteAction(dsp accessors.Device, room base.PublicRoom, eventIn
 func GetDisplayUnMuteAction(device accessors.Device, room base.PublicRoom, eventInfo ei.EventInfo, deviceSpecific bool) (base.ActionStructure, error) {
 
 	log.Printf("Generating action for command \"UnMute\" for device %s external to DSP", device.Name)
+
+	eventInfo.Device = device.Name
 
 	return base.ActionStructure{
 		Action:              "UnMute",

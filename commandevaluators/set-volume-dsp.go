@@ -147,6 +147,13 @@ func GetGeneralVolumeRequestActionsDSP(room base.PublicRoom, eventInfo ei.EventI
 		return []base.ActionStructure{}, err
 	}
 
+	//verify that there is only one DSP
+	if len(dsp) != 1 {
+		errorMessage := "Invalid DSP configuration detected in room."
+		log.Printf(errorMessage)
+		return []base.ActionStructure{}, errors.New(errorMessage)
+	}
+
 	dspActions, err := GetDSPMediaVolumeAction(dsp[0], room, eventInfo, *room.Volume)
 	if err != nil {
 		errorMessage := "Could not generate action corresponding to general mute request in room " + room.Room + ", building " + room.Building + ": " + err.Error()
@@ -209,6 +216,7 @@ func GetMicVolumeAction(mic accessors.Device, room base.PublicRoom, eventInfo ei
 		if port.Source == mic.Name {
 
 			eventInfo.EventInfoValue = strconv.Itoa(volume)
+			eventInfo.Device = mic.Name
 			parameters["level"] = strconv.Itoa(volume)
 			parameters["input"] = port.Name
 
@@ -226,17 +234,18 @@ func GetMicVolumeAction(mic accessors.Device, room base.PublicRoom, eventInfo ei
 	return base.ActionStructure{}, errors.New("Could not find port for mic " + mic.Name)
 }
 
-func GetDSPMediaVolumeAction(device accessors.Device, room base.PublicRoom, eventInfo ei.EventInfo, volume int) ([]base.ActionStructure, error) { //commands are issued to whatever port doesn't have a mic connected
+func GetDSPMediaVolumeAction(dsp accessors.Device, room base.PublicRoom, eventInfo ei.EventInfo, volume int) ([]base.ActionStructure, error) { //commands are issued to whatever port doesn't have a mic connected
 	log.Printf("%v", volume)
 
 	log.Printf("Generating action for command SetVolume on media routed through DSP")
 
 	var output []base.ActionStructure
 
-	for _, port := range device.Ports {
+	for _, port := range dsp.Ports {
 		parameters := make(map[string]string)
 		parameters["level"] = fmt.Sprintf("%v", volume)
 		eventInfo.EventInfoValue = fmt.Sprintf("%v", volume)
+		eventInfo.Device = dsp.Name
 
 		sourceDevice, err := dbo.GetDeviceByName(room.Building, room.Room, port.Source)
 		if err != nil {
@@ -251,7 +260,7 @@ func GetDSPMediaVolumeAction(device accessors.Device, room base.PublicRoom, even
 			action := base.ActionStructure{
 				Action:              "SetVolume",
 				GeneratingEvaluator: "SetVolumeDSP",
-				Device:              device,
+				Device:              dsp,
 				DeviceSpecific:      true,
 				EventLog:            []ei.EventInfo{eventInfo},
 				Parameters:          parameters,
@@ -272,6 +281,7 @@ func GetDisplayVolumeAction(device accessors.Device, room base.PublicRoom, event
 	parameters := make(map[string]string)
 
 	eventInfo.EventInfoValue = strconv.Itoa(volume)
+	eventInfo.Device = device.Name
 	parameters["level"] = strconv.Itoa(volume)
 
 	action := base.ActionStructure{
