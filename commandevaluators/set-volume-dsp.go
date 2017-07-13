@@ -186,28 +186,44 @@ func GetMicVolumeAction(mic accessors.Device, room base.PublicRoom, eventInfo ei
 
 	log.Printf("Identified microphone volume request")
 
-	parameters := make(map[string]string)
-
-	eventInfo.EventInfoValue = string(volume)
-	parameters["level"] = string(volume)
-	parameters["input"] = mic.Ports[0].Name
-
-	dsp, err := dbo.GetDeviceByName(room.Building, room.Room, mic.Ports[0].Destination)
+	//get DSP
+	dsps, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "DSP")
 	if err != nil {
-		errorMessage := "Could not get DSP corresponding to mic " + mic.Name + ": " + err.Error()
+		errorMessage := "Error getting DSP configuration for building " + room.Building + ", room " + room.Room + ": " + err.Error()
 		log.Printf(errorMessage)
 		return base.ActionStructure{}, errors.New(errorMessage)
 	}
 
-	return base.ActionStructure{
-		Action:              "SetVolume",
-		GeneratingEvaluator: "SetVolumeDSP",
-		Device:              dsp,
-		DeviceSpecific:      true,
-		EventLog:            []ei.EventInfo{eventInfo},
-		Parameters:          parameters,
-	}, nil
+	//verify that there is only one DSP
+	if len(dsps) != 1 {
+		errorMessage := "Invalid DSP configuration detected in room."
+		log.Printf(errorMessage)
+		return base.ActionStructure{}, errors.New(errorMessage)
+	}
 
+	dsp := dsps[0]
+	parameters := make(map[string]string)
+
+	for _, port := range dsp.Ports {
+
+		if port.Source == mic.Name {
+
+			eventInfo.EventInfoValue = strconv.Itoa(volume)
+			parameters["level"] = strconv.Itoa(volume)
+			parameters["input"] = port.Name
+
+			return base.ActionStructure{
+				Action:              "SetVolume",
+				GeneratingEvaluator: "SetVolumeDSP",
+				Device:              dsp,
+				DeviceSpecific:      true,
+				EventLog:            []ei.EventInfo{eventInfo},
+				Parameters:          parameters,
+			}, nil
+		}
+	}
+
+	return base.ActionStructure{}, errors.New("Could not find port for mic " + mic.Name)
 }
 
 func GetDSPMediaVolumeAction(device accessors.Device, room base.PublicRoom, eventInfo ei.EventInfo, volume int) ([]base.ActionStructure, error) { //commands are issued to whatever port doesn't have a mic connected

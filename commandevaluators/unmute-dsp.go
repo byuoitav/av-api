@@ -168,24 +168,41 @@ func GetGeneralUnMuteRequestActionsDSP(room base.PublicRoom, eventInfo ei.EventI
 func GetMicUnMuteAction(mic accessors.Device, room base.PublicRoom, eventInfo ei.EventInfo) (base.ActionStructure, error) {
 
 	log.Printf("Generating action for command \"UnMute\" on microphone %s", mic.Name)
-
-	parameters := make(map[string]string)
-	parameters["input"] = mic.Ports[0].Name
-
-	dsp, err := dbo.GetDeviceByName(room.Building, room.Room, mic.Ports[0].Destination)
+	//TODO move me and parameterize the DSP for efficiency!
+	//get DSP
+	dsps, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "DSP")
 	if err != nil {
-		errorMessage := "Could not get DSP corresponding to mic " + mic.Name + ": " + err.Error()
+		errorMessage := "Error getting DSP in building " + room.Building + ", room " + room.Room + ": " + err.Error()
 		log.Printf(errorMessage)
 		return base.ActionStructure{}, errors.New(errorMessage)
 	}
-	return base.ActionStructure{
-		Action:              "UnMute",
-		GeneratingEvaluator: "UnMuteDSP",
-		Device:              dsp,
-		DeviceSpecific:      true,
-		EventLog:            []ei.EventInfo{eventInfo},
-		Parameters:          parameters,
-	}, nil
+
+	if len(dsps) != 1 {
+		errorMessage := "Invalid DSP configuration detected."
+		log.Printf(errorMessage)
+		return base.ActionStructure{}, errors.New(errorMessage)
+	}
+
+	dsp := dsps[0]
+
+	parameters := make(map[string]string)
+	for _, port := range dsp.Ports {
+
+		if port.Source == mic.Name {
+			parameters["input"] = port.Name
+		}
+
+		return base.ActionStructure{
+			Action:              "UnMute",
+			GeneratingEvaluator: "UnMuteDSP",
+			Device:              dsp,
+			DeviceSpecific:      true,
+			EventLog:            []ei.EventInfo{eventInfo},
+			Parameters:          parameters,
+		}, nil
+	}
+
+	return base.ActionStructure{}, errors.New("Couldn't find port configuration for mic " + mic.Name)
 }
 
 func GetDSPMediaUnMuteAction(dsp accessors.Device, room base.PublicRoom, eventInfo ei.EventInfo, deviceSpecific bool) ([]base.ActionStructure, error) {
