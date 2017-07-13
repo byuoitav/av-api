@@ -165,23 +165,42 @@ func GetMicMuteAction(mic accessors.Device, room base.PublicRoom, eventInfo ei.E
 
 	log.Printf("Generating action for command \"Mute\" on microphone %s", mic.Name)
 
-	parameters := make(map[string]string)
-	parameters["input"] = mic.Ports[0].Name
-
-	dsp, err := dbo.GetDeviceByName(room.Building, room.Room, mic.Ports[0].Destination)
+	//get DSP
+	dsps, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "DSP")
 	if err != nil {
-		errorMessage := "Could not get DSP corresponding to mic " + mic.Name + ": " + err.Error()
+		errorMessage := "Error getting DSP configuration in building " + room.Building + ", room " + room.Room + ": " + err.Error()
 		log.Printf(errorMessage)
 		return base.ActionStructure{}, errors.New(errorMessage)
 	}
-	return base.ActionStructure{
-		Action:              "Mute",
-		GeneratingEvaluator: "MuteDSP",
-		Device:              dsp,
-		DeviceSpecific:      true,
-		EventLog:            []ei.EventInfo{eventInfo},
-		Parameters:          parameters,
-	}, nil
+
+	//verify DSP configuration
+	if len(dsps) != 1 {
+		errorMessage := "Invalid DSP configuration detected."
+		log.Printf(errorMessage)
+		return base.ActionStructure{}, errors.New(errorMessage)
+	}
+
+	dsp := dsps[0]
+
+	parameters := make(map[string]string)
+	for _, port := range dsp.Ports {
+
+		if port.Source == mic.Name {
+
+			parameters["input"] = port.Name
+
+			return base.ActionStructure{
+				Action:              "Mute",
+				GeneratingEvaluator: "MuteDSP",
+				Device:              dsp,
+				DeviceSpecific:      true,
+				EventLog:            []ei.EventInfo{eventInfo},
+				Parameters:          parameters,
+			}, nil
+		}
+	}
+
+	return base.ActionStructure{}, errors.New("Could not find port for mic " + mic.Name)
 }
 
 func GetDSPMediaMuteAction(dsp accessors.Device, room base.PublicRoom, eventInfo ei.EventInfo, deviceSpecific bool) ([]base.ActionStructure, error) {
