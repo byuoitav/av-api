@@ -72,8 +72,16 @@ func (p *VolumeDSP) GenerateCommands(devices []accessors.Device) ([]StatusComman
 
 func (p *VolumeDSP) EvaluateResponse(label string, value interface{}, source accessors.Device, destination DestinationDevice) (string, interface{}, error) {
 
+	const SCALE_FACTOR = 3
+	const MINIMUM = 45
 	if destination.Device.HasRole("Microphone") {
-		log.Printf("Evaluating response pertaining to microphone: %s", destination.Device.Name)
+
+		intValue, ok := value.(int)
+		if ok {
+
+			return label, (intValue - MINIMUM) * SCALE_FACTOR, nil
+
+		}
 	}
 	return label, value, nil
 }
