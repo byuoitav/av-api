@@ -32,6 +32,10 @@ type Volume struct {
 	Volume int `json:"volume"`
 }
 
+type Battery struct {
+	Battery int `json:"battery"`
+}
+
 //represents output from a device, use Error field to flag errors
 type Status struct {
 	Status            map[string]interface{} `json:"status"`
