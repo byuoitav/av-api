@@ -22,7 +22,7 @@ func GetRoomStatus(building string, roomName string) (base.PublicRoom, error) {
 		return base.PublicRoom{}, err
 	}
 
-	commands, err := generateStatusCommands(room, DEFAULT_MAP)
+	commands, err := generateStatusCommands(room, STATUS_EVALUATORS)
 	if err != nil {
 		return base.PublicRoom{}, err
 	}
@@ -53,7 +53,7 @@ func generateStatusCommands(room accessors.Room, commandMap map[string]StatusEva
 
 		if strings.HasPrefix(possibleEvaluator.EvaluatorKey, FLAG) {
 
-			currentEvaluator := DEFAULT_MAP[possibleEvaluator.EvaluatorKey]
+			currentEvaluator := STATUS_EVALUATORS[possibleEvaluator.EvaluatorKey]
 
 			devices, err := currentEvaluator.GetDevices(room)
 			if err != nil {
@@ -69,6 +69,10 @@ func generateStatusCommands(room accessors.Room, commandMap map[string]StatusEva
 		}
 	}
 
+	log.Printf("All commands generated: \n\n")
+	for _, command := range output {
+		log.Printf("Command: %s against device %s, destination device: %s, parameters: %v", command.Action.Name, command.Device.Name, command.DestinationDevice.Device.Name, command.Parameters)
+	}
 	return output, nil
 }
 
@@ -84,13 +88,14 @@ func runStatusCommands(commands []StatusCommand) (outputs []StatusResponse, err 
 	//map device names to commands
 	commandMap := make(map[string][]StatusCommand)
 
-	log.Printf("Building device map")
+	log.Printf("Building device map\n\n")
 	for _, command := range commands {
 
+		log.Printf("Command: %s against device %s, destination device: %s, parameters: %v", command.Action.Name, command.Device.Name, command.DestinationDevice.Device.Name, command.Parameters)
 		_, present := commandMap[command.Device.Name]
 		if !present {
 			commandMap[command.Device.Name] = []StatusCommand{command}
-			log.Printf("Device %s identified", command.Device.Name)
+			//	log.Printf("Device %s identified", command.Device.Name)
 		} else {
 			commandMap[command.Device.Name] = append(commandMap[command.Device.Name], command)
 		}
@@ -104,6 +109,12 @@ func runStatusCommands(commands []StatusCommand) (outputs []StatusResponse, err 
 	for _, deviceCommands := range commandMap {
 		group.Add(1)
 		go issueCommands(deviceCommands, channel, &group)
+
+		log.Printf("Commands getting issued: \n\n")
+
+		for _, command := range deviceCommands {
+			log.Printf("Command: %s against device %s, destination device: %s, parameters: %v", command.Action.Name, command.Device.Name, command.DestinationDevice.Device.Name, command.Parameters)
+		}
 	}
 
 	log.Printf("Waiting for commands to issue...")
@@ -114,13 +125,13 @@ func runStatusCommands(commands []StatusCommand) (outputs []StatusResponse, err 
 	for outputList := range channel {
 		for _, output := range outputList {
 			if output.ErrorMessage != nil {
-				log.Printf("Error querying status with destination: %s", output.DestinationDevice.Name)
+				log.Printf("Error querying status of device: %s: %s", output.SourceDevice.Name, *output.ErrorMessage)
 				cause := eventinfrastructure.INTERNAL
 				message := *output.ErrorMessage
-				message = "Error querying status for destination" + output.DestinationDevice.Name + ":" + message
+				message = "Error querying status for destination: " + output.DestinationDevice.Name + ": " + message
 				base.PublishError(message, cause)
 			}
-			log.Printf("Appending results of %s to output", output.DestinationDevice.Name)
+			log.Printf("Appending status: %v of %s to output", output.Status, output.DestinationDevice.Name)
 			outputs = append(outputs, output)
 		}
 	}
@@ -130,7 +141,7 @@ func runStatusCommands(commands []StatusCommand) (outputs []StatusResponse, err 
 //builds a Status object corresponding to a device and writes it to the channel
 func issueCommands(commands []StatusCommand, channel chan []StatusResponse, control *sync.WaitGroup) {
 
-	//add task to waitgroup
+	log.Printf("Issuing commands...\n\n")
 
 	//final output
 	outputs := []StatusResponse{}
@@ -138,6 +149,9 @@ func issueCommands(commands []StatusCommand, channel chan []StatusResponse, cont
 	//iterate over list of StatusCommands
 	//TODO:make sure devices can handle rapid-fire API requests
 	for _, command := range commands {
+
+		log.Printf("Command: %s against device %s, destination device: %s, parameters: %v", command.Action.Name, command.Device.Name, command.DestinationDevice.Device.Name, command.Parameters)
+
 		output := StatusResponse{
 			Generator:         command.Generator,
 			SourceDevice:      command.Device,
@@ -148,6 +162,9 @@ func issueCommands(commands []StatusCommand, channel chan []StatusResponse, cont
 		//build url
 		url := command.Action.Microservice + command.Action.Endpoint.Path
 		for formal, actual := range command.Parameters {
+
+			log.Printf("Formal: %s, actual: %s", formal, actual)
+
 			toReplace := ":" + formal
 			if !strings.Contains(url, toReplace) {
 				errorMessage := "Could not find parameter " + toReplace + " issuing the command " + command.Action.Name
@@ -178,12 +195,21 @@ func issueCommands(commands []StatusCommand, channel chan []StatusResponse, cont
 			log.Printf("Error reading response from %s", command.Device.Name)
 			continue
 		}
-		log.Printf("Microservice returned: %s", body)
+
+		//check to see if it returned a non 200 response, if so, we need to build the error.
+		if response.StatusCode != 200 {
+			log.Printf("Non 200 recieved: logging. Message recieved: %s", body)
+			errorMessage := "Error with the request: %v" + string(body)
+			base.PublishError(errorMessage, eventinfrastructure.AUTOGENERATED)
+			continue
+		}
+
+		log.Printf("microservice returned: %s", body)
 
 		var status map[string]interface{}
 		err = json.Unmarshal(body, &status)
 		if err != nil {
-			errorMessage := err.Error()
+			errorMessage := "microservice returned: " + string(body)
 			output.ErrorMessage = &errorMessage
 			outputs = append(outputs, output)
 			log.Printf("Error unmarshalling response from %s", command.Device.Name)
@@ -226,7 +252,8 @@ func evaluateResponses(responses []StatusResponse) (base.PublicRoom, error) {
 	responsesByDestinationDevice := make(map[string]Status)
 	for _, resp := range responses {
 		for key, value := range resp.Status {
-			k, v, err := DEFAULT_MAP[resp.Generator].EvaluateResponse(key, value, resp.SourceDevice, resp.DestinationDevice)
+			log.Printf("Checking generator: %s", resp.Generator)
+			k, v, err := STATUS_EVALUATORS[resp.Generator].EvaluateResponse(key, value, resp.SourceDevice, resp.DestinationDevice)
 			if err != nil {
 				//log an error
 				log.Printf("There was a problem procesing the response %v - %v with evaluator %v: %s",
@@ -372,6 +399,7 @@ func generateStandardStatusCommand(devices []accessors.Device, evaluatorName str
 					}
 
 				}
+
 				destinationDevice.Device = device
 
 				log.Printf("Adding command: %s to action list with device %s", command.Name, device.Name)

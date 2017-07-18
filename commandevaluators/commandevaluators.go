@@ -3,6 +3,8 @@ package commandevaluators
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -69,7 +71,10 @@ func getDevice(devs []accessors.Device, d string, room string, building string) 
 }
 
 //ExecuteActions carries out the actions defined in the struct
-func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionReporting, err error) {
+func ExecuteActions(actions []base.ActionStructure) ([]CommandExecutionReporting, error) {
+
+	status := []CommandExecutionReporting{}
+
 	for _, a := range actions {
 		if a.Overridden {
 			log.Printf("Action %s on device %s have been overriden. Continuing.",
@@ -81,8 +86,8 @@ func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionRe
 		if !has {
 			errorStr := "There was an error retrieving the command " + a.Action + " for device " + a.Device.GetFullName()
 			log.Printf("%s", errorStr)
-			err = errors.New(errorStr)
-			return
+			err := errors.New(errorStr)
+			return []CommandExecutionReporting{}, err
 		}
 
 		//replace the address
@@ -97,8 +102,8 @@ func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionRe
 
 				log.Printf("%s", errorString)
 
-				err = errors.New(errorString)
-				return
+				err := errors.New(errorString)
+				return []CommandExecutionReporting{}, err
 			}
 
 			endpoint = strings.Replace(endpoint, toReplace, v, -1)
@@ -111,32 +116,30 @@ func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionRe
 
 			log.Printf("%s", errorString)
 
-			err = errors.New(errorString)
-			return
+			err := errors.New(errorString)
+			return []CommandExecutionReporting{}, err
 		}
 
 		//Execute the command.
 		client := &http.Client{}
-		req, er := http.NewRequest("GET", cmd.Microservice+endpoint, nil)
-		if er != nil {
-			err = er
-			return
+		req, err := http.NewRequest("GET", cmd.Microservice+endpoint, nil)
+		if err != nil {
+			return []CommandExecutionReporting{}, err
 		}
 
 		if len(os.Getenv("LOCAL_ENVIRONMENT")) == 0 {
-			token, er := bearertoken.GetToken()
-			if er != nil {
-				err = er
-				return
+			token, err := bearertoken.GetToken()
+			if err != nil {
+				return []CommandExecutionReporting{}, err
 			}
 			req.Header.Set("Authorization", "Bearer "+token.Token)
 		}
 
-		resp, er := client.Do(req)
+		resp, err := client.Do(req)
 		defer resp.Body.Close()
 
 		//if error, record it
-		if er != nil {
+		if err != nil {
 			base.SendEvent(
 				eventinfrastructure.ERROR,
 				eventinfrastructure.USERINPUT,
@@ -144,17 +147,71 @@ func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionRe
 				a.Device.Room.Name,
 				a.Device.Building.Shortname,
 				cmd.Name,
-				er.Error(),
+				err.Error(),
 				true)
-			log.Printf("ERROR: %s. Continuing.", er.Error())
+
+			log.Printf("ERROR: %s. Continuing.", err.Error())
 
 			status = append(status, CommandExecutionReporting{
 				Success: false,
 				Action:  a.Action,
 				Device:  a.Device.Name,
-				Err:     er.Error(),
+				Err:     err.Error(),
 			})
+
+			continue
+		} else if resp.StatusCode != 200 { //check the response code, if non-200, we need to record and report
+
+			//check the response code
+			log.Printf("Probalem with the request, response code; %v", resp.StatusCode)
+
+			b, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				log.Printf("There was a problem reading the response: %v", err.Error())
+
+				base.SendEvent(
+					eventinfrastructure.ERROR,
+					eventinfrastructure.USERINPUT,
+					a.Device.GetFullName(),
+					a.Device.Room.Name,
+					a.Device.Building.Shortname,
+					cmd.Name,
+					err.Error(),
+					true)
+
+				status = append(status, CommandExecutionReporting{
+					Success: false,
+					Action:  a.Action,
+					Device:  a.Device.Name,
+					Err:     err.Error(),
+				})
+				continue
+			}
+
+			log.Printf("microservice returned: %v", b)
+
+			//now we report the event
+			base.SendEvent(
+				eventinfrastructure.ERROR,
+				eventinfrastructure.USERINPUT,
+				a.Device.GetFullName(),
+				a.Device.Room.Name,
+				a.Device.Building.Shortname,
+				cmd.Name,
+				fmt.Sprintf("%s", b),
+				true)
+
+			status = append(status, CommandExecutionReporting{
+				Success: false,
+				Action:  a.Action,
+				Device:  a.Device.Name,
+				Err:     fmt.Sprintf("%s", b),
+			})
+			continue
 		} else {
+
+			//TODO: we need to find some way to check against the correct response value, just as a further validation
+
 			//Vals := getKeyValueFromCommmand(a)
 
 			for _, event := range a.EventLog {
@@ -181,7 +238,7 @@ func ExecuteActions(actions []base.ActionStructure) (status []CommandExecutionRe
 			})
 		}
 	}
-	return
+	return status, nil
 }
 
 func getKeyValueFromCommmand(action base.ActionStructure) []string {
@@ -234,6 +291,9 @@ func Init() map[string]CommandEvaluator {
 		CommandMap["SetVolumeDMPS"] = &SetVolumeDMPS{}
 		CommandMap["SetVolumeTecLite"] = &SetVolumeTecLite{}
 		CommandMap["ChangeVideoInputDMPS"] = &ChangeVideoInputDMPS{}
+		CommandMap["MuteDSP"] = &MuteDSP{}
+		CommandMap["UnmuteDSP"] = &UnMuteDSP{}
+		CommandMap["SetVolumeDSP"] = &SetVolumeDSP{}
 
 		commandMapInitialized = true
 	}
