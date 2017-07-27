@@ -19,6 +19,10 @@ import (
 func main() {
 	base.Pub = eventinfrastructure.NewPublisher("7001")
 
+	var req eventinfrastructure.ConnectionRequest
+	req.PublisherAddr = "localhost:7001"
+	go eventinfrastructure.SendConnectionRequest("http://localhost:6999/subscribe", req)
+
 	err := avapi.CheckRoomInitialization()
 	if err != nil {
 		base.PublishError("Fail to run init script. Terminating. ERROR:"+err.Error(), eventinfrastructure.INTERNAL)
