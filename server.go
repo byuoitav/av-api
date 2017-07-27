@@ -21,7 +21,7 @@ func main() {
 
 	var req eventinfrastructure.ConnectionRequest
 	req.PublisherAddr = "localhost:7001"
-	go eventinfrastructure.SendConnectionRequest("http://localhost:6999/subscribe", req)
+	go eventinfrastructure.SendConnectionRequest("http://localhost:6999/subscribe", req, true)
 
 	err := avapi.CheckRoomInitialization()
 	if err != nil {
