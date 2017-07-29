@@ -59,6 +59,14 @@ services:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
         network_mode: "host"
         restart: always
+    kramer-microservice:
+        image: byuoitav/kramer-microservice:${DOCKER_HUB_TAG}
+        ports:
+            - "8014:8014"
+        environment:
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+        network_mode: "host"
+        restart: always
     adcp-control-microservice:
         image: byuoitav/adcp-control-microservice:${DOCKER_HUB_TAG}
         ports:
