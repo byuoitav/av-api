@@ -76,7 +76,7 @@ services:
             context: ../kramer-microservice
             dockerfile: Dockerfile-development
         ports:
-            - "8011:8011"
+            - "8014:8014"
         environment:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
         network_mode: "host"
