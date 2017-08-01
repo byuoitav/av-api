@@ -13,6 +13,7 @@ services:
             - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
         network_mode: "host"
         restart: always
+        tty: true
     pjlink-microservice:
         build: 
             context: ../pjlink-microservice
@@ -25,6 +26,7 @@ services:
             - PJLINK_PASS=$PJLINK_PASS
         network_mode: "host"
         restart: always
+        tty: true
     configuration-database-microservice:
         build: 
             context: ../configuration-database-microservice
@@ -40,6 +42,7 @@ services:
             - CONFIGURATION_DATABASE_NAME=$CONFIGURATION_DATABASE_NAME
         network_mode: "host"
         restart: always
+        tty: true
     sony-control-microservice:
         build: 
             context: ../sony-control-microservice
@@ -51,6 +54,7 @@ services:
             - SONY_TV_PSK=$SONY_TV_PSK
         network_mode: "host"
         restart: always
+        tty: true
     london-audio-microservice:
         build: 
             context: ../london-audio-microservice
@@ -61,6 +65,7 @@ services:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
         network_mode: "host"
         restart: always
+        tty: true
     pulse-eight-neo-microservice:
         build: 
             context: ../pulse-eight-neo-microservice
@@ -71,6 +76,18 @@ services:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
         network_mode: "host"
         restart: always
+        tty: true
+    kramer-microservice:
+        build: 
+            context: ../kramer-microservice
+            dockerfile: Dockerfile-development
+        ports:
+            - "8014:8014"
+        environment:
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+        network_mode: "host"
+        restart: always
+        tty: true
     adcp-control-microservice:
         build: 
             context: ../adcp-control-microservice
@@ -81,6 +98,7 @@ services:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
         network_mode: "host"
         restart: always
+        tty: true
     touchpanel-ui-microservice:
         build: 
             context: ../touchpanel-ui-microservice
@@ -95,6 +113,7 @@ services:
             - UI_CONFIGURATION_ADDRESS=$UI_CONFIGURATION_ADDRESS
         network_mode: "host"
         restart: always
+        tty: true
     configuration-database-tool:
         build: 
             context: ../configuration-database-tool
@@ -106,6 +125,7 @@ services:
             - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
         network_mode: "host"
         restart: always
+        tty: true
     event-router-microservice:
         build: 
             context: ../event-router-microservice
@@ -119,6 +139,7 @@ services:
             - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
         network_mode: "host"
         restart: always
+        tty: true
     event-translator-microservice:
         build:
             context: ../event-translator-microservice
@@ -132,3 +153,4 @@ services:
             - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
         network_mode: "host"
         restart: always
+        tty: true
