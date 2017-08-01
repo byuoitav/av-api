@@ -447,7 +447,7 @@ func AddDevice(toAdd accessors.Device) (accessors.Device, error) {
 	return toFill, nil
 }
 
-func GetDeviceClasses() []accessors.DeviceClass {
+func GetDeviceClasses() ([]accessors.DeviceClass, error) {
 	log.Printf("getting all classes")
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/device/classes"
 
