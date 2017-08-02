@@ -60,16 +60,13 @@ func GetData(url string, structToFill interface{}) error {
 	return nil
 }
 
-//PostData hits POST endpoints
-func PostData(url string, structToAdd interface{}, structToFill interface{}) error {
-	log.Printf("Posting data to URL: %s...", url)
-
+func SendData(url string, structToAdd interface{}, structToFill interface{}, method string) error {
 	body, err := json.Marshal(structToAdd)
 	if err != nil {
 		return err
 	}
 	client := &http.Client{}
-	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(body))
+	req, _ := http.NewRequest(method, url, bytes.NewBuffer(body))
 
 	req.Header.Set("Content-Type", "application/json")
 
@@ -101,6 +98,19 @@ func PostData(url string, structToAdd interface{}, structToFill interface{}) err
 	}
 
 	return nil
+}
+
+//PostData hits POST endpoints
+func PostData(url string, structToAdd interface{}, structToFill interface{}) error {
+	log.Printf("Posting data to URL: %s...", url)
+	return SendData(url, structToAdd, structToFill, "POST")
+
+}
+
+//PutData hits PUT endpoints
+func PutData(url string, structToAdd interface{}, structToFill interface{}) error {
+	log.Printf("Putting data to URL: %v...", url)
+	return SendData(url, structToAdd, structToFill, "PUT")
 }
 
 func setToken(request *http.Request) error {
@@ -449,10 +459,26 @@ func AddDevice(toAdd accessors.Device) (accessors.Device, error) {
 
 func GetDeviceClasses() ([]accessors.DeviceClass, error) {
 	log.Printf("getting all classes")
-	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/device/classes"
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/classes"
 
 	var classes []accessors.DeviceClass
 	err := GetData(url, &classes)
 
 	return classes, err
+}
+
+func SetDeviceAttribute(attributeInfo accessors.DeviceAttributeInfo) (accessors.Device, error) {
+	log.Printf("Setting device attrbute %v to %v for device %v", attributeInfo.AttributeName, attributeInfo.AttributeValue, attributeInfo.AttributeValue)
+
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + fmt.Sprintf("/devices/attribute")
+
+	device := accessors.Device{}
+	err := PutData(url, attributeInfo, &device)
+	if err != nil {
+		log.Printf("error: %v", err.Error())
+	} else {
+		log.Printf("Done.")
+	}
+
+	return device, err
 }
