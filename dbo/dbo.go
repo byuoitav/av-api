@@ -378,6 +378,15 @@ func AddEndpoint(toAdd accessors.Endpoint) (accessors.Endpoint, error) {
 	return toFill, nil
 }
 
+func GetPortsByClass(class string) ([]accessors.DeviceTypePort, error) {
+	log.Printf("Getting ports for class %v", class)
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + fmt.Sprintf("/classes/%v/ports", class)
+
+	var ports []accessors.DeviceTypePort
+	err := GetData(url, &ports)
+	return ports, err
+}
+
 func GetPorts() ([]accessors.PortType, error) {
 	log.Printf("getting all ports")
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/ports"
