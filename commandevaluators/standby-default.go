@@ -39,8 +39,14 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom) (actions []base.ActionSt
 		log.Printf("Setting power to 'standby' state for all output devices.")
 		for _, device := range devices {
 
-			if device.Output {
-
+			containsStandby := false
+			for _, ps := range device.PowerStates {
+				if ps == "Standby" {
+					containsStandby = true
+					break
+				}
+			}
+			if containsStandby {
 				log.Printf("Adding device %+v", device.Name)
 				eventInfo.Device = device.Name
 				actions = append(actions, base.ActionStructure{
@@ -51,6 +57,20 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom) (actions []base.ActionSt
 					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 				})
 			}
+			/*
+				if device.Output {
+
+					log.Printf("Adding device %+v", device.Name)
+					eventInfo.Device = device.Name
+					actions = append(actions, base.ActionStructure{
+						Action:              "Standby",
+						Device:              device,
+						GeneratingEvaluator: "StandbyDefault",
+						DeviceSpecific:      false,
+						EventLog:            []eventinfrastructure.EventInfo{eventInfo},
+					})
+				}
+			*/
 		}
 	}
 
