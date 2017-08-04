@@ -1,18 +1,14 @@
 package base
 
 import (
-	"encoding/json"
-	"log"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
-	"github.com/xuther/go-message-router/common"
-	"github.com/xuther/go-message-router/publisher"
 )
 
-var Publisher publisher.Publisher
+var Pub *eventinfrastructure.Publisher
 
 func PublishHealth(e eventinfrastructure.Event) {
 	Publish(e, false)
@@ -38,20 +34,11 @@ func Publish(e eventinfrastructure.Event, Error bool) error {
 
 	e.LocalEnvironment = len(os.Getenv("LOCAL_ENVIRONMENT")) > 0
 
-	toSend, err := json.Marshal(&e)
-	if err != nil {
-		return err
-	}
-
-	header := [24]byte{}
 	if !Error {
-		copy(header[:], eventinfrastructure.APISuccess)
+		Pub.PublishEvent(e, eventinfrastructure.APISuccess)
 	} else {
-		copy(header[:], eventinfrastructure.APIError)
+		Pub.PublishEvent(e, eventinfrastructure.APIError)
 	}
-
-	log.Printf("Publishing event: %s", toSend)
-	Publisher.Write(common.Message{MessageHeader: header, MessageBody: toSend})
 
 	return err
 }
