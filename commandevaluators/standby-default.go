@@ -36,7 +36,7 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom) (actions []base.ActionSt
 			return
 		}
 
-		log.Printf("Setting power to 'standby' state for all devices with a 'standby' power state.")
+		log.Printf("Setting power to 'standby' state for all devices with a 'standby' power state, that are also output devices.")
 		for _, device := range devices {
 			containsStandby := false
 			for _, ps := range device.PowerStates {
@@ -46,7 +46,7 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom) (actions []base.ActionSt
 				}
 			}
 
-			if containsStandby {
+			if containsStandby && device.Output {
 				log.Printf("Adding device %+v", device.Name)
 				eventInfo.Device = device.Name
 				actions = append(actions, base.ActionStructure{
