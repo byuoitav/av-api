@@ -33,8 +33,8 @@ func main() {
 	port := ":8000"
 	router := echo.New()
 	router.Pre(middleware.RemoveTrailingSlash())
-	//	router.Use(middleware.CORS())
-	router.Use(CORS())
+	router.Use(middleware.CORS())
+	//	router.Use(CORS())
 
 	// Use the `secure` routing group to require authentication
 	secure := router.Group("", echo.WrapMiddleware(authmiddleware.Authenticate))
