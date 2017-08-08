@@ -9,6 +9,7 @@ import (
 	"github.com/byuoitav/av-api/handlers"
 	"github.com/byuoitav/av-api/health"
 	avapi "github.com/byuoitav/av-api/init"
+	"github.com/byuoitav/device-monitoring-microservice/microservicestatus"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 	"github.com/byuoitav/hateoas"
 	jh "github.com/jessemillar/health"
@@ -42,6 +43,7 @@ func main() {
 	router.GET("/", echo.WrapHandler(http.HandlerFunc(hateoas.RootResponse)))
 
 	router.GET("/health", echo.WrapHandler(http.HandlerFunc(jh.Check)))
+	router.GET("/microserivcestatus", GetStatus)
 	secure.GET("/status", health.Status)
 
 	// PUT requests
@@ -59,4 +61,14 @@ func main() {
 	go health.StartupCheckAndReport()
 
 	router.StartServer(&server)
+}
+
+func GetStatus(context echo.Context) error {
+	var s microservicestatus.Status
+	s.Version = "0.0"
+
+	s.Status = microservicestatus.StatusOK
+	s.StatusInfo = ""
+
+	return context.JSON(http.StatusOK, s)
 }
