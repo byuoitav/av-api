@@ -43,7 +43,7 @@ func main() {
 	router.GET("/", echo.WrapHandler(http.HandlerFunc(hateoas.RootResponse)))
 
 	router.GET("/health", echo.WrapHandler(http.HandlerFunc(jh.Check)))
-	router.GET("/microserivcestatus", GetStatus)
+	router.GET("/mstatus", GetStatus)
 	secure.GET("/status", health.Status)
 
 	// PUT requests
