@@ -2,19 +2,11 @@ package commandevaluators
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
-	"io/ioutil"
-	"log"
-	"net/http"
-	"os"
 	"strings"
 
-	"github.com/byuoitav/authmiddleware/bearertoken"
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/configuration-database-microservice/accessors"
-	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
 //CommandExecutionReporting is a struct we use to keep track of command execution
@@ -70,150 +62,6 @@ func getDevice(devs []accessors.Device, d string, room string, building string) 
 	return
 }
 
-//ExecuteActions carries out the actions defined in the struct
-func ExecuteActions(actions [][]base.ActionStructure) (base.PublicRoom, error) {
-
-	var status base.PublicRoom
-	for _, b := range actions {
-
-		for _, a := range b {
-
-			if a.Overridden {
-				log.Printf("Action %s on device %s have been overriden. Continuing.",
-					a.Action, a.Device.Name)
-				continue
-			}
-
-			has, cmd := CheckCommands(a.Device.Commands, a.Action)
-			if !has {
-				errorStr := fmt.Sprintf("Error retrieving the command %s for device %s.", a.Action, a.Device.GetFullName())
-				log.Printf(errorStr)
-				return base.PublicRoom{}, errors.New(errorStr)
-			}
-
-			//replace the address
-			endpoint := ReplaceIPAddressEndpoint(cmd.Endpoint.Path, a.Device.Address)
-
-			//go through and replace the parameters with the parameters in the actions
-			for k, v := range a.Parameters {
-				toReplace := ":" + k
-				if !strings.Contains(endpoint, toReplace) {
-					errorString := fmt.Sprintf("The parameter %s was not found in the command %s for device %s.", toReplace, cmd.Name, a.Device.GetFullName())
-					log.Printf(errorString)
-					return base.PublicRoom{}, errors.New(errorString)
-				}
-
-				endpoint = strings.Replace(endpoint, toReplace, v, -1)
-			}
-
-			if strings.Contains(endpoint, ":") {
-				errorString := "Not enough parameters provided for command " +
-					cmd.Name + " for device " + a.Device.GetFullName() + "." + " After evaluation " +
-					"endpoint was " + endpoint + "."
-
-				log.Printf("%s", errorString)
-
-				return base.PublicRoom{}, errors.New(errorString)
-			}
-
-			//Execute the command.
-			client := &http.Client{}
-			req, err := http.NewRequest("GET", cmd.Microservice+endpoint, nil)
-			if err != nil {
-				return base.PublicRoom{}, err
-			}
-
-			if len(os.Getenv("LOCAL_ENVIRONMENT")) == 0 {
-				token, err := bearertoken.GetToken()
-				if err != nil {
-					return base.PublicRoom{}, err
-				}
-				req.Header.Set("Authorization", "Bearer "+token.Token)
-			}
-
-			resp, err := client.Do(req)
-			defer resp.Body.Close()
-
-			//if error, record it
-			if err != nil {
-				base.SendEvent(
-					eventinfrastructure.ERROR,
-					eventinfrastructure.USERINPUT,
-					a.Device.GetFullName(),
-					a.Device.Room.Name,
-					a.Device.Building.Shortname,
-					cmd.Name,
-					err.Error(),
-					true)
-
-				log.Printf("ERROR: %s. Continuing.", err.Error())
-
-				continue
-
-			} else if resp.StatusCode != 200 { //check the response code, if non-200, we need to record and report
-
-				//check the response code
-				log.Printf("Problem with the request, response code; %v", resp.StatusCode)
-
-				b, err := ioutil.ReadAll(resp.Body)
-				if err != nil {
-					log.Printf("There was a problem reading the response: %v", err.Error())
-
-					base.SendEvent(
-						eventinfrastructure.ERROR,
-						eventinfrastructure.USERINPUT,
-						a.Device.GetFullName(),
-						a.Device.Room.Name,
-						a.Device.Building.Shortname,
-						cmd.Name,
-						err.Error(),
-						true)
-
-					continue
-				}
-
-				log.Printf("microservice returned: %v", b)
-
-				//now we report the event
-				base.SendEvent(
-					eventinfrastructure.ERROR,
-					eventinfrastructure.USERINPUT,
-					a.Device.GetFullName(),
-					a.Device.Room.Name,
-					a.Device.Building.Shortname,
-					cmd.Name,
-					fmt.Sprintf("%s", b),
-					true)
-
-				continue
-			} else {
-
-				//TODO: we need to find some way to check against the correct response value, just as a further validation
-
-				//Vals := getKeyValueFromCommmand(a)
-
-				for _, event := range a.EventLog {
-
-					base.SendEvent(
-						event.Type,
-						event.EventCause,
-						event.Device,
-						a.Device.Room.Name,
-						a.Device.Building.Shortname,
-						event.EventInfoKey,
-						event.EventInfoValue,
-						false,
-					)
-				}
-
-				log.Printf("Successfully sent command %s to device %s.", a.Action, a.Device.Name)
-
-			}
-		}
-	}
-	return status, nil
-}
-
 func getKeyValueFromCommmand(action base.ActionStructure) []string {
 	switch action.Action {
 	case "PowerOn":
@@ -248,7 +96,7 @@ func ReplaceIPAddressEndpoint(path string, address string) string {
 
 }
 
-//Singleton command map
+//soft singleton command map
 func Init() map[string]CommandEvaluator {
 	if !commandMapInitialized {
 		CommandMap["PowerOnDefault"] = &PowerOnDefault{}

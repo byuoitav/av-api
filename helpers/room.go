@@ -9,6 +9,7 @@ import (
 	"github.com/byuoitav/av-api/base"
 	ce "github.com/byuoitav/av-api/commandevaluators"
 	"github.com/byuoitav/av-api/dbo"
+	ex "github.com/byuoitav/av-api/execute"
 	"github.com/byuoitav/configuration-database-microservice/accessors"
 )
 
@@ -32,7 +33,7 @@ func EditRoomState(roomInQuestion base.PublicRoom) (report base.PublicRoom, err 
 	}
 
 	//execute actions.
-	report, err = ce.ExecuteActions(batches)
+	report, err = ex.ExecuteActions(batches)
 
 	return
 }
