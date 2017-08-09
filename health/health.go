@@ -10,7 +10,7 @@ import (
 	"github.com/labstack/echo"
 )
 
-const version = "0.9.1"
+//const version = "0.9.1"
 
 func GetHealth() map[string]string {
 
@@ -20,7 +20,7 @@ func GetHealth() map[string]string {
 
 	healthReport["Initialized"] = "ok"
 	healthReport["Web Server Status"] = "ok"
-	healthReport["Version"] = version
+	//	healthReport["Version"] = version
 
 	vals, err := dbo.GetBuildings()
 

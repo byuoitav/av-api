@@ -14,41 +14,49 @@ import (
 type (
 	// Binder is the interface that wraps the Bind method.
 	Binder interface {
-		Bind(interface{}, Context) error
+		Bind(i interface{}, c Context) error
 	}
 
-	binder struct{}
+	// DefaultBinder is the default implementation of the Binder interface.
+	DefaultBinder struct{}
+
+	// BindUnmarshaler is the interface used to wrap the UnmarshalParam method.
+	BindUnmarshaler interface {
+		// UnmarshalParam decodes and assigns a value from an form or query param.
+		UnmarshalParam(param string) error
+	}
 )
 
-func (b *binder) Bind(i interface{}, c Context) (err error) {
+// Bind implements the `Binder#Bind` function.
+func (b *DefaultBinder) Bind(i interface{}, c Context) (err error) {
 	req := c.Request()
-	if req.Method == GET {
-		if err = b.bindData(i, c.QueryParams()); err != nil {
-			return NewHTTPError(http.StatusBadRequest, err.Error())
+	if req.ContentLength == 0 {
+		if req.Method == GET || req.Method == DELETE {
+			if err = b.bindData(i, c.QueryParams(), "query"); err != nil {
+				return NewHTTPError(http.StatusBadRequest, err.Error())
+			}
+			return
 		}
-		return
+		return NewHTTPError(http.StatusBadRequest, "Request body can't be empty")
 	}
 	ctype := req.Header.Get(HeaderContentType)
-	if req.ContentLength == 0 {
-		return NewHTTPError(http.StatusBadRequest, "request body can't be empty")
-	}
 	switch {
 	case strings.HasPrefix(ctype, MIMEApplicationJSON):
 		if err = json.NewDecoder(req.Body).Decode(i); err != nil {
 			if ute, ok := err.(*json.UnmarshalTypeError); ok {
-				return NewHTTPError(http.StatusBadRequest, fmt.Sprintf("unmarshal type error: expected=%v, got=%v, offset=%v", ute.Type, ute.Value, ute.Offset))
+				return NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Unmarshal type error: expected=%v, got=%v, offset=%v", ute.Type, ute.Value, ute.Offset))
 			} else if se, ok := err.(*json.SyntaxError); ok {
-				return NewHTTPError(http.StatusBadRequest, fmt.Sprintf("syntax error: offset=%v, error=%v", se.Offset, se.Error()))
+				return NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Syntax error: offset=%v, error=%v", se.Offset, se.Error()))
 			} else {
 				return NewHTTPError(http.StatusBadRequest, err.Error())
 			}
 		}
-	case strings.HasPrefix(ctype, MIMEApplicationXML):
+	case strings.HasPrefix(ctype, MIMEApplicationXML), strings.HasPrefix(ctype, MIMETextXML):
 		if err = xml.NewDecoder(req.Body).Decode(i); err != nil {
 			if ute, ok := err.(*xml.UnsupportedTypeError); ok {
-				return NewHTTPError(http.StatusBadRequest, fmt.Sprintf("unsupported type error: type=%v, error=%v", ute.Type, ute.Error()))
+				return NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Unsupported type error: type=%v, error=%v", ute.Type, ute.Error()))
 			} else if se, ok := err.(*xml.SyntaxError); ok {
-				return NewHTTPError(http.StatusBadRequest, fmt.Sprintf("syntax error: line=%v, error=%v", se.Line, se.Error()))
+				return NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Syntax error: line=%v, error=%v", se.Line, se.Error()))
 			} else {
 				return NewHTTPError(http.StatusBadRequest, err.Error())
 			}
@@ -58,7 +66,7 @@ func (b *binder) Bind(i interface{}, c Context) (err error) {
 		if err != nil {
 			return NewHTTPError(http.StatusBadRequest, err.Error())
 		}
-		if err = b.bindData(i, params); err != nil {
+		if err = b.bindData(i, params, "form"); err != nil {
 			return NewHTTPError(http.StatusBadRequest, err.Error())
 		}
 	default:
@@ -67,12 +75,12 @@ func (b *binder) Bind(i interface{}, c Context) (err error) {
 	return
 }
 
-func (b *binder) bindData(ptr interface{}, data map[string][]string) error {
+func (b *DefaultBinder) bindData(ptr interface{}, data map[string][]string, tag string) error {
 	typ := reflect.TypeOf(ptr).Elem()
 	val := reflect.ValueOf(ptr).Elem()
 
 	if typ.Kind() != reflect.Struct {
-		return errors.New("binding element must be a struct")
+		return errors.New("Binding element must be a struct")
 	}
 
 	for i := 0; i < typ.NumField(); i++ {
@@ -82,13 +90,13 @@ func (b *binder) bindData(ptr interface{}, data map[string][]string) error {
 			continue
 		}
 		structFieldKind := structField.Kind()
-		inputFieldName := typeField.Tag.Get("form")
+		inputFieldName := typeField.Tag.Get(tag)
 
 		if inputFieldName == "" {
 			inputFieldName = typeField.Name
-			// If "form" tag is nil, we inspect if the field is a struct.
-			if structFieldKind == reflect.Struct {
-				err := b.bindData(structField.Addr().Interface(), data)
+			// If tag is nil, we inspect if the field is a struct.
+			if _, ok := bindUnmarshaler(structField); !ok && structFieldKind == reflect.Struct {
+				err := b.bindData(structField.Addr().Interface(), data, tag)
 				if err != nil {
 					return err
 				}
@@ -97,6 +105,14 @@ func (b *binder) bindData(ptr interface{}, data map[string][]string) error {
 		}
 		inputValue, exists := data[inputFieldName]
 		if !exists {
+			continue
+		}
+
+		// Call this first, in case we're dealing with an alias to an array type
+		if ok, err := unmarshalField(typeField.Type.Kind(), inputValue[0], structField); ok {
+			if err != nil {
+				return err
+			}
 			continue
 		}
 
@@ -120,7 +136,14 @@ func (b *binder) bindData(ptr interface{}, data map[string][]string) error {
 }
 
 func setWithProperType(valueKind reflect.Kind, val string, structField reflect.Value) error {
+	// But also call it here, in case we're dealing with an array of BindUnmarshalers
+	if ok, err := unmarshalField(valueKind, val, structField); ok {
+		return err
+	}
+
 	switch valueKind {
+	case reflect.Ptr:
+		return setWithProperType(structField.Elem().Kind(), val, structField.Elem())
 	case reflect.Int:
 		return setIntField(val, 0, structField)
 	case reflect.Int8:
@@ -153,6 +176,44 @@ func setWithProperType(valueKind reflect.Kind, val string, structField reflect.V
 		return errors.New("unknown type")
 	}
 	return nil
+}
+
+func unmarshalField(valueKind reflect.Kind, val string, field reflect.Value) (bool, error) {
+	switch valueKind {
+	case reflect.Ptr:
+		return unmarshalFieldPtr(val, field)
+	default:
+		return unmarshalFieldNonPtr(val, field)
+	}
+}
+
+// bindUnmarshaler attempts to unmarshal a reflect.Value into a BindUnmarshaler
+func bindUnmarshaler(field reflect.Value) (BindUnmarshaler, bool) {
+	ptr := reflect.New(field.Type())
+	if ptr.CanInterface() {
+		iface := ptr.Interface()
+		if unmarshaler, ok := iface.(BindUnmarshaler); ok {
+			return unmarshaler, ok
+		}
+	}
+	return nil, false
+}
+
+func unmarshalFieldNonPtr(value string, field reflect.Value) (bool, error) {
+	if unmarshaler, ok := bindUnmarshaler(field); ok {
+		err := unmarshaler.UnmarshalParam(value)
+		field.Set(reflect.ValueOf(unmarshaler).Elem())
+		return true, err
+	}
+	return false, nil
+}
+
+func unmarshalFieldPtr(value string, field reflect.Value) (bool, error) {
+	if field.IsNil() {
+		// Initialize the pointer to a nil value
+		field.Set(reflect.New(field.Type().Elem()))
+	}
+	return unmarshalFieldNonPtr(value, field.Elem())
 }
 
 func setIntField(value string, bitSize int, field reflect.Value) error {
