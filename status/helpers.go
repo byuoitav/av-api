@@ -8,12 +8,15 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/configuration-database-microservice/accessors"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
+
+const TIMEOUT = 5
 
 func GetRoomStatus(building string, roomName string) (base.PublicRoom, error) {
 
@@ -177,7 +180,11 @@ func issueCommands(commands []StatusCommand, channel chan []StatusResponse, cont
 		}
 
 		log.Printf("Sending requqest to %s", url)
-		response, err := http.Get(url)
+		timeout := time.Duration(TIMEOUT * time.Second)
+		client := http.Client{
+			Timeout: timeout,
+		}
+		response, err := client.Get(url)
 		if err != nil {
 			errorMessage := err.Error()
 			output.ErrorMessage = &errorMessage
