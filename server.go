@@ -1,11 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/byuoitav/authmiddleware"
 	"github.com/byuoitav/av-api/base"
+	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/av-api/handlers"
 	"github.com/byuoitav/av-api/health"
 	avapi "github.com/byuoitav/av-api/init"
@@ -24,12 +26,13 @@ func main() {
 	req.PublisherAddr = "localhost:7001"
 	go eventinfrastructure.SendConnectionRequest("http://localhost:6999/subscribe", req, true)
 
-	err := avapi.CheckRoomInitialization()
-	if err != nil {
-		base.PublishError("Fail to run init script. Terminating. ERROR:"+err.Error(), eventinfrastructure.INTERNAL)
-
-		log.Fatalf("Could not initialize room. Error: %v\n", err.Error())
-	}
+	go func() {
+		err := avapi.CheckRoomInitialization()
+		if err != nil {
+			base.PublishError("Fail to run init script. Terminating. ERROR:"+err.Error(), eventinfrastructure.INTERNAL)
+			log.Fatalf("Could not initialize room. Error: %v\n", err.Error())
+		}
+	}()
 
 	port := ":8000"
 	router := echo.New()
@@ -72,8 +75,14 @@ func GetStatus(context echo.Context) error {
 		return context.JSON(http.StatusOK, "Failed to open version.txt")
 	}
 
-	s.Status = microservicestatus.StatusOK
-	s.StatusInfo = ""
+	vals, err := dbo.GetBuildings()
+	if len(vals) < 1 || err != nil {
+		s.Status = microservicestatus.StatusDead
+		s.StatusInfo = fmt.Sprintf("Unable to access database. Error: %s", err)
+	} else {
+		s.Status = microservicestatus.StatusOK
+		s.StatusInfo = ""
+	}
 
 	return context.JSON(http.StatusOK, s)
 }
