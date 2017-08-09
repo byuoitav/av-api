@@ -3,7 +3,6 @@ package helpers
 import (
 	"errors"
 	"log"
-	"regexp"
 	"strings"
 
 	"github.com/byuoitav/av-api/actionreconcilers"
@@ -25,65 +24,52 @@ func EditRoomState(roomInQuestion base.PublicRoom) (report base.PublicRoom, err 
 		return
 	}
 
-	actionList := []base.ActionStructure{}
-
-	re := regexp.MustCompile("(STATUS_.*|.*-RPC$)")
+	var actions []base.ActionStructure
 
 	//for each command in the configuration, evaluate and validate.
-	for _, c := range room.Configuration.Evaluators {
+	for _, evaluator := range room.Configuration.Evaluators {
 
-		if re.MatchString(c.EvaluatorKey) {
-			continue
-		}
+		log.Printf("Considering evaluator %s", evaluator.EvaluatorKey)
 
-		log.Printf("Starting evaluation with evaluator %s", c.EvaluatorKey)
-
-		curEvaluator := evaluators[c.EvaluatorKey]
+		curEvaluator := evaluators[evaluator.EvaluatorKey]
 		if curEvaluator == nil {
-			err = errors.New("No evaluator corresponding to key " + c.EvaluatorKey)
+			err = errors.New("No evaluator corresponding to key " + evaluator.EvaluatorKey)
 			return
 		}
 
-		subList := []base.ActionStructure{}
-
-		//Evaluate
-		subList, err = curEvaluator.Evaluate(roomInQuestion)
+		actions, err = curEvaluator.Evaluate(roomInQuestion)
 		if err != nil {
 			return
 		}
 
-		//Validate
-		for _, action := range subList {
+		for _, action := range actions {
 			err = curEvaluator.Validate(action)
 			if err != nil {
-				log.Printf("Error on validation of %s on evaluator %s", action.Action, c.EvaluatorKey)
+				log.Printf("Error on validation of %s on evaluator %s", action.Action, evaluator.EvaluatorKey)
 				return
 			}
 
 			// Provide a map from the generating evaluator to the generated action in
 			// case they want to use the Incompatable actions in the reconcilers.
-			action.GeneratingEvaluator = c.EvaluatorKey
-			actionList = append(actionList, action)
+			action.GeneratingEvaluator = evaluator.EvaluatorKey
+			actions = append(actions, action)
 		}
 	}
-	log.Printf("Done with Evaluation.")
-	log.Printf("Starting reconcilliation")
 
-	//Reconcile actions
+	log.Printf("Evaluation complete, starting reconciliation...")
 	curReconciler := reconcilers[room.Configuration.RoomKey]
 	if curReconciler == nil {
 		err = errors.New("No reconciler corresponding to key " + room.Configuration.RoomKey)
 		return
 	}
-	log.Printf("Startin reconciliation")
 
-	actionList, err = curReconciler.Reconcile(actionList)
+	actions, err = curReconciler.Reconcile(actions)
 	if err != nil {
 		return
 	}
 
 	//execute actions.
-	report, err = ce.ExecuteActions(actionList)
+	report, err = ce.ExecuteActions(actions)
 
 	return
 }
