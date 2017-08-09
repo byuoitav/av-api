@@ -34,29 +34,6 @@ func GetRoomByNameAndBuilding(context echo.Context) error {
 	return context.JSON(http.StatusOK, room)
 }
 
-/*
-SetRoomState is the handler to accept puts to /buildlings/:buildling/rooms/:room with the json payload with one or more of the fields:
-	{
-    "currentVideoInput": "computer",
-		"currentAudioInput": "comptuer",
-		"power": "on",
-    "displays": [{
-      "name": "dp1",
-      "power": "on",
-			"input": "roku",
-      "blanked": false
-    }],
-		"audioDevices": [{
-			"name": "audio1",
-			"power": "standby",
-			"input": "roku",
-			"muted": false,
-			"volume": 50
-		}]
-	}
-	Or the 'helpers.PublicRoom' struct.
-}
-*/
 func SetRoomState(context echo.Context) error {
 	building, room := context.Param("building"), context.Param("room")
 	log.Printf("Putting room changes.\n")
@@ -78,13 +55,13 @@ func SetRoomState(context echo.Context) error {
 		return context.JSON(http.StatusInternalServerError, helpers.ReturnError(err))
 	}
 
-	hasError := helpers.CheckReport(report)
+	//hasError := helpers.CheckReport(report)
 
 	log.Printf("Done.\n")
 
-	if hasError {
-		return context.JSON(http.StatusInternalServerError, report)
-	}
+	//if hasError {
+	//	return context.JSON(http.StatusInternalServerError, report)
+	//}
 
 	return context.JSON(http.StatusOK, report)
 }

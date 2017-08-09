@@ -8,15 +8,15 @@ import (
 
 	"github.com/byuoitav/av-api/actionreconcilers"
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/commandevaluators"
+	ce "github.com/byuoitav/av-api/commandevaluators"
 	"github.com/byuoitav/av-api/dbo"
 )
 
 //EditRoomState actually carries out the room state changes
-func EditRoomState(roomInQuestion base.PublicRoom) (report []commandevaluators.CommandExecutionReporting, err error) {
+func EditRoomState(roomInQuestion base.PublicRoom) (report base.PublicRoom, err error) {
 
 	//Initialize map of strings to commandevaluators
-	evaluators := commandevaluators.Init()
+	evaluators := ce.Init()
 	reconcilers := actionreconcilers.Init()
 
 	//get accessors.Room (as it exists in the database)
@@ -83,7 +83,7 @@ func EditRoomState(roomInQuestion base.PublicRoom) (report []commandevaluators.C
 	}
 
 	//execute actions.
-	report, err = commandevaluators.ExecuteActions(actionList)
+	report, err = ce.ExecuteActions(actionList)
 
 	return
 }

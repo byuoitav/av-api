@@ -71,10 +71,9 @@ func getDevice(devs []accessors.Device, d string, room string, building string) 
 }
 
 //ExecuteActions carries out the actions defined in the struct
-func ExecuteActions(actions []base.ActionStructure) ([]CommandExecutionReporting, error) {
+func ExecuteActions(actions []base.ActionStructure) (base.PublicRoom, error) {
 
-	status := []CommandExecutionReporting{}
-
+	var status base.PublicRoom
 	for _, a := range actions {
 		if a.Overridden {
 			log.Printf("Action %s on device %s have been overriden. Continuing.",
@@ -84,10 +83,9 @@ func ExecuteActions(actions []base.ActionStructure) ([]CommandExecutionReporting
 
 		has, cmd := CheckCommands(a.Device.Commands, a.Action)
 		if !has {
-			errorStr := "There was an error retrieving the command " + a.Action + " for device " + a.Device.GetFullName()
-			log.Printf("%s", errorStr)
-			err := errors.New(errorStr)
-			return []CommandExecutionReporting{}, err
+			errorStr := fmt.Sprintf("Error retrieving the command %s for device %s.", a.Action, a.Device.GetFullName())
+			log.Printf(errorStr)
+			return base.PublicRoom{}, errors.New(errorStr)
 		}
 
 		//replace the address
@@ -97,13 +95,9 @@ func ExecuteActions(actions []base.ActionStructure) ([]CommandExecutionReporting
 		for k, v := range a.Parameters {
 			toReplace := ":" + k
 			if !strings.Contains(endpoint, toReplace) {
-				errorString := "The parameter " + toReplace + " was not found in the command " +
-					cmd.Name + " for device " + a.Device.GetFullName() + "."
-
-				log.Printf("%s", errorString)
-
-				err := errors.New(errorString)
-				return []CommandExecutionReporting{}, err
+				errorString := fmt.Sprintf("The parameter %s was not found in the command %s for device %s.", toReplace, cmd.Name, a.Device.GetFullName())
+				log.Printf(errorString)
+				return base.PublicRoom{}, errors.New(errorString)
 			}
 
 			endpoint = strings.Replace(endpoint, toReplace, v, -1)
@@ -116,21 +110,20 @@ func ExecuteActions(actions []base.ActionStructure) ([]CommandExecutionReporting
 
 			log.Printf("%s", errorString)
 
-			err := errors.New(errorString)
-			return []CommandExecutionReporting{}, err
+			return base.PublicRoom{}, errors.New(errorString)
 		}
 
 		//Execute the command.
 		client := &http.Client{}
 		req, err := http.NewRequest("GET", cmd.Microservice+endpoint, nil)
 		if err != nil {
-			return []CommandExecutionReporting{}, err
+			return base.PublicRoom{}, err
 		}
 
 		if len(os.Getenv("LOCAL_ENVIRONMENT")) == 0 {
 			token, err := bearertoken.GetToken()
 			if err != nil {
-				return []CommandExecutionReporting{}, err
+				return base.PublicRoom{}, err
 			}
 			req.Header.Set("Authorization", "Bearer "+token.Token)
 		}
@@ -152,18 +145,12 @@ func ExecuteActions(actions []base.ActionStructure) ([]CommandExecutionReporting
 
 			log.Printf("ERROR: %s. Continuing.", err.Error())
 
-			status = append(status, CommandExecutionReporting{
-				Success: false,
-				Action:  a.Action,
-				Device:  a.Device.Name,
-				Err:     err.Error(),
-			})
-
 			continue
+
 		} else if resp.StatusCode != 200 { //check the response code, if non-200, we need to record and report
 
 			//check the response code
-			log.Printf("Probalem with the request, response code; %v", resp.StatusCode)
+			log.Printf("Problem with the request, response code; %v", resp.StatusCode)
 
 			b, err := ioutil.ReadAll(resp.Body)
 			if err != nil {
@@ -179,12 +166,6 @@ func ExecuteActions(actions []base.ActionStructure) ([]CommandExecutionReporting
 					err.Error(),
 					true)
 
-				status = append(status, CommandExecutionReporting{
-					Success: false,
-					Action:  a.Action,
-					Device:  a.Device.Name,
-					Err:     err.Error(),
-				})
 				continue
 			}
 
@@ -201,12 +182,6 @@ func ExecuteActions(actions []base.ActionStructure) ([]CommandExecutionReporting
 				fmt.Sprintf("%s", b),
 				true)
 
-			status = append(status, CommandExecutionReporting{
-				Success: false,
-				Action:  a.Action,
-				Device:  a.Device.Name,
-				Err:     fmt.Sprintf("%s", b),
-			})
 			continue
 		} else {
 
@@ -230,12 +205,6 @@ func ExecuteActions(actions []base.ActionStructure) ([]CommandExecutionReporting
 
 			log.Printf("Successfully sent command %s to device %s.", a.Action, a.Device.Name)
 
-			status = append(status, CommandExecutionReporting{
-				Success: true,
-				Action:  a.Action,
-				Device:  a.Device.Name,
-				Err:     "",
-			})
 		}
 	}
 	return status, nil

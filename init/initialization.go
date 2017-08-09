@@ -98,7 +98,6 @@ func getMap() map[string]RoomInitializer {
 	if !roomInitializerBuilt {
 		//Add the new initializers here
 		InitializerMap["Default"] = &DefaultInitializer{}
-		InitializerMap["DMPS"] = &DMPSInitializer{}
 	}
 
 	return InitializerMap
