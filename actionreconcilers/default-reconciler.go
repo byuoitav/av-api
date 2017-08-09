@@ -10,6 +10,7 @@ import (
 )
 
 //DefaultReconciler is the Default Reconciler
+//Sorts by device, then by priority
 type DefaultReconciler struct{}
 
 //Reconcile fulfills the requirement to be a Reconciler.

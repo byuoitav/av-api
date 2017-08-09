@@ -5,18 +5,15 @@ import (
 	"log"
 	"strings"
 
-	"github.com/byuoitav/av-api/actionreconcilers"
+	ar "github.com/byuoitav/av-api/actionreconcilers"
 	"github.com/byuoitav/av-api/base"
 	ce "github.com/byuoitav/av-api/commandevaluators"
 	"github.com/byuoitav/av-api/dbo"
+	"github.com/byuoitav/configuration-database-microservice/accessors"
 )
 
 //EditRoomState actually carries out the room state changes
 func EditRoomState(roomInQuestion base.PublicRoom) (report base.PublicRoom, err error) {
-
-	//Initialize map of strings to commandevaluators
-	evaluators := ce.Init()
-	reconcilers := actionreconcilers.Init()
 
 	//get accessors.Room (as it exists in the database)
 	room, err := dbo.GetRoomByInfo(roomInQuestion.Building, roomInQuestion.Room)
@@ -24,10 +21,29 @@ func EditRoomState(roomInQuestion base.PublicRoom) (report base.PublicRoom, err 
 		return
 	}
 
-	var actions []base.ActionStructure
+	actions, err := GenerateActions(room, roomInQuestion)
+	if err != nil {
+		return
+	}
 
-	//for each command in the configuration, evaluate and validate.
-	for _, evaluator := range room.Configuration.Evaluators {
+	batches, err := ReconcileActions(room, actions)
+	if err != nil {
+		return
+	}
+
+	//execute actions.
+	report, err = ce.ExecuteActions(batches)
+
+	return
+}
+
+//for each command in the configuration, evaluate and validate.
+func GenerateActions(dbRoom accessors.Room, bodyRoom base.PublicRoom) (actions []base.ActionStructure, err error) {
+
+	log.Printf("Generating actions...")
+	evaluators := ce.Init()
+
+	for _, evaluator := range dbRoom.Configuration.Evaluators {
 
 		log.Printf("Considering evaluator %s", evaluator.EvaluatorKey)
 
@@ -37,7 +53,7 @@ func EditRoomState(roomInQuestion base.PublicRoom) (report base.PublicRoom, err 
 			return
 		}
 
-		actions, err = curEvaluator.Evaluate(roomInQuestion)
+		actions, err = curEvaluator.Evaluate(bodyRoom)
 		if err != nil {
 			return
 		}
@@ -56,7 +72,16 @@ func EditRoomState(roomInQuestion base.PublicRoom) (report base.PublicRoom, err 
 		}
 	}
 
-	log.Printf("Evaluation complete, starting reconciliation...")
+	return
+}
+
+func ReconcileActions(room accessors.Room, actions []base.ActionStructure) (batches [][]base.ActionStructure, err error) {
+
+	log.Printf("Reconciling actions...")
+
+	//Initialize map of strings to commandevaluators
+	reconcilers := ar.Init()
+
 	curReconciler := reconcilers[room.Configuration.RoomKey]
 	if curReconciler == nil {
 		err = errors.New("No reconciler corresponding to key " + room.Configuration.RoomKey)
@@ -67,9 +92,6 @@ func EditRoomState(roomInQuestion base.PublicRoom) (report base.PublicRoom, err 
 	if err != nil {
 		return
 	}
-
-	//execute actions.
-	report, err = ce.ExecuteActions(actions)
 
 	return
 }
