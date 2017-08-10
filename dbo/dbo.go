@@ -45,7 +45,8 @@ func GetData(url string, structToFill interface{}) error {
 		return err
 	}
 	if resp.StatusCode != http.StatusOK {
-		errorString, err := ioutil.ReadAll(resp.Body)
+		errorBytes, err := ioutil.ReadAll(resp.Body)
+		errorString := fmt.Sprintf("Error Code %v. Error String: %s", resp.StatusCode, errorBytes)
 		if err != nil {
 			return err
 		}
@@ -451,6 +452,19 @@ func GetRoomConfigurations() ([]accessors.RoomConfiguration, error) {
 
 	return rcs, nil
 
+}
+
+func GetRoomDesignations() ([]string, error) {
+	log.Printf("getting room designations")
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/rooms/designations"
+	var toReturn []string
+	err := GetData(url, &toReturn)
+	if err != nil {
+		log.Printf("err: %v", err.Error())
+		return toReturn, err
+	}
+
+	return toReturn, nil
 }
 
 func AddDevice(toAdd accessors.Device) (accessors.Device, error) {
