@@ -128,3 +128,14 @@ services:
             - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
         network_mode: "host"
         tty: true
+    shure-audio-microservice:
+        image: byuoitav/shure-audio-microservice:${DOCKER_HUB_TAG}
+        ports:
+            - "8013:8013"
+        environment:
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+            - ELASTIC_API_EVENTS=$ELASTIC_API_EVENTS
+            - ELASTIC_API_EVENTS_DEV=$ELASTIC_API_EVENTS_DEV
+            - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
+            - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
+        network_mode: "host"
