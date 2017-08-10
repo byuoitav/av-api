@@ -85,9 +85,7 @@ func getKeyValueFromCommmand(action base.ActionStructure) []string {
 	return []string{}
 }
 
-/*
-ReplaceIPAddressEndpoint is a simple helper
-*/
+//ReplaceIPAddressEndpoint is a simple helper
 func ReplaceIPAddressEndpoint(path string, address string) string {
 	//magic strings
 	toReplace := ":address"
