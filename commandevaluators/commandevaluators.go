@@ -2,7 +2,6 @@ package commandevaluators
 
 import (
 	"encoding/json"
-	"strings"
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
@@ -83,15 +82,6 @@ func getKeyValueFromCommmand(action base.ActionStructure) []string {
 		return []string{"Muted", "false"}
 	}
 	return []string{}
-}
-
-//ReplaceIPAddressEndpoint is a simple helper
-func ReplaceIPAddressEndpoint(path string, address string) string {
-	//magic strings
-	toReplace := ":address"
-
-	return strings.Replace(path, toReplace, address, -1)
-
 }
 
 //soft singleton command map
