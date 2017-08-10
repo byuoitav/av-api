@@ -85,27 +85,21 @@ func getKeyValueFromCommmand(action base.ActionStructure) []string {
 }
 
 //soft singleton command map
-func Init() map[string]CommandEvaluator {
-	if !commandMapInitialized {
-		CommandMap["PowerOnDefault"] = &PowerOnDefault{}
-		CommandMap["StandbyDefault"] = &StandbyDefault{}
-		CommandMap["ChangeVideoInputDefault"] = &ChangeVideoInputDefault{}
-		CommandMap["ChangeAudioInputDefault"] = &ChangeAudioInputDefault{}
-		CommandMap["ChangeVideoInputVideoSwitcher"] = &ChangeVideoInputVideoSwitcher{}
-		CommandMap["BlankDisplayDefault"] = &BlankDisplayDefault{}
-		CommandMap["UnBlankDisplayDefault"] = &UnBlankDisplayDefault{}
-		CommandMap["MuteDefault"] = &MuteDefault{}
-		CommandMap["UnMuteDefault"] = &UnMuteDefault{}
-		CommandMap["SetVolumeDefault"] = &SetVolumeDefault{}
-		CommandMap["SetVolumeDMPS"] = &SetVolumeDMPS{}
-		CommandMap["SetVolumeTecLite"] = &SetVolumeTecLite{}
-		CommandMap["ChangeVideoInputDMPS"] = &ChangeVideoInputDMPS{}
-		CommandMap["MuteDSP"] = &MuteDSP{}
-		CommandMap["UnmuteDSP"] = &UnMuteDSP{}
-		CommandMap["SetVolumeDSP"] = &SetVolumeDSP{}
-
-		commandMapInitialized = true
-	}
-
-	return CommandMap
+var EVALUATORS = map[string]CommandEvaluator{
+	"PowerOnDefault":                &PowerOnDefault{},
+	"StandbyDefault":                &StandbyDefault{},
+	"ChangeVideoInputDefault":       &ChangeVideoInputDefault{},
+	"ChangeAudioInputDefault":       &ChangeAudioInputDefault{},
+	"ChangeVideoInputVideoSwitcher": &ChangeVideoInputVideoSwitcher{},
+	"BlankDisplayDefault":           &BlankDisplayDefault{},
+	"UnBlankDisplayDefault":         &UnBlankDisplayDefault{},
+	"MuteDefault":                   &MuteDefault{},
+	"UnMuteDefault":                 &UnMuteDefault{},
+	"SetVolumeDefault":              &SetVolumeDefault{},
+	"SetVolumeDMPS":                 &SetVolumeDMPS{},
+	"SetVolumeTecLite":              &SetVolumeTecLite{},
+	"ChangeVideoInputDMPS":          &ChangeVideoInputDMPS{},
+	"MuteDSP":                       &MuteDSP{},
+	"UnmuteDSP":                     &UnMuteDSP{},
+	"SetVolumeDSP":                  &SetVolumeDSP{},
 }

@@ -7,15 +7,15 @@ import (
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/av-api/helpers"
-	"github.com/byuoitav/av-api/status"
+	"github.com/byuoitav/av-api/state"
 	"github.com/labstack/echo"
 )
 
-func GetRoomStatus(context echo.Context) error {
+func GetRoomState(context echo.Context) error {
 
 	building, room := context.Param("building"), context.Param("room")
 
-	status, err := status.GetRoomStatus(building, room)
+	status, err := state.GetRoomState(building, room)
 	if err != nil {
 		return context.JSON(http.StatusBadRequest, err.Error())
 	}
@@ -49,7 +49,7 @@ func SetRoomState(context echo.Context) error {
 
 	log.Println("Beginning edit of room state")
 
-	report, err := helpers.EditRoomState(roomInQuestion)
+	report, err := state.SetRoomState(roomInQuestion)
 	if err != nil {
 		log.Printf("Error: %s", err.Error())
 		return context.JSON(http.StatusInternalServerError, helpers.ReturnError(err))

@@ -17,7 +17,6 @@ type DefaultReconciler struct{}
 func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure) (actionsNew []base.ActionStructure, err error) {
 
 	//map all possible commands to a reference to the command struct
-	CommandMap := commandevaluators.Init()
 
 	log.Printf("Reconciling actions.")
 
@@ -44,7 +43,7 @@ func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure) (actionsNe
 			actionsForEvaluation[v[i].Action] = v[i]
 			//for each device, construct set of incompatable actions
 			//Value is the action that generated the incompatable action.
-			incompatableActions := CommandMap[v[i].GeneratingEvaluator].GetIncompatibleCommands()
+			incompatableActions := commandevaluators.EVALUATORS[v[i].GeneratingEvaluator].GetIncompatibleCommands()
 
 			for _, incompatAct := range incompatableActions {
 				incompat[incompatAct] = v[i]
