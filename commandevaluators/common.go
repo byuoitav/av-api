@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/configuration-database-microservice/accessors"
+	"github.com/byuoitav/configuration-database-microservice/structs"
 )
 
 //This file contains common 'helper' functions.
@@ -20,19 +20,19 @@ func checkActionListForDevice(a []base.ActionStructure, d string, room string, b
 	return -1
 }
 
-func checkDevicesEqual(dev accessors.Device, name string, room string, building string) bool {
+func checkDevicesEqual(dev structs.Device, name string, room string, building string) bool {
 	return strings.EqualFold(dev.Name, name) &&
 		strings.EqualFold(dev.Room.Name, room) &&
 		strings.EqualFold(dev.Building.Shortname, building)
 }
 
-func CheckCommands(commands []accessors.Command, commandName string) (bool, accessors.Command) {
+func CheckCommands(commands []structs.Command, commandName string) (bool, structs.Command) {
 	for _, c := range commands {
 		if strings.EqualFold(c.Name, commandName) {
 			return true, c
 		}
 	}
-	return false, accessors.Command{}
+	return false, structs.Command{}
 }
 
 func markAsOverridden(action base.ActionStructure, structs ...[]*base.ActionStructure) {

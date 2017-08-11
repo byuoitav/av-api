@@ -6,7 +6,7 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/accessors"
+	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
@@ -65,7 +65,7 @@ func (p *ChangeVideoInputDefault) GetIncompatibleCommands() (incompatableActions
 
 func generateChangeInputByDevice(dev base.Device, room string, building string, generatingEvaluator string) (action base.ActionStructure, err error) {
 
-	var curDevice accessors.Device
+	var curDevice structs.Device
 
 	curDevice, err = dbo.GetDeviceByName(building, room, dev.Name)
 	if err != nil {

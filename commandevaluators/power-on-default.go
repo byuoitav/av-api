@@ -7,7 +7,7 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/accessors"
+	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
@@ -27,7 +27,7 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom) (actions []base.ActionSt
 		EventInfoValue: "on",
 	}
 
-	var devices []accessors.Device
+	var devices []structs.Device
 	if strings.EqualFold(room.Power, "on") {
 
 		log.Printf("Room-wide PowerOn request received. Retrieving all devices.")
@@ -107,7 +107,7 @@ func (p *PowerOnDefault) GetIncompatibleCommands() (incompatableActions []string
 // Evaluate devices just pulls out the process we do with the audio-devices and displays into one function.
 func (p *PowerOnDefault) evaluateDevice(device base.Device,
 	actions []base.ActionStructure,
-	devices []accessors.Device,
+	devices []structs.Device,
 	room string,
 	building string,
 	eventInfo eventinfrastructure.EventInfo) ([]base.ActionStructure, error) {

@@ -17,7 +17,7 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/accessors"
+	"github.com/byuoitav/configuration-database-microservice/structs"
 	ei "github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
@@ -161,7 +161,7 @@ func GetGeneralMuteRequestActionsDSP(room base.PublicRoom, eventInfo ei.EventInf
 }
 
 //assumes the mic is only connected to a single DSP
-func GetMicMuteAction(mic accessors.Device, room base.PublicRoom, eventInfo ei.EventInfo) (base.ActionStructure, error) {
+func GetMicMuteAction(mic structs.Device, room base.PublicRoom, eventInfo ei.EventInfo) (base.ActionStructure, error) {
 
 	log.Printf("Generating action for command \"Mute\" on microphone %s", mic.Name)
 
@@ -204,7 +204,7 @@ func GetMicMuteAction(mic accessors.Device, room base.PublicRoom, eventInfo ei.E
 	return base.ActionStructure{}, errors.New("Could not find port for mic " + mic.Name)
 }
 
-func GetDSPMediaMuteAction(dsp accessors.Device, room base.PublicRoom, eventInfo ei.EventInfo, deviceSpecific bool) ([]base.ActionStructure, error) {
+func GetDSPMediaMuteAction(dsp structs.Device, room base.PublicRoom, eventInfo ei.EventInfo, deviceSpecific bool) ([]base.ActionStructure, error) {
 
 	log.Printf("Generating action for command Mute on media routed through DSP")
 
@@ -240,7 +240,7 @@ func GetDSPMediaMuteAction(dsp accessors.Device, room base.PublicRoom, eventInfo
 	return output, nil
 }
 
-func GetDisplayMuteAction(device accessors.Device, room base.PublicRoom, eventInfo ei.EventInfo, deviceSpecific bool) (base.ActionStructure, error) {
+func GetDisplayMuteAction(device structs.Device, room base.PublicRoom, eventInfo ei.EventInfo, deviceSpecific bool) (base.ActionStructure, error) {
 
 	log.Printf("Generating action for command \"Mute\" for device %s external to DSP", device.Name)
 

@@ -7,7 +7,7 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/accessors"
+	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
@@ -104,7 +104,7 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom) ([]base.A
 
 //GetSwitcherAndCreateAction gets the videoswitcher in a room, matches the destination port to the new port
 // and creates an action
-func GetSwitcherAndCreateAction(room base.PublicRoom, device accessors.Device, selectedInput string, generatingEvaluator string) (base.ActionStructure, error) {
+func GetSwitcherAndCreateAction(room base.PublicRoom, device structs.Device, selectedInput string, generatingEvaluator string) (base.ActionStructure, error) {
 
 	switcher, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "VideoSwitcher")
 	if err != nil {
