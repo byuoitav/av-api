@@ -45,7 +45,8 @@ func GetData(url string, structToFill interface{}) error {
 		return err
 	}
 	if resp.StatusCode != http.StatusOK {
-		errorString, err := ioutil.ReadAll(resp.Body)
+		errorBytes, err := ioutil.ReadAll(resp.Body)
+		errorString := fmt.Sprintf("Error Code %v. Error String: %s", resp.StatusCode, errorBytes)
 		if err != nil {
 			return err
 		}
@@ -60,16 +61,13 @@ func GetData(url string, structToFill interface{}) error {
 	return nil
 }
 
-//PostData hits POST endpoints
-func PostData(url string, structToAdd interface{}, structToFill interface{}) error {
-	log.Printf("Posting data to URL: %s...", url)
-
+func SendData(url string, structToAdd interface{}, structToFill interface{}, method string) error {
 	body, err := json.Marshal(structToAdd)
 	if err != nil {
 		return err
 	}
 	client := &http.Client{}
-	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(body))
+	req, _ := http.NewRequest(method, url, bytes.NewBuffer(body))
 
 	req.Header.Set("Content-Type", "application/json")
 
@@ -101,6 +99,19 @@ func PostData(url string, structToAdd interface{}, structToFill interface{}) err
 	}
 
 	return nil
+}
+
+//PostData hits POST endpoints
+func PostData(url string, structToAdd interface{}, structToFill interface{}) error {
+	log.Printf("Posting data to URL: %s...", url)
+	return SendData(url, structToAdd, structToFill, "POST")
+
+}
+
+//PutData hits PUT endpoints
+func PutData(url string, structToAdd interface{}, structToFill interface{}) error {
+	log.Printf("Putting data to URL: %v...", url)
+	return SendData(url, structToAdd, structToFill, "PUT")
 }
 
 func setToken(request *http.Request) error {
@@ -368,6 +379,15 @@ func AddEndpoint(toAdd structs.Endpoint) (structs.Endpoint, error) {
 	return toFill, nil
 }
 
+func GetPortsByClass(class string) ([]accessors.DeviceTypePort, error) {
+	log.Printf("Getting ports for class %v", class)
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + fmt.Sprintf("/classes/%v/ports", class)
+
+	var ports []accessors.DeviceTypePort
+	err := GetData(url, &ports)
+	return ports, err
+}
+
 func GetPorts() ([]structs.PortType, error) {
 	log.Printf("getting all ports")
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/ports"
@@ -434,6 +454,19 @@ func GetRoomConfigurations() ([]structs.RoomConfiguration, error) {
 
 }
 
+func GetRoomDesignations() ([]string, error) {
+	log.Printf("getting room designations")
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/rooms/designations"
+	var toReturn []string
+	err := GetData(url, &toReturn)
+	if err != nil {
+		log.Printf("err: %v", err.Error())
+		return toReturn, err
+	}
+
+	return toReturn, nil
+}
+
 func AddDevice(toAdd structs.Device) (structs.Device, error) {
 	log.Printf("adding device: %v to database", toAdd.Name)
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/buildings/" + toAdd.Building.Shortname + "/rooms/" + toAdd.Room.Name + "/devices/" + toAdd.Name
@@ -445,4 +478,30 @@ func AddDevice(toAdd structs.Device) (structs.Device, error) {
 	}
 
 	return toFill, nil
+}
+
+func GetDeviceClasses() ([]accessors.DeviceClass, error) {
+	log.Printf("getting all classes")
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/classes"
+
+	var classes []accessors.DeviceClass
+	err := GetData(url, &classes)
+
+	return classes, err
+}
+
+func SetDeviceAttribute(attributeInfo accessors.DeviceAttributeInfo) (accessors.Device, error) {
+	log.Printf("Setting device attrbute %v to %v for device %v", attributeInfo.AttributeName, attributeInfo.AttributeValue, attributeInfo.AttributeValue)
+
+	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + fmt.Sprintf("/devices/attribute")
+
+	device := accessors.Device{}
+	err := PutData(url, attributeInfo, &device)
+	if err != nil {
+		log.Printf("error: %v", err.Error())
+	} else {
+		log.Printf("Done.")
+	}
+
+	return device, err
 }
