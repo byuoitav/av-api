@@ -8,12 +8,15 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/accessors"
+	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
+
+const TIMEOUT = 5
 
 func GetRoomStatus(building string, roomName string) (base.PublicRoom, error) {
 
@@ -43,7 +46,7 @@ func GetRoomStatus(building string, roomName string) (base.PublicRoom, error) {
 	return roomStatus, nil
 }
 
-func generateStatusCommands(room accessors.Room, commandMap map[string]StatusEvaluator) ([]StatusCommand, error) {
+func generateStatusCommands(room structs.Room, commandMap map[string]StatusEvaluator) ([]StatusCommand, error) {
 
 	log.Printf("Generating commands...")
 
@@ -177,7 +180,11 @@ func issueCommands(commands []StatusCommand, channel chan []StatusResponse, cont
 		}
 
 		log.Printf("Sending requqest to %s", url)
-		response, err := http.Get(url)
+		timeout := time.Duration(TIMEOUT * time.Second)
+		client := http.Client{
+			Timeout: timeout,
+		}
+		response, err := client.Get(url)
 		if err != nil {
 			errorMessage := err.Error()
 			output.ErrorMessage = &errorMessage
@@ -369,7 +376,7 @@ func processDisplay(device Status) (base.Display, error) {
 	return display, nil
 }
 
-func generateStandardStatusCommand(devices []accessors.Device, evaluatorName string, commandName string) ([]StatusCommand, error) {
+func generateStandardStatusCommand(devices []structs.Device, evaluatorName string, commandName string) ([]StatusCommand, error) {
 	log.Printf("Generating status commands from %v", evaluatorName)
 	var output []StatusCommand
 

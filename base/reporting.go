@@ -8,7 +8,7 @@ import (
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
-var Pub *eventinfrastructure.Publisher
+var EventNode *eventinfrastructure.EventNode
 
 func PublishHealth(e eventinfrastructure.Event) {
 	Publish(e, false)
@@ -35,9 +35,9 @@ func Publish(e eventinfrastructure.Event, Error bool) error {
 	e.LocalEnvironment = len(os.Getenv("LOCAL_ENVIRONMENT")) > 0
 
 	if !Error {
-		Pub.PublishEvent(e, eventinfrastructure.APISuccess)
+		EventNode.PublishEvent(e, eventinfrastructure.APISuccess)
 	} else {
-		Pub.PublishEvent(e, eventinfrastructure.APIError)
+		EventNode.PublishEvent(e, eventinfrastructure.APIError)
 	}
 
 	return err

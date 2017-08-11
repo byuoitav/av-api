@@ -13,7 +13,7 @@ import (
 	"github.com/byuoitav/authmiddleware/bearertoken"
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/accessors"
+	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
@@ -53,14 +53,14 @@ type CommandEvaluator interface {
 var CommandMap = make(map[string]CommandEvaluator)
 var commandMapInitialized = false
 
-func getDevice(devs []accessors.Device, d string, room string, building string) (dev accessors.Device, err error) {
+func getDevice(devs []structs.Device, d string, room string, building string) (dev structs.Device, err error) {
 	for i, curDevice := range devs {
 		if checkDevicesEqual(curDevice, d, room, building) {
 			dev = devs[i]
 			return
 		}
 	}
-	var device accessors.Device
+	var device structs.Device
 
 	device, err = dbo.GetDeviceByName(building, room, d)
 	if err != nil {

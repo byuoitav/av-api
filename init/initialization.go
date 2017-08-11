@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/accessors"
+	"github.com/byuoitav/configuration-database-microservice/structs"
 )
 
 /*
@@ -86,7 +86,7 @@ type RoomInitializer interface {
 	  Initizlize performs the actions necessary for the room on startup.
 	  This is called when the AV-API service is spun up.
 	*/
-	Initialize(accessors.Room) error
+	Initialize(structs.Room) error
 }
 
 //InitializerMap is the map that contains the initializers
@@ -98,7 +98,6 @@ func getMap() map[string]RoomInitializer {
 	if !roomInitializerBuilt {
 		//Add the new initializers here
 		InitializerMap["Default"] = &DefaultInitializer{}
-		InitializerMap["DMPS"] = &DMPSInitializer{}
 	}
 
 	return InitializerMap
