@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/accessors"
+	"github.com/byuoitav/configuration-database-microservice/structs"
 )
 
 const INPUT_DSP = "STATUS_InputDSP"
@@ -14,14 +14,14 @@ const STATUS_INPUT_DSP = "STATUS_Input"
 
 type InputDSP struct{}
 
-func (p *InputDSP) GetDevices(room accessors.Room) ([]accessors.Device, error) {
+func (p *InputDSP) GetDevices(room structs.Room) ([]structs.Device, error) {
 
 	return room.Devices, nil
 }
 
-func (p *InputDSP) GenerateCommands(devices []accessors.Device) ([]StatusCommand, error) {
+func (p *InputDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand, error) {
 
-	var audioDevices, dsps []accessors.Device
+	var audioDevices, dsps []structs.Device
 	for _, device := range devices {
 
 		if device.HasRole("AudioOut") {
@@ -96,7 +96,7 @@ func (p *InputDSP) GenerateCommands(devices []accessors.Device) ([]StatusCommand
 	return commands, nil
 }
 
-func (p *InputDSP) EvaluateResponse(label string, value interface{}, source accessors.Device, destination DestinationDevice) (string, interface{}, error) {
+func (p *InputDSP) EvaluateResponse(label string, value interface{}, source structs.Device, destination DestinationDevice) (string, interface{}, error) {
 	for _, port := range destination.Ports {
 
 		valueString, ok := value.(string)

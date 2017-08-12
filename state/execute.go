@@ -14,7 +14,7 @@ import (
 	"github.com/byuoitav/av-api/base"
 	ce "github.com/byuoitav/av-api/commandevaluators"
 	se "github.com/byuoitav/av-api/statusevaluators"
-	"github.com/byuoitav/configuration-database-microservice/accessors"
+	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
@@ -63,7 +63,7 @@ func ExecuteActions(actions []base.ActionStructure) ([]se.StatusResponse, error)
 //returns the state the microservice reports or nothing if the microservice doesn't respond
 //publishes a state event or an error
 //@pre the parameters have been filled, e.g. the endpoint does not contain ":"
-func ExecuteCommand(action base.ActionStructure, command accessors.Command, endpoint string) interface{} {
+func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoint string) interface{} {
 
 	log.Printf("Sending request to %s%s...", command.Microservice, endpoint)
 
@@ -163,7 +163,7 @@ func ReplaceParameters(endpoint string, parameters map[string]string) (string, e
 	return endpoint, nil
 }
 
-func PublishError(message string, action base.ActionStructure, command accessors.Command) {
+func PublishError(message string, action base.ActionStructure, command structs.Command) {
 
 	log.Printf("Publishing error: %s...", message)
 	base.SendEvent(

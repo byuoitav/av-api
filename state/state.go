@@ -6,8 +6,6 @@ import (
 	"github.com/byuoitav/av-api/statusevaluators"
 )
 
-const TIMEOUT = 5
-
 func GetRoomState(building string, roomName string) (base.PublicRoom, error) {
 
 	room, err := dbo.GetRoomByInfo(building, roomName)

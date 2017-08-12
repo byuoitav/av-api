@@ -1,7 +1,7 @@
 package statusevaluators
 
 import (
-	"github.com/byuoitav/configuration-database-microservice/accessors"
+	"github.com/byuoitav/configuration-database-microservice/structs"
 )
 
 type PowerStatus struct {
@@ -44,7 +44,7 @@ type Status struct {
 
 //represents a status response, including the generator that created the command that returned the status
 type StatusResponse struct {
-	SourceDevice      accessors.Device       `json:"source_device"`
+	SourceDevice      structs.Device         `json:"source_device"`
 	DestinationDevice DestinationDevice      `json:"destination_device"`
 	Generator         string                 `json:"generator"`
 	Status            map[string]interface{} `json:"status"`
@@ -53,8 +53,8 @@ type StatusResponse struct {
 
 //StatusCommand contains information to issue a status command against a device
 type StatusCommand struct {
-	Action            accessors.Command `json:"action"`
-	Device            accessors.Device  `json:"device"`
+	Action            structs.Command   `json:"action"`
+	Device            structs.Device    `json:"device"`
 	Generator         string            `json:"generator"`
 	DestinationDevice DestinationDevice `json:"destination"`
 	Parameters        map[string]string `json:"parameters"`
@@ -62,7 +62,7 @@ type StatusCommand struct {
 
 //DestinationDevice represents the device whose status is being queried by user
 type DestinationDevice struct {
-	accessors.Device
+	structs.Device
 	AudioDevice bool `json:"audio"`
 	Display     bool `json:"video"`
 }

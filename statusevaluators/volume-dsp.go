@@ -4,7 +4,7 @@ import (
 	"errors"
 	"log"
 
-	"github.com/byuoitav/configuration-database-microservice/accessors"
+	"github.com/byuoitav/configuration-database-microservice/structs"
 )
 
 const VOLUME_DSP = "STATUS_VolumeDSP"
@@ -12,14 +12,14 @@ const STATUS_VOLUME_DSP = "STATUS_VolumeDSP"
 
 type VolumeDSP struct{}
 
-func (p *VolumeDSP) GetDevices(room accessors.Room) ([]accessors.Device, error) {
+func (p *VolumeDSP) GetDevices(room structs.Room) ([]structs.Device, error) {
 
 	return room.Devices, nil
 }
 
-func (p *VolumeDSP) GenerateCommands(devices []accessors.Device) ([]StatusCommand, error) {
+func (p *VolumeDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand, error) {
 
-	var audioDevices, mics, dsp []accessors.Device
+	var audioDevices, mics, dsp []structs.Device
 
 	for _, device := range devices {
 
@@ -70,7 +70,7 @@ func (p *VolumeDSP) GenerateCommands(devices []accessors.Device) ([]StatusComman
 	return commands, nil
 }
 
-func (p *VolumeDSP) EvaluateResponse(label string, value interface{}, source accessors.Device, destination DestinationDevice) (string, interface{}, error) {
+func (p *VolumeDSP) EvaluateResponse(label string, value interface{}, source structs.Device, destination DestinationDevice) (string, interface{}, error) {
 
 	const SCALE_FACTOR = 3
 	const MINIMUM = 45

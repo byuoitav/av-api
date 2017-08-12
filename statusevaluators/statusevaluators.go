@@ -4,19 +4,19 @@ import (
 	"log"
 	"strings"
 
-	"github.com/byuoitav/configuration-database-microservice/accessors"
+	"github.com/byuoitav/configuration-database-microservice/structs"
 )
 
 type StatusEvaluator interface {
 
 	//Identifies relevant devices
-	GetDevices(room accessors.Room) ([]accessors.Device, error)
+	GetDevices(room structs.Room) ([]structs.Device, error)
 
 	//Generates action list
-	GenerateCommands(devices []accessors.Device) ([]StatusCommand, error)
+	GenerateCommands(devices []structs.Device) ([]StatusCommand, error)
 
 	//Evaluate Response
-	EvaluateResponse(label string, value interface{}, Source accessors.Device, Destination DestinationDevice) (string, interface{}, error)
+	EvaluateResponse(label string, value interface{}, Source structs.Device, Destination DestinationDevice) (string, interface{}, error)
 }
 
 //TODO: we shoud grab the keys from constants in the evaluators themselves
@@ -32,7 +32,7 @@ var STATUS_EVALUATORS = map[string]StatusEvaluator{
 	"STATUS_VolumeDSP":          &VolumeDSP{},
 }
 
-func generateStandardStatusCommand(devices []accessors.Device, evaluatorName string, commandName string) ([]StatusCommand, error) {
+func generateStandardStatusCommand(devices []structs.Device, evaluatorName string, commandName string) ([]StatusCommand, error) {
 	log.Printf("Generating status commands from %v", evaluatorName)
 	var output []StatusCommand
 

@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/accessors"
+	"github.com/byuoitav/configuration-database-microservice/structs"
 )
 
 const INPUT_STATUS_VIDEO_SWITCHER_EVALUATOR = "STATUS_InputVideoSwitcher"
@@ -14,11 +14,11 @@ const INPUT_STATUS_VIDEO_SWITCHER_EVALUATOR = "STATUS_InputVideoSwitcher"
 type InputVideoSwitcher struct {
 }
 
-func (p *InputVideoSwitcher) GetDevices(room accessors.Room) ([]accessors.Device, error) {
+func (p *InputVideoSwitcher) GetDevices(room structs.Room) ([]structs.Device, error) {
 	return room.Devices, nil
 }
 
-func (p *InputVideoSwitcher) GenerateCommands(devices []accessors.Device) ([]StatusCommand, error) {
+func (p *InputVideoSwitcher) GenerateCommands(devices []structs.Device) ([]StatusCommand, error) {
 	log.Printf("Generating status commands from STATUS_Video_Switcher")
 
 	//first thing is to get the video switcher in the room
@@ -26,8 +26,8 @@ func (p *InputVideoSwitcher) GenerateCommands(devices []accessors.Device) ([]Sta
 	log.Printf("Looking for video switcher in room")
 
 	found := false
-	var switcher accessors.Device
-	var command accessors.Command
+	var switcher structs.Device
+	var command structs.Command
 	statusCommands := []StatusCommand{}
 
 	for _, device := range devices {
@@ -120,7 +120,7 @@ func (p *InputVideoSwitcher) GenerateCommands(devices []accessors.Device) ([]Sta
 	return statusCommands, nil
 }
 
-func (p *InputVideoSwitcher) EvaluateResponse(label string, value interface{}, source accessors.Device, dest DestinationDevice) (string, interface{}, error) {
+func (p *InputVideoSwitcher) EvaluateResponse(label string, value interface{}, source structs.Device, dest DestinationDevice) (string, interface{}, error) {
 	log.Printf("Evaluating response: %s, %s in evaluator %v", label, value, BlankedDefaultName)
 
 	//in this case we assume that there's a single video switcher, so first we get the video switcher in the room, then we match source and dest

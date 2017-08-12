@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/accessors"
+	"github.com/byuoitav/configuration-database-microservice/structs"
 )
 
 /* ASSUMPTIONS
@@ -20,17 +20,17 @@ const MUTE_DSP_STATUS = "STATUS_MutedDSP"
 
 type MutedDSP struct{}
 
-func (p *MutedDSP) GetDevices(room accessors.Room) ([]accessors.Device, error) {
+func (p *MutedDSP) GetDevices(room structs.Room) ([]structs.Device, error) {
 
 	return room.Devices, nil
 }
 
-func (p *MutedDSP) GenerateCommands(devices []accessors.Device) ([]StatusCommand, error) {
+func (p *MutedDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand, error) {
 
 	log.Printf("Generating \"Muted\" status commands...")
 
 	//sort mics out of audio devices:w
-	var audioDevices, mics, dsp []accessors.Device
+	var audioDevices, mics, dsp []structs.Device
 
 	for _, device := range devices {
 
@@ -86,12 +86,12 @@ func (p *MutedDSP) GenerateCommands(devices []accessors.Device) ([]StatusCommand
 
 }
 
-func (p *MutedDSP) EvaluateResponse(label string, value interface{}, source accessors.Device, destintation DestinationDevice) (string, interface{}, error) {
+func (p *MutedDSP) EvaluateResponse(label string, value interface{}, source structs.Device, destintation DestinationDevice) (string, interface{}, error) {
 
 	return label, value, nil
 }
 
-func generateMicStatusCommands(mics []accessors.Device, evaluator string, command string) ([]StatusCommand, error) {
+func generateMicStatusCommands(mics []structs.Device, evaluator string, command string) ([]StatusCommand, error) {
 
 	log.Printf("Generating %s commands agains mics...", command)
 
@@ -149,7 +149,7 @@ func generateMicStatusCommands(mics []accessors.Device, evaluator string, comman
 	return commands, nil
 }
 
-func generateDSPStatusCommands(dsp []accessors.Device, evaluator string, command string) ([]StatusCommand, error) {
+func generateDSPStatusCommands(dsp []structs.Device, evaluator string, command string) ([]StatusCommand, error) {
 
 	var commands []StatusCommand
 

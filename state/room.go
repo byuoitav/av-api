@@ -8,11 +8,11 @@ import (
 	ar "github.com/byuoitav/av-api/actionreconcilers"
 	"github.com/byuoitav/av-api/base"
 	ce "github.com/byuoitav/av-api/commandevaluators"
-	"github.com/byuoitav/configuration-database-microservice/accessors"
+	"github.com/byuoitav/configuration-database-microservice/structs"
 )
 
 //for each command in the configuration, evaluate and validate.
-func GenerateActions(dbRoom accessors.Room, bodyRoom base.PublicRoom) (actions []base.ActionStructure, err error) {
+func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom) (actions []base.ActionStructure, err error) {
 
 	log.Printf("Generating actions...")
 	evaluators := ce.EVALUATORS
@@ -49,7 +49,7 @@ func GenerateActions(dbRoom accessors.Room, bodyRoom base.PublicRoom) (actions [
 	return
 }
 
-func ReconcileActions(room accessors.Room, actions []base.ActionStructure) (batches [][]base.ActionStructure, err error) {
+func ReconcileActions(room structs.Room, actions []base.ActionStructure) (batches [][]base.ActionStructure, err error) {
 
 	log.Printf("Reconciling actions...")
 

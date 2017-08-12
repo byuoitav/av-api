@@ -12,11 +12,13 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	se "github.com/byuoitav/av-api/statusevaluators"
-	"github.com/byuoitav/configuration-database-microservice/accessors"
+	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
-func GenerateStatusCommands(room accessors.Room, commandMap map[string]se.StatusEvaluator) ([]se.StatusCommand, error) {
+const TIMEOUT = 5
+
+func GenerateStatusCommands(room structs.Room, commandMap map[string]se.StatusEvaluator) ([]se.StatusCommand, error) {
 
 	log.Printf("Generating commands...")
 
