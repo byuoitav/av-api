@@ -1,6 +1,13 @@
 package actionreconcilers
 
-import "github.com/byuoitav/av-api/base"
+import (
+	"errors"
+	"log"
+	"strings"
+
+	"github.com/byuoitav/av-api/base"
+	"github.com/byuoitav/av-api/commandevaluators"
+)
 
 /*
 ActionReconciler is an interface that builds a reconciler for a room configuration.
@@ -38,4 +45,63 @@ func Init() map[string]ActionReconciler {
 	}
 
 	return reconcilerMap
+}
+
+func StandardReconcile(device int, v []base.ActionStructure) ([]base.ActionStructure, error) {
+
+	//for each device, construct set of actions
+	actionsForEvaluation := make(map[string]base.ActionStructure)
+	incompat := make(map[string]base.ActionStructure)
+
+	for i := 0; i < len(v); i++ {
+		actionsForEvaluation[v[i].Action] = v[i]
+		//for each device, construct set of incompatible actions
+		//Value is the action that generated the incompatible action.
+		incompatibleActions := commandevaluators.EVALUATORS[v[i].GeneratingEvaluator].GetIncompatibleCommands()
+
+		for _, incompatAct := range incompatibleActions {
+			incompat[incompatAct] = v[i]
+		}
+	}
+
+	//find intersection of sets.
+
+	//baseAction is the actionStructure generating the action (for cur action)
+	//incompatibleBaseAction is the actionStructure that generated the incompatible action.
+	for curAction, baseAction := range actionsForEvaluation {
+		if baseAction.Overridden {
+			continue
+		}
+
+		for incompatibleAction, incompatibleBaseAction := range incompat {
+			if incompatibleBaseAction.Overridden {
+				continue
+			}
+
+			if strings.EqualFold(curAction, incompatibleAction) {
+				log.Printf("%s is incompatible with %s.", incompatibleAction, incompatibleBaseAction.Action)
+				// if one of them is room wide and the other is not override the room-wide
+				// action.
+
+				if !baseAction.DeviceSpecific && incompatibleBaseAction.DeviceSpecific {
+					log.Printf("%s is a device specific command. Overriding %s in favor of device-specific command %s.",
+						incompatibleBaseAction.Action, baseAction.Action, incompatibleBaseAction.Action)
+					baseAction.Overridden = true
+
+				} else if baseAction.DeviceSpecific && !incompatibleBaseAction.DeviceSpecific {
+					log.Printf("%s is a device specific command. Overriding %s in favor of device-specific command %s.",
+						baseAction.Action, incompatibleBaseAction.Action, baseAction.Action)
+
+					incompatibleBaseAction.Overridden = true
+				} else {
+					errorString := incompatibleAction + " is an incompatible action with " + incompatibleBaseAction.Action + " for device with ID: " +
+						string(device)
+					log.Printf("%s", errorString)
+					return []base.ActionStructure{}, errors.New(errorString)
+				}
+			}
+		}
+	}
+
+	return v, nil
 }

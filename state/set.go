@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sync"
 
 	"github.com/byuoitav/av-api/actionreconcilers"
 	"github.com/byuoitav/av-api/base"
@@ -78,9 +79,15 @@ func ExecuteActions(DAG [][]base.ActionStructure) ([]se.StatusResponse, error) {
 
 	var output []se.StatusResponse
 
+	responses := make(chan se.StatusResponse)
+	var done sync.WaitGroup
+
 	for _, level := range DAG {
 
 		go func() {
+
+			done.Add(1)
+
 			for _, a := range level { // these commands can be executed in parallel
 
 				if a.Overridden {
@@ -110,9 +117,18 @@ func ExecuteActions(DAG [][]base.ActionStructure) ([]se.StatusResponse, error) {
 
 				//Execute the command.
 				status := ExecuteCommand(a, cmd, endpoint)
+				responses <- status
 				log.Printf("Status: %v", status)
 			}
+
+			done.Done()
 		}()
+	}
+
+	done.Wait()
+
+	for response := range responses {
+		output = append(output, response)
 	}
 
 	return output, nil

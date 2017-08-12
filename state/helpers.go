@@ -208,7 +208,7 @@ func processDisplay(device se.Status) (base.Display, error) {
 //returns the state the microservice reports or nothing if the microservice doesn't respond
 //publishes a state event or an error
 //@pre the parameters have been filled, e.g. the endpoint does not contain ":"
-func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoint string) interface{} {
+func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoint string) se.StatusResponse {
 
 	log.Printf("Sending request to %s%s...", command.Microservice, endpoint)
 
@@ -217,13 +217,13 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 	}
 	req, err := http.NewRequest("GET", command.Microservice+endpoint, nil)
 	if err != nil {
-		return nil
+		return se.StatusResponse{}
 	}
 
 	if len(os.Getenv("LOCAL_ENVIRONMENT")) == 0 {
 		token, err := bearertoken.GetToken()
 		if err != nil {
-			return nil
+			return se.StatusResponse{}
 		}
 		req.Header.Set("Authorization", "Bearer "+token.Token)
 	}
@@ -237,7 +237,7 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 		errorMessage := fmt.Sprintf("Problem sending request: %s", err.Error())
 		log.Printf(errorMessage)
 		PublishError(errorMessage, action)
-		return nil
+		return se.StatusResponse{}
 
 	} else if resp.StatusCode != 200 { //check the response code, if non-200, we need to record and report
 
@@ -253,7 +253,7 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 		log.Printf("microservice returned: %v", b)
 		PublishError(fmt.Sprintf("%s", b), action)
 
-		return nil
+		return se.StatusResponse{}
 
 	} else {
 
@@ -274,8 +274,21 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 		}
 
 		log.Printf("Successfully sent command %s to device %s.", action.Action, action.Device.Name)
+
 		//unmarshal status
-		return resp.Body
+		var response se.StatusResponse
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			errorString := fmt.Sprintf("Could not read response body: %s", err.Error())
+			PublishError(errorString, action)
+		}
+
+		err = json.Unmarshal(body, &response)
+		if err != nil {
+			message := fmt.Sprint("Could not unmarshal response struct: %s", err.Error())
+			PublishError(message, action)
+		}
+		return response
 
 	}
 
