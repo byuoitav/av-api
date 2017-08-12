@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/byuoitav/av-api/actionreconcilers"
 	"github.com/byuoitav/av-api/base"
 	ce "github.com/byuoitav/av-api/commandevaluators"
 	se "github.com/byuoitav/av-api/statusevaluators"
@@ -12,16 +13,16 @@ import (
 )
 
 //for each command in the configuration, evaluate and validate.
-func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom) (actions []base.ActionStructure, err error) {
+func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom) (batches [][]base.ActionStructure, err error) {
 
 	log.Printf("Generating actions...")
-	evaluators := ce.EVALUATORS
 
+	var actions []base.ActionStructure
 	for _, evaluator := range dbRoom.Configuration.Evaluators {
 
 		log.Printf("Considering evaluator %s", evaluator.EvaluatorKey)
 
-		curEvaluator := evaluators[evaluator.EvaluatorKey]
+		curEvaluator := ce.EVALUATORS[evaluator.EvaluatorKey]
 		if curEvaluator == nil {
 			err = errors.New("No evaluator corresponding to key " + evaluator.EvaluatorKey)
 			return
@@ -46,41 +47,72 @@ func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom) (actions []b
 		}
 	}
 
+	return ReconcileActions(dbRoom, actions)
+}
+
+//produces a DAG
+func ReconcileActions(room structs.Room, actions []base.ActionStructure) (batches [][]base.ActionStructure, err error) {
+
+	log.Printf("Reconciling actions...")
+
+	//Initialize map of strings to commandevaluators
+	reconcilers := actionreconcilers.Init()
+
+	curReconciler := reconcilers[room.Configuration.RoomKey]
+	if curReconciler == nil {
+		err = errors.New("No reconciler corresponding to key " + room.Configuration.RoomKey)
+		return
+	}
+
+	batches, err = curReconciler.Reconcile(actions)
+	if err != nil {
+		return
+	}
+
 	return
 }
 
+//@pre TODO DestinationDevice field is populated for every action!!
 //ExecuteActions carries out the actions defined in the struct
-func ExecuteActions(actions []base.ActionStructure) ([]se.StatusResponse, error) {
+func ExecuteActions(DAG [][]base.ActionStructure) ([]se.StatusResponse, error) {
 
 	var output []se.StatusResponse
-	for _, a := range actions {
 
-		if a.Overridden {
-			log.Printf("Action %s on device %s have been overridden. Continuing.",
-				a.Action, a.Device.Name)
-			continue
-		}
+	for _, level := range DAG {
 
-		has, cmd := ce.CheckCommands(a.Device.Commands, a.Action)
-		if !has {
-			errorStr := fmt.Sprintf("Error retrieving the command %s for device %s.", a.Action, a.Device.GetFullName())
-			log.Printf(errorStr)
-			//return base.PublicRoom{}, errors.New(errorStr)
-		}
+		go func() {
+			for _, a := range level { // these commands can be executed in parallel
 
-		//replace the address
-		endpoint := ReplaceIPAddressEndpoint(cmd.Endpoint.Path, a.Device.Address)
+				if a.Overridden {
+					log.Printf("Action %s on device %s have been overridden. Continuing.",
+						a.Action, a.Device.Name)
+					continue
+				}
 
-		endpoint, err := ReplaceParameters(endpoint, a.Parameters)
-		if err != nil {
-			errorString := fmt.Sprintf("Error building endpoint for command %s against device %s: %s", a.Action, a.Device.GetFullName(), err.Error())
-			log.Printf(errorString)
-			//return base.PublicRoom{}, errors.New(errorString)
-		}
+				has, cmd := ce.CheckCommands(a.Device.Commands, a.Action)
+				if !has {
+					errorStr := fmt.Sprintf("Error retrieving the command %s for device %s.", a.Action, a.Device.GetFullName())
+					log.Printf(errorStr)
+					PublishError(errorStr, a)
+					continue
+				}
 
-		//Execute the command.
-		status := ExecuteCommand(a, cmd, endpoint)
-		log.Printf("Status: %v", status)
+				//replace the address
+				endpoint := ReplaceIPAddressEndpoint(cmd.Endpoint.Path, a.Device.Address)
+
+				endpoint, err := ReplaceParameters(endpoint, a.Parameters)
+				if err != nil {
+					errorString := fmt.Sprintf("Error building endpoint for command %s against device %s: %s", a.Action, a.Device.GetFullName(), err.Error())
+					log.Printf(errorString)
+					PublishError(errorString, a)
+					continue
+				}
+
+				//Execute the command.
+				status := ExecuteCommand(a, cmd, endpoint)
+				log.Printf("Status: %v", status)
+			}
+		}()
 	}
 
 	return output, nil

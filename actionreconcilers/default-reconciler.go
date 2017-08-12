@@ -14,7 +14,7 @@ import (
 type DefaultReconciler struct{}
 
 //Reconcile fulfills the requirement to be a Reconciler.
-func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure) (actionsNew []base.ActionStructure, err error) {
+func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure) (actionsNew [][]base.ActionStructure, err error) {
 
 	//map all possible commands to a reference to the command struct
 
@@ -92,6 +92,6 @@ func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure) (actionsNe
 	}
 
 	log.Printf("Done.")
-	actionsNew = actions
+	actionsNew = append(actionsNew, actions)
 	return
 }

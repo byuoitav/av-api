@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/byuoitav/authmiddleware/bearertoken"
-	ar "github.com/byuoitav/av-api/actionreconcilers"
 	"github.com/byuoitav/av-api/base"
 	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
@@ -237,7 +236,7 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 
 		errorMessage := fmt.Sprintf("Problem sending request: %s", err.Error())
 		log.Printf(errorMessage)
-		PublishError(errorMessage, action, command)
+		PublishError(errorMessage, action)
 		return nil
 
 	} else if resp.StatusCode != 200 { //check the response code, if non-200, we need to record and report
@@ -248,11 +247,11 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 		if err != nil {
 
 			log.Printf("Problem reading the response: %v", err.Error())
-			PublishError(err.Error(), action, command)
+			PublishError(err.Error(), action)
 		}
 
 		log.Printf("microservice returned: %v", b)
-		PublishError(fmt.Sprintf("%s", b), action, command)
+		PublishError(fmt.Sprintf("%s", b), action)
 
 		return nil
 
@@ -280,27 +279,6 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 
 	}
 
-}
-
-func ReconcileActions(room structs.Room, actions []base.ActionStructure) (batches [][]base.ActionStructure, err error) {
-
-	log.Printf("Reconciling actions...")
-
-	//Initialize map of strings to commandevaluators
-	reconcilers := ar.Init()
-
-	curReconciler := reconcilers[room.Configuration.RoomKey]
-	if curReconciler == nil {
-		err = errors.New("No reconciler corresponding to key " + room.Configuration.RoomKey)
-		return
-	}
-
-	actions, err = curReconciler.Reconcile(actions)
-	if err != nil {
-		return
-	}
-
-	return
 }
 
 /*
@@ -341,7 +319,7 @@ func ReplaceParameters(endpoint string, parameters map[string]string) (string, e
 	return endpoint, nil
 }
 
-func PublishError(message string, action base.ActionStructure, command structs.Command) {
+func PublishError(message string, action base.ActionStructure) {
 
 	log.Printf("Publishing error: %s...", message)
 	base.SendEvent(
@@ -350,7 +328,7 @@ func PublishError(message string, action base.ActionStructure, command structs.C
 		action.Device.GetFullName(),
 		action.Device.Room.Name,
 		action.Device.Building.Shortname,
-		command.Name,
+		action.Action,
 		message,
 		true)
 
