@@ -13,7 +13,6 @@ import (
 	avapi "github.com/byuoitav/av-api/init"
 	si "github.com/byuoitav/device-monitoring-microservice/statusinfrastructure"
 	ei "github.com/byuoitav/event-router-microservice/eventinfrastructure"
-	"github.com/byuoitav/hateoas"
 	jh "github.com/jessemillar/health"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
@@ -41,9 +40,6 @@ func main() {
 
 	// Use the `secure` routing group to require authentication
 	secure := router.Group("", echo.WrapMiddleware(authmiddleware.Authenticate))
-
-	// GET requests
-	router.GET("/", echo.WrapHandler(http.HandlerFunc(hateoas.RootResponse)))
 
 	router.GET("/health", echo.WrapHandler(http.HandlerFunc(jh.Check)))
 	router.GET("/mstatus", GetStatus)

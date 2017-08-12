@@ -379,11 +379,11 @@ func AddEndpoint(toAdd structs.Endpoint) (structs.Endpoint, error) {
 	return toFill, nil
 }
 
-func GetPortsByClass(class string) ([]accessors.DeviceTypePort, error) {
+func GetPortsByClass(class string) ([]structs.DeviceTypePort, error) {
 	log.Printf("Getting ports for class %v", class)
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + fmt.Sprintf("/classes/%v/ports", class)
 
-	var ports []accessors.DeviceTypePort
+	var ports []structs.DeviceTypePort
 	err := GetData(url, &ports)
 	return ports, err
 }
@@ -480,22 +480,22 @@ func AddDevice(toAdd structs.Device) (structs.Device, error) {
 	return toFill, nil
 }
 
-func GetDeviceClasses() ([]accessors.DeviceClass, error) {
+func GetDeviceClasses() ([]structs.DeviceClass, error) {
 	log.Printf("getting all classes")
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/classes"
 
-	var classes []accessors.DeviceClass
+	var classes []structs.DeviceClass
 	err := GetData(url, &classes)
 
 	return classes, err
 }
 
-func SetDeviceAttribute(attributeInfo accessors.DeviceAttributeInfo) (accessors.Device, error) {
+func SetDeviceAttribute(attributeInfo structs.DeviceAttributeInfo) (structs.Device, error) {
 	log.Printf("Setting device attrbute %v to %v for device %v", attributeInfo.AttributeName, attributeInfo.AttributeValue, attributeInfo.AttributeValue)
 
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + fmt.Sprintf("/devices/attribute")
 
-	device := accessors.Device{}
+	device := structs.Device{}
 	err := PutData(url, attributeInfo, &device)
 	if err != nil {
 		log.Printf("error: %v", err.Error())
