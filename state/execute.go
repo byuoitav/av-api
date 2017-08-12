@@ -12,52 +12,9 @@ import (
 
 	"github.com/byuoitav/authmiddleware/bearertoken"
 	"github.com/byuoitav/av-api/base"
-	ce "github.com/byuoitav/av-api/commandevaluators"
-	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
-
-func EvaluateResponses(responses []se.StatusResponse) (base.PublicRoom, error) {
-	return base.PublicRoom{}, nil
-}
-
-//ExecuteActions carries out the actions defined in the struct
-func ExecuteActions(actions []base.ActionStructure) ([]se.StatusResponse, error) {
-
-	var output []se.StatusResponse
-	for _, a := range actions {
-
-		if a.Overridden {
-			log.Printf("Action %s on device %s have been overridden. Continuing.",
-				a.Action, a.Device.Name)
-			continue
-		}
-
-		has, cmd := ce.CheckCommands(a.Device.Commands, a.Action)
-		if !has {
-			errorStr := fmt.Sprintf("Error retrieving the command %s for device %s.", a.Action, a.Device.GetFullName())
-			log.Printf(errorStr)
-			//return base.PublicRoom{}, errors.New(errorStr)
-		}
-
-		//replace the address
-		endpoint := ReplaceIPAddressEndpoint(cmd.Endpoint.Path, a.Device.Address)
-
-		endpoint, err := ReplaceParameters(endpoint, a.Parameters)
-		if err != nil {
-			errorString := fmt.Sprintf("Error building endpoint for command %s against device %s: %s", a.Action, a.Device.GetFullName(), err.Error())
-			log.Printf(errorString)
-			//return base.PublicRoom{}, errors.New(errorString)
-		}
-
-		//Execute the command.
-		status := ExecuteCommand(a, cmd, endpoint)
-		log.Printf("Status: %v", status)
-	}
-
-	return output, nil
-}
 
 //make a GET request given a microservice and endpoint and publishes the results
 //returns the state the microservice reports or nothing if the microservice doesn't respond
