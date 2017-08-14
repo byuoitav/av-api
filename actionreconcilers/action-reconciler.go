@@ -25,7 +25,7 @@ type ActionReconciler interface {
 	   The ActionStructure elements will be evaluated (executed) in the order returned
 	   from Reconcile.
 	*/
-	Reconcile([]base.ActionStructure) ([][]base.ActionStructure, error)
+	Reconcile([]base.ActionStructure) ([]base.ActionStructure, error)
 }
 
 //reconcilerMap is a singleton that maps known keys to their reconciler struct.
@@ -39,7 +39,6 @@ func Init() map[string]ActionReconciler {
 		//Add reconcilers to the map here
 		//-------------------------------
 		reconcilerMap["Default"] = &DefaultReconciler{}
-		reconcilerMap["Parallel"] = &ParallelReconciler{}
 
 		reconcilerMapInitialized = true
 	}
@@ -47,20 +46,20 @@ func Init() map[string]ActionReconciler {
 	return reconcilerMap
 }
 
-func StandardReconcile(device int, v []base.ActionStructure) ([]base.ActionStructure, error) {
+func StandardReconcile(device int, actions []base.ActionStructure) ([]base.ActionStructure, error) {
 
 	//for each device, construct set of actions
 	actionsForEvaluation := make(map[string]base.ActionStructure)
-	incompat := make(map[string]base.ActionStructure)
+	incompatible := make(map[string]base.ActionStructure)
 
-	for i := 0; i < len(v); i++ {
-		actionsForEvaluation[v[i].Action] = v[i]
+	for _, action := range actions {
+		actionsForEvaluation[action.Action] = action
 		//for each device, construct set of incompatible actions
 		//Value is the action that generated the incompatible action.
-		incompatibleActions := commandevaluators.EVALUATORS[v[i].GeneratingEvaluator].GetIncompatibleCommands()
+		incompatibleActions := commandevaluators.EVALUATORS[action.GeneratingEvaluator].GetIncompatibleCommands()
 
-		for _, incompatAct := range incompatibleActions {
-			incompat[incompatAct] = v[i]
+		for _, incompatibleAction := range incompatibleActions {
+			incompatible[incompatibleAction] = action
 		}
 	}
 
@@ -73,12 +72,12 @@ func StandardReconcile(device int, v []base.ActionStructure) ([]base.ActionStruc
 			continue
 		}
 
-		for incompatibleAction, incompatibleBaseAction := range incompat {
+		for incompatibleAction, incompatibleBaseAction := range incompatible {
 			if incompatibleBaseAction.Overridden {
 				continue
 			}
 
-			if strings.EqualFold(curAction, incompatibleAction) {
+			if strings.EqualFold(curAction, incompatibleAction) { //we've found an incompatible action
 				log.Printf("%s is incompatible with %s.", incompatibleAction, incompatibleBaseAction.Action)
 				// if one of them is room wide and the other is not override the room-wide
 				// action.
@@ -103,5 +102,5 @@ func StandardReconcile(device int, v []base.ActionStructure) ([]base.ActionStruc
 		}
 	}
 
-	return v, nil
+	return actions, nil
 }

@@ -52,6 +52,7 @@ type ActionStructure struct {
 	DeviceSpecific      bool                 `json:"deviceSpecific,omitempty"`
 	Overridden          bool                 `json:"overridden"`
 	EventLog            []ei.EventInfo       `json:"events"`
+	Children            []*ActionStructure   `json:"children"`
 }
 
 //Equals checks if the action structures are equal

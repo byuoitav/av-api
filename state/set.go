@@ -14,7 +14,7 @@ import (
 )
 
 //for each command in the configuration, evaluate and validate.
-func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom) (batches [][]base.ActionStructure, err error) {
+func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom) (batches []base.ActionStructure, err error) {
 
 	log.Printf("Generating actions...")
 
@@ -52,7 +52,7 @@ func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom) (batches [][
 }
 
 //produces a DAG
-func ReconcileActions(room structs.Room, actions []base.ActionStructure) (batches [][]base.ActionStructure, err error) {
+func ReconcileActions(room structs.Room, actions []base.ActionStructure) (batches []base.ActionStructure, err error) {
 
 	log.Printf("Reconciling actions...")
 
@@ -75,55 +75,52 @@ func ReconcileActions(room structs.Room, actions []base.ActionStructure) (batche
 
 //@pre TODO DestinationDevice field is populated for every action!!
 //ExecuteActions carries out the actions defined in the struct
-func ExecuteActions(DAG [][]base.ActionStructure) ([]se.StatusResponse, error) {
+func ExecuteActions(DAG []base.ActionStructure) ([]se.StatusResponse, error) {
 
 	var output []se.StatusResponse
 
 	responses := make(chan se.StatusResponse)
 	var done sync.WaitGroup
 
-	for _, level := range DAG {
+	go func() {
 
-		go func() {
+		done.Add(1)
 
-			done.Add(1)
+		for _, a := range DAG { // these commands can be executed in parallel
 
-			for _, a := range level { // these commands can be executed in parallel
-
-				if a.Overridden {
-					log.Printf("Action %s on device %s have been overridden. Continuing.",
-						a.Action, a.Device.Name)
-					continue
-				}
-
-				has, cmd := ce.CheckCommands(a.Device.Commands, a.Action)
-				if !has {
-					errorStr := fmt.Sprintf("Error retrieving the command %s for device %s.", a.Action, a.Device.GetFullName())
-					log.Printf(errorStr)
-					PublishError(errorStr, a)
-					continue
-				}
-
-				//replace the address
-				endpoint := ReplaceIPAddressEndpoint(cmd.Endpoint.Path, a.Device.Address)
-
-				endpoint, err := ReplaceParameters(endpoint, a.Parameters)
-				if err != nil {
-					errorString := fmt.Sprintf("Error building endpoint for command %s against device %s: %s", a.Action, a.Device.GetFullName(), err.Error())
-					log.Printf(errorString)
-					PublishError(errorString, a)
-					continue
-				}
-
-				//Execute the command.
-				status := ExecuteCommand(a, cmd, endpoint)
-				responses <- status
-				log.Printf("Status: %v", status)
+			if a.Overridden {
+				log.Printf("Action %s on device %s have been overridden. Continuing.",
+					a.Action, a.Device.Name)
+				continue
 			}
 
-			done.Done()
-		}()
-	}
+			has, cmd := ce.CheckCommands(a.Device.Commands, a.Action)
+			if !has {
+				errorStr := fmt.Sprintf("Error retrieving the command %s for device %s.", a.Action, a.Device.GetFullName())
+				log.Printf(errorStr)
+				PublishError(errorStr, a)
+				continue
+			}
+
+			//replace the address
+			endpoint := ReplaceIPAddressEndpoint(cmd.Endpoint.Path, a.Device.Address)
+
+			endpoint, err := ReplaceParameters(endpoint, a.Parameters)
+			if err != nil {
+				errorString := fmt.Sprintf("Error building endpoint for command %s against device %s: %s", a.Action, a.Device.GetFullName(), err.Error())
+				log.Printf(errorString)
+				PublishError(errorString, a)
+				continue
+			}
+
+			//Execute the command.
+			status := ExecuteCommand(a, cmd, endpoint)
+			responses <- status
+			log.Printf("Status: %v", status)
+		}
+
+		done.Done()
+	}()
 
 	done.Wait()
 

@@ -11,7 +11,7 @@ import (
 type DefaultReconciler struct{}
 
 //Reconcile fulfills the requirement to be a Reconciler.
-func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure) (actionsNew [][]base.ActionStructure, err error) {
+func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure) (actionsNew []base.ActionStructure, err error) {
 
 	//map all possible commands to a reference to the command struct
 
@@ -31,11 +31,16 @@ func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure) (actionsNe
 	}
 
 	log.Printf("Checking for incompatible actions.")
-	//	for devID, v := range deviceActionMap {
-	//
-	//	}
+	for devID, v := range deviceActionMap {
+
+		v, err = StandardReconcile(devID, v)
+		if err != nil {
+			return
+		}
+
+	}
 
 	log.Printf("Done.")
-	actionsNew = append(actionsNew, actions)
+	actionsNew = actions
 	return
 }
