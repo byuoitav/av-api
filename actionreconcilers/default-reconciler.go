@@ -11,36 +11,45 @@ import (
 type DefaultReconciler struct{}
 
 //Reconcile fulfills the requirement to be a Reconciler.
-func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure) (actionsNew []base.ActionStructure, err error) {
+func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure) ([]base.ActionStructure, error) {
 
-	//map all possible commands to a reference to the command struct
+	log.Printf("Removing incompatible actions...")
 
-	log.Printf("Reconciling actions.")
-
-	//map a device ID to an array of actions specific to the device
-	deviceActionMap := make(map[int][]base.ActionStructure)
-
-	log.Printf("Generating device action set.")
-	//generate a set of actions for each device.
-	for _, a := range actions {
-		if _, has := deviceActionMap[a.Device.ID]; has {
-			deviceActionMap[a.Device.ID] = append(deviceActionMap[a.Device.ID], a)
-		} else {
-			deviceActionMap[a.Device.ID] = []base.ActionStructure{a}
-		}
+	actionMap := make(map[int][]base.ActionStructure)
+	for _, action := range actions {
+		actionMap[action.Device.ID] = append(actionMap[action.Device.ID], action) //this should work every time, right?
 	}
 
-	log.Printf("Checking for incompatible actions.")
-	for devID, v := range deviceActionMap {
+	output := []base.ActionStructure{
+		base.ActionStructure{
+			Action:              "Start",
+			GeneratingEvaluator: "DefaultReconciler",
+			Overridden:          true,
+		},
+	}
 
-		v, err = StandardReconcile(devID, v)
+	for device, actionList := range actionMap {
+
+		actionList, err := StandardReconcile(device, actionList)
 		if err != nil {
-			return
+			return []base.ActionStructure{}, err
 		}
+
+		actionList, err = SortActionsByPriority(actionList)
+		if err != nil {
+			return []base.ActionStructure{}, err
+		}
+
+		output = append(output, actionList...)
 
 	}
 
-	log.Printf("Done.")
-	actionsNew = actions
-	return
+	return output, nil
+}
+
+func SortActionsByPriority(actions []base.ActionStructure) ([]base.ActionStructure, error) {
+
+	var output []base.ActionStructure
+
+	return output, nil
 }
