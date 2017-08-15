@@ -2,6 +2,7 @@ package actionreconcilers
 
 import (
 	"log"
+	"sort"
 
 	"github.com/byuoitav/av-api/base"
 )
@@ -40,6 +41,7 @@ func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure) ([]base.Ac
 			return []base.ActionStructure{}, err
 		}
 
+		output[0].Children = append(output[0].Children, &actionList[0])
 		output = append(output, actionList...)
 
 	}
@@ -47,9 +49,48 @@ func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure) ([]base.Ac
 	return output, nil
 }
 
-func SortActionsByPriority(actions []base.ActionStructure) ([]base.ActionStructure, error) {
+func SortActionsByPriority(actions []base.ActionStructure) (output []base.ActionStructure, err error) {
 
-	var output []base.ActionStructure
+	actionMap := make(map[int][]base.ActionStructure)
 
+	for _, action := range actions {
+
+		for _, command := range action.Device.Commands {
+
+			if command.Name == action.Action {
+
+				actionMap[command.Priority] = append(actionMap[command.Priority], action)
+			}
+		}
+	}
+
+	var keys []int
+	for key := range actionMap {
+		keys = append(keys, key)
+	}
+
+	sort.Ints(keys)
+	output = append(output, actionMap[keys[0]]...) //parents of everything
+	marker := len(output) - 1
+	delete(actionMap, keys[0])
+
+	for len(actionMap) != 0 {
+		for index, key := range keys {
+
+			if index == 0 {
+				continue
+			}
+
+			output = append(output, actionMap[key]...)
+			marker = len(output) - 1
+			for _, action := range actionMap[key] {
+
+				output[marker].Children = append(output[marker].Children, &action)
+			}
+
+			delete(actionMap, key)
+		}
+
+	}
 	return output, nil
 }
