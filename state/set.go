@@ -82,7 +82,12 @@ func ExecuteActions(DAG []base.ActionStructure) ([]se.StatusResponse, error) {
 	responses := make(chan se.StatusResponse)
 	var done sync.WaitGroup
 
-	ExecuteCommands(DAG[0].Children, responses, &done)
+	for _, child := range DAG[0].Children {
+
+		done.Add(1)
+		go ExecuteAction(*child, responses, &done)
+	}
+
 	done.Wait()
 
 	for response := range responses {
@@ -92,47 +97,47 @@ func ExecuteActions(DAG []base.ActionStructure) ([]se.StatusResponse, error) {
 	return output, nil
 }
 
-func ExecuteCommands(commands []*base.ActionStructure, responses chan se.StatusResponse, control *sync.WaitGroup) {
+func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusResponse, control *sync.WaitGroup) {
 
-	log.Printf("Executing commands of like priority agains device %s", commands[0].Device.Name)
+	log.Printf("Executing action %s against device %s...", action.Action, action.Device.Name)
 
-	for _, action := range commands {
+	if action.Overridden {
+		log.Printf("Action %s on device %s have been overridden. Continuing.",
+			action.Action, action.Device.Name)
+		control.Done()
+		return
+	}
 
-		if action.Overridden {
-			log.Printf("Action %s on device %s have been overridden. Continuing.",
-				action.Action, action.Device.Name)
-			continue
-		}
+	has, cmd := ce.CheckCommands(action.Device.Commands, action.Action)
+	if !has {
+		errorStr := fmt.Sprintf("Error retrieving the command %s for device %s.", action.Action, action.Device.GetFullName())
+		log.Printf(errorStr)
+		PublishError(errorStr, action)
+		control.Done()
+		return
+	}
 
-		has, cmd := ce.CheckCommands(action.Device.Commands, action.Action)
-		if !has {
-			errorStr := fmt.Sprintf("Error retrieving the command %s for device %s.", action.Action, action.Device.GetFullName())
-			log.Printf(errorStr)
-			PublishError(errorStr, *action)
-			continue
-		}
+	//replace the address
+	endpoint := ReplaceIPAddressEndpoint(cmd.Endpoint.Path, action.Device.Address)
 
-		//replace the address
-		endpoint := ReplaceIPAddressEndpoint(cmd.Endpoint.Path, action.Device.Address)
+	endpoint, err := ReplaceParameters(endpoint, action.Parameters)
+	if err != nil {
+		errorString := fmt.Sprintf("Error building endpoint for command %s against device %s: %s", action.Action, action.Device.GetFullName(), err.Error())
+		log.Printf(errorString)
+		PublishError(errorString, action)
+		control.Done()
+		return
+	}
 
-		endpoint, err := ReplaceParameters(endpoint, action.Parameters)
-		if err != nil {
-			errorString := fmt.Sprintf("Error building endpoint for command %s against device %s: %s", action.Action, action.Device.GetFullName(), err.Error())
-			log.Printf(errorString)
-			PublishError(errorString, *action)
-			continue
-		}
+	//Execute the command.
+	status := ExecuteCommand(action, cmd, endpoint)
+	responses <- status
+	log.Printf("Status: %v", status)
 
-		//Execute the command.
-		status := ExecuteCommand(*action, cmd, endpoint)
-		responses <- status
-		log.Printf("Status: %v", status)
+	for _, child := range action.Children {
 
-		if len(action.Children) > 0 {
-
-			control.Add(1)
-			go ExecuteCommands(action.Children, responses, control)
-		}
+		control.Add(1)
+		go ExecuteAction(*child, responses, control)
 	}
 
 	control.Done()
