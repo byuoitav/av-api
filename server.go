@@ -21,7 +21,6 @@ import (
 
 func main() {
 	base.EventNode = ei.NewEventNode("AV-API", "7001", []string{}, os.Getenv("EVENT_ROUTER_ADDRESS"))
-	base.EventNode.ConnectToRouter()
 
 	go func() {
 		err := avapi.CheckRoomInitialization()
