@@ -11,6 +11,7 @@ services:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
             - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
+            - EVENT_ROUTER_ADDRESS=$EVENT_ROUTER_ADDRESS
         network_mode: "host"
         restart: always
         tty: true
@@ -111,6 +112,7 @@ services:
             - HELP_SLACKBOT_WEBHOOK=$HELP_SLACKBOT_WEBHOOK
             - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
             - UI_CONFIGURATION_ADDRESS=$UI_CONFIGURATION_ADDRESS
+            - EVENT_ROUTER_ADDRESS=$EVENT_ROUTER_ADDRESS
         network_mode: "host"
         restart: always
         tty: true
@@ -137,6 +139,7 @@ services:
             - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
             - PI_HOSTNAME=$PI_HOSTNAME
             - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
+            - EVENT_NODE_ADDRESSES=$EVENT_NODE_ADDRESSES
         network_mode: "host"
         restart: always
         tty: true
@@ -151,6 +154,7 @@ services:
             - ELASTIC_API_EVENTS=$ELASTIC_API_EVENTS
             - ELASTIC_API_EVENTS_DEV=$ELASTIC_API_EVENTS_DEV
             - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
+            - EVENT_ROUTER_ADDRESS=$EVENT_ROUTER_ADDRESS
         network_mode: "host"
         restart: always
         tty: true
