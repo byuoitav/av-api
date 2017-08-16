@@ -11,25 +11,24 @@ import (
 	"github.com/byuoitav/av-api/handlers"
 	"github.com/byuoitav/av-api/health"
 	avapi "github.com/byuoitav/av-api/init"
-	"github.com/byuoitav/device-monitoring-microservice/microservicestatus"
-	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
-	"github.com/byuoitav/hateoas"
+	si "github.com/byuoitav/device-monitoring-microservice/statusinfrastructure"
+	ei "github.com/byuoitav/event-router-microservice/eventinfrastructure"
 	jh "github.com/jessemillar/health"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 )
 
 func main() {
-	base.Pub = eventinfrastructure.NewPublisher("7001")
+	base.EventNode = ei.NewEventNode("AV-API", "7001", []string{})
 
-	var req eventinfrastructure.ConnectionRequest
+	var req ei.ConnectionRequest
 	req.PublisherAddr = "localhost:7001"
-	go eventinfrastructure.SendConnectionRequest("http://localhost:6999/subscribe", req, true)
+	go ei.SendConnectionRequest("http://localhost:6999/subscribe", req, true)
 
 	go func() {
 		err := avapi.CheckRoomInitialization()
 		if err != nil {
-			base.PublishError("Fail to run init script. Terminating. ERROR:"+err.Error(), eventinfrastructure.INTERNAL)
+			base.PublishError("Fail to run init script. Terminating. ERROR:"+err.Error(), ei.INTERNAL)
 			log.Fatalf("Could not initialize room. Error: %v\n", err.Error())
 		}
 	}()
@@ -41,9 +40,6 @@ func main() {
 
 	// Use the `secure` routing group to require authentication
 	secure := router.Group("", echo.WrapMiddleware(authmiddleware.Authenticate))
-
-	// GET requests
-	router.GET("/", echo.WrapHandler(http.HandlerFunc(hateoas.RootResponse)))
 
 	router.GET("/health", echo.WrapHandler(http.HandlerFunc(jh.Check)))
 	router.GET("/mstatus", GetStatus)
@@ -67,20 +63,20 @@ func main() {
 }
 
 func GetStatus(context echo.Context) error {
-	var s microservicestatus.Status
+	var s si.Status
 	var err error
 
-	s.Version, err = microservicestatus.GetVersion("version.txt")
+	s.Version, err = si.GetVersion("version.txt")
 	if err != nil {
 		return context.JSON(http.StatusOK, "Failed to open version.txt")
 	}
 
 	vals, err := dbo.GetBuildings()
 	if len(vals) < 1 || err != nil {
-		s.Status = microservicestatus.StatusDead
+		s.Status = si.StatusDead
 		s.StatusInfo = fmt.Sprintf("Unable to access database. Error: %s", err)
 	} else {
-		s.Status = microservicestatus.StatusOK
+		s.Status = si.StatusOK
 		s.StatusInfo = ""
 	}
 

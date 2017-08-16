@@ -1,7 +1,7 @@
 package base
 
 import (
-	"github.com/byuoitav/configuration-database-microservice/accessors"
+	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
@@ -45,7 +45,7 @@ type Display struct {
 type ActionStructure struct {
 	Action              string                          `json:"action"`
 	GeneratingEvaluator string                          `json:"generatingEvaluator"`
-	Device              accessors.Device                `json:"device"`
+	Device              structs.Device                  `json:"device"`
 	Parameters          map[string]string               `json:"parameters"`
 	DeviceSpecific      bool                            `json:"deviceSpecific,omitempty"`
 	Overridden          bool                            `json:"overridden"`

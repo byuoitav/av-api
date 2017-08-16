@@ -19,7 +19,7 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/accessors"
+	"github.com/byuoitav/configuration-database-microservice/structs"
 
 	ei "github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
@@ -189,7 +189,7 @@ func GetGeneralVolumeRequestActionsDSP(room base.PublicRoom, eventInfo ei.EventI
 
 //we assume microphones are only connected to a DSP
 //commands regarding microphones are only issued to DSP
-func GetMicVolumeAction(mic accessors.Device, room base.PublicRoom, eventInfo ei.EventInfo, volume int) (base.ActionStructure, error) {
+func GetMicVolumeAction(mic structs.Device, room base.PublicRoom, eventInfo ei.EventInfo, volume int) (base.ActionStructure, error) {
 
 	const SCALE_FACTOR = 3
 	const MINIMUM = 45
@@ -245,7 +245,7 @@ func GetMicVolumeAction(mic accessors.Device, room base.PublicRoom, eventInfo ei
 	return base.ActionStructure{}, errors.New("Could not find port for mic " + mic.Name)
 }
 
-func GetDSPMediaVolumeAction(dsp accessors.Device, room base.PublicRoom, eventInfo ei.EventInfo, volume int) ([]base.ActionStructure, error) { //commands are issued to whatever port doesn't have a mic connected
+func GetDSPMediaVolumeAction(dsp structs.Device, room base.PublicRoom, eventInfo ei.EventInfo, volume int) ([]base.ActionStructure, error) { //commands are issued to whatever port doesn't have a mic connected
 	log.Printf("%v", volume)
 
 	log.Printf("Generating action for command SetVolume on media routed through DSP")
@@ -285,7 +285,7 @@ func GetDSPMediaVolumeAction(dsp accessors.Device, room base.PublicRoom, eventIn
 
 }
 
-func GetDisplayVolumeAction(device accessors.Device, room base.PublicRoom, eventInfo ei.EventInfo, volume int) (base.ActionStructure, error) { //commands are issued to devices, e.g. they aren't connected to the DSP
+func GetDisplayVolumeAction(device structs.Device, room base.PublicRoom, eventInfo ei.EventInfo, volume int) (base.ActionStructure, error) { //commands are issued to devices, e.g. they aren't connected to the DSP
 
 	log.Printf("Generating action for SetVolume on device %s external to DSP", device.Name)
 
