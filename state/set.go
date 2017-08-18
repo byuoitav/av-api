@@ -97,6 +97,7 @@ func ExecuteActions(DAG []base.ActionStructure) ([]se.StatusResponse, error) {
 	return output, nil
 }
 
+//builds a status response
 func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusResponse, control *sync.WaitGroup) {
 
 	log.Printf("Executing action %s against device %s...", action.Action, action.Device.Name)
@@ -141,4 +142,10 @@ func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusRespon
 	}
 
 	control.Done()
+}
+
+//this is where we decide which status evaluator is used to evalutate the resultant status of a command that sets state
+var SET_STATE_STATUS_EVALUATORS = map[string]string{
+
+	"monsters": "strawberries",
 }

@@ -114,18 +114,6 @@ services:
         network_mode: "host"
         restart: always
         tty: true
-    configuration-database-tool:
-        build: 
-            context: ../configuration-database-tool
-            dockerfile: Dockerfile-development
-        ports:
-            - "9999:9999"
-        environment:
-            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
-            - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
-        network_mode: "host"
-        restart: always
-        tty: true
     event-router-microservice:
         build: 
             context: ../event-router-microservice

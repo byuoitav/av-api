@@ -276,18 +276,25 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 		log.Printf("Successfully sent command %s to device %s.", action.Action, action.Device.Name)
 
 		//unmarshal status
-		var response se.StatusResponse
+		status := make(map[string]interface{})
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			errorString := fmt.Sprintf("Could not read response body: %s", err.Error())
 			PublishError(errorString, action)
 		}
 
-		err = json.Unmarshal(body, &response)
+		err = json.Unmarshal(body, &status)
 		if err != nil {
 			message := fmt.Sprint("Could not unmarshal response struct: %s", err.Error())
 			PublishError(message, action)
 		}
+		response := se.StatusResponse{
+			SourceDevice:      action.Device,
+			DestinationDevice: action.DestinationDevice,
+			Generator:         SET_STATE_STATUS_EVALUATORS[action.GeneratingEvaluator],
+			Status:            status,
+		}
+
 		return response
 
 	}
