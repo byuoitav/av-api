@@ -7,6 +7,7 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
+	"github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
@@ -104,7 +105,7 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom) ([]base.A
 
 //GetSwitcherAndCreateAction gets the videoswitcher in a room, matches the destination port to the new port
 // and creates an action
-func GetSwitcherAndCreateAction(room base.PublicRoom, device structs.Device, selectedInput string, generatingEvaluator string) (base.ActionStructure, error) {
+func GetSwitcherAndCreateAction(room base.PublicRoom, device structs.Device, selectedInput, generatingEvaluator string) (base.ActionStructure, error) {
 
 	switcher, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "VideoSwitcher")
 	if err != nil {
@@ -131,10 +132,23 @@ func GetSwitcherAndCreateAction(room base.PublicRoom, device structs.Device, sel
 				EventInfoValue: selectedInput,
 			}
 
+			destination := statusevaluators.DestinationDevice{
+				Device: device,
+			}
+
+			if device.HasRole("AudioOut") {
+				destination.AudioDevice = true
+			}
+
+			if device.HasRole("VideoOut") {
+				destination.Display = true
+			}
+
 			tempAction := base.ActionStructure{
 				Action:              "ChangeInput",
 				GeneratingEvaluator: generatingEvaluator,
 				Device:              switcher[0],
+				DestinationDevice:   destination,
 				Parameters:          m,
 				DeviceSpecific:      false,
 				Overridden:          false,

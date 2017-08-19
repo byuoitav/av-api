@@ -7,6 +7,7 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
+	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
@@ -17,12 +18,15 @@ type UnBlankDisplayDefault struct {
 func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
 
 	var actions []base.ActionStructure
+
 	eventInfo := eventinfrastructure.EventInfo{
 		Type:           eventinfrastructure.CORESTATE,
 		EventCause:     eventinfrastructure.USERINPUT,
 		EventInfoKey:   "blanked",
 		EventInfoValue: "false",
 	}
+
+	destination := se.DestinationDevice{Display: true}
 
 	if room.Blanked != nil && !*room.Blanked {
 
@@ -42,10 +46,13 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStr
 				log.Printf("Adding Device %+v", device.Name)
 
 				eventInfo.Device = device.Name
+				destination.Device = device
+
 				actions = append(actions, base.ActionStructure{
 					Action:              "UnblankDisplay",
 					GeneratingEvaluator: "UnBlankDisplayDefault",
 					Device:              device,
+					DestinationDevice:   destination,
 					DeviceSpecific:      false,
 					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 				})
@@ -69,10 +76,13 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStr
 			}
 
 			eventInfo.Device = device.Name
+			destination.Device = device
+
 			actions = append(actions, base.ActionStructure{
 				Action:              "UnblankDisplay",
 				GeneratingEvaluator: "UnBlankDisplayDefault",
 				Device:              device,
+				DestinationDevice:   destination,
 				DeviceSpecific:      true,
 				EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 			})

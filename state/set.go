@@ -147,5 +147,18 @@ func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusRespon
 //this is where we decide which status evaluator is used to evalutate the resultant status of a command that sets state
 var SET_STATE_STATUS_EVALUATORS = map[string]string{
 
-	"monsters": "strawberries",
+	"PowerOnDefault":                "STATUS_PowerDefault",
+	"StandbyDefault":                "STATUS_PowerDefault",
+	"ChangeVideoInputDefault":       "STATUS_InputDefault",
+	"ChangeAudioInputDefault":       "STATUS_InputDefault",
+	"ChangeVideoInputVideoSwitcher": "STATUS_InputVideoSwitcher",
+	"BlankDisplayDefault":           "STATUS_BlankedDefault",
+	"UnBlankDisplayDefault":         "STATUS_BlankedDefault",
+	"MuteDefault":                   "STATUS_MutedDefault",
+	"UnMuteDefault":                 "STATUS_MutedDefault",
+	"SetVolumeDefault":              "STATUS_VolumeDefault",
+	"SetVolumeTecLite":              "STATUS_VolumeDefault",
+	"MuteDSP":                       "STATUS_MutedDSP",
+	"UnmuteDSP":                     "STATUS_MutedDSP",
+	"SetVolumeDSP":                  "STATUS_VolumeDSP",
 }

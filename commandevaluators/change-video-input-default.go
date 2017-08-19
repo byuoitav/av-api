@@ -6,6 +6,7 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
+	"github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
@@ -88,6 +89,18 @@ func generateChangeInputByDevice(dev base.Device, room string, building string, 
 		return
 	}
 
+	destination := statusevaluators.DestinationDevice{
+		Device: curDevice,
+	}
+
+	if curDevice.HasRole("AudioOut") {
+		destination.AudioDevice = true
+	}
+
+	if curDevice.HasRole("VideoOut") {
+		destination.Display = true
+	}
+
 	eventInfo := eventinfrastructure.EventInfo{
 		Type:           eventinfrastructure.CORESTATE,
 		EventCause:     eventinfrastructure.USERINPUT,
@@ -138,6 +151,18 @@ func generateChangeInputByRole(role string, input string, room string, building 
 			return
 		}
 
+		dest := statusevaluators.DestinationDevice{
+			Device: d,
+		}
+
+		if d.HasRole("AudioOut") {
+			dest.AudioDevice = true
+		}
+
+		if d.HasRole("VideoOut") {
+			dest.Display = true
+		}
+
 		eventInfo := eventinfrastructure.EventInfo{
 			Type:           eventinfrastructure.USERACTION,
 			EventCause:     eventinfrastructure.USERINPUT,
@@ -150,6 +175,7 @@ func generateChangeInputByRole(role string, input string, room string, building 
 			Action:              "ChangeInput",
 			GeneratingEvaluator: generatingEvaluator,
 			Device:              d,
+			DestinationDevice:   dest,
 			Parameters:          paramMap,
 			DeviceSpecific:      false,
 			Overridden:          false,

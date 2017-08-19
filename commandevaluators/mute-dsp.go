@@ -17,6 +17,7 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
+	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 	ei "github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
@@ -28,6 +29,7 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error)
 	log.Printf("Evaluating PUT body for \"Mute\" command in DSP context...")
 
 	var actions []base.ActionStructure
+
 	eventInfo := ei.EventInfo{
 		Type:           ei.CORESTATE,
 		EventCause:     ei.USERINPUT,
@@ -35,9 +37,13 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error)
 		EventInfoValue: "true",
 	}
 
+	destination := se.DestinationDevice{
+		AudioDevice: true,
+	}
+
 	if room.Muted != nil && *room.Muted {
 
-		generalActions, err := GetGeneralMuteRequestActionsDSP(room, eventInfo)
+		generalActions, err := GetGeneralMuteRequestActionsDSP(room, eventInfo, destination)
 		if err != nil {
 			errorMessage := "Could not generate actions for room-wide \"Mute\" request: " + err.Error()
 			log.Printf(errorMessage)
@@ -50,6 +56,7 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error)
 	if len(room.AudioDevices) > 0 {
 
 		for _, audioDevice := range room.AudioDevices {
+
 			if audioDevice.Muted == nil || !(*audioDevice.Muted) {
 				continue
 			}
@@ -58,6 +65,8 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error)
 			if err != nil {
 				log.Printf("Error getting device %s from database: %s", audioDevice.Name, err.Error())
 			}
+
+			destination.Device = device //if we've made it this far, the destination device is this audio device
 
 			if device.HasRole("Microphone") {
 
@@ -112,7 +121,7 @@ func (p *MuteDSP) GetIncompatibleCommands() []string {
 
 //assumes only one DSP, but allows for the possiblity of multiple devices not routed through the DSP
 //room-wide mute requests DO NOT include mics
-func GetGeneralMuteRequestActionsDSP(room base.PublicRoom, eventInfo ei.EventInfo) ([]base.ActionStructure, error) {
+func GetGeneralMuteRequestActionsDSP(room base.PublicRoom, eventInfo ei.EventInfo, destination se.DestinationDevice) ([]base.ActionStructure, error) {
 
 	log.Printf("Generating actions for room-wide \"Mute\" request")
 
@@ -165,6 +174,11 @@ func GetMicMuteAction(mic structs.Device, room base.PublicRoom, eventInfo ei.Eve
 
 	log.Printf("Generating action for command \"Mute\" on microphone %s", mic.Name)
 
+	destination := se.DestinationDevice{
+		Device:      mic,
+		AudioDevice: true,
+	}
+
 	//get DSP
 	dsps, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "DSP")
 	if err != nil {
@@ -194,6 +208,7 @@ func GetMicMuteAction(mic structs.Device, room base.PublicRoom, eventInfo ei.Eve
 				Action:              "Mute",
 				GeneratingEvaluator: "MuteDSP",
 				Device:              dsp,
+				DestinationDevice:   destination,
 				DeviceSpecific:      true,
 				EventLog:            []ei.EventInfo{eventInfo},
 				Parameters:          parameters,
@@ -223,11 +238,17 @@ func GetDSPMediaMuteAction(dsp structs.Device, room base.PublicRoom, eventInfo e
 
 		if !sourceDevice.HasRole("Microphone") {
 
+			destination := se.DestinationDevice{
+				Device:      dsp,
+				AudioDevice: true,
+			}
+
 			parameters["input"] = port.Name
 			action := base.ActionStructure{
 				Action:              "Mute",
 				GeneratingEvaluator: "MuteDSP",
 				Device:              dsp,
+				DestinationDevice:   destination,
 				DeviceSpecific:      deviceSpecific,
 				EventLog:            []ei.EventInfo{eventInfo},
 				Parameters:          parameters,
@@ -246,10 +267,16 @@ func GetDisplayMuteAction(device structs.Device, room base.PublicRoom, eventInfo
 
 	eventInfo.Device = device.Name
 
+	destination := se.DestinationDevice{
+		Device:      device,
+		AudioDevice: true,
+	}
+
 	return base.ActionStructure{
 		Action:              "Mute",
 		GeneratingEvaluator: "MuteDSP",
 		Device:              device,
+		DestinationDevice:   destination,
 		DeviceSpecific:      deviceSpecific,
 		EventLog:            []ei.EventInfo{eventInfo},
 	}, nil
