@@ -7,6 +7,7 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
+	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
@@ -23,6 +24,8 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, 
 		EventInfoKey:   "muted",
 		EventInfoValue: "false",
 	}
+
+	destination := se.DestinationDevice{Display: true}
 
 	//check if request is a roomwide unmute
 	if room.Muted != nil && !*room.Muted {
@@ -43,10 +46,13 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, 
 				log.Printf("Adding device %+v", device.Name)
 
 				eventInfo.Device = device.Name
+				destination.Device = device
+
 				actions = append(actions, base.ActionStructure{
 					Action:              "UnMute",
 					GeneratingEvaluator: "UnMuteDefault",
 					Device:              device,
+					DestinationDevice:   destination,
 					DeviceSpecific:      false,
 					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 				})
@@ -72,10 +78,13 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, 
 			}
 
 			eventInfo.Device = device.Name
+			destination.Device = device
+
 			actions = append(actions, base.ActionStructure{
 				Action:              "UnMute",
 				GeneratingEvaluator: "UnMuteDefault",
 				Device:              device,
+				DestinationDevice:   destination,
 				DeviceSpecific:      true,
 				EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 			})

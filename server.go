@@ -46,7 +46,7 @@ func main() {
 	secure.PUT("/buildings/:building/rooms/:room", handlers.SetRoomState)
 
 	// room status
-	secure.GET("/buildings/:building/rooms/:room", handlers.GetRoomStatus)
+	secure.GET("/buildings/:building/rooms/:room", handlers.GetRoomState)
 	secure.GET("/buildings/:building/rooms/:room/configuration", handlers.GetRoomByNameAndBuilding)
 
 	server := http.Server{

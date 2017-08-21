@@ -7,6 +7,7 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
+	"github.com/byuoitav/av-api/statusevaluators"
 	ei "github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
@@ -39,9 +40,13 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom) ([]base.ActionStruc
 		EventInfoKey: "input",
 	}
 
+	destination := statusevaluators.DestinationDevice{
+		AudioDevice: true,
+	}
+
 	if len(room.CurrentAudioInput) > 0 { //
 
-		generalAction, err := GetDSPMediaInputAction(room, eventInfo, room.CurrentAudioInput, false)
+		generalAction, err := GetDSPMediaInputAction(room, eventInfo, room.CurrentAudioInput, false, destination)
 		if err != nil {
 			errorMessage := "Could not generate actions for room-wide \"ChangeInput\" request: " + err.Error()
 			log.Printf(errorMessage)
@@ -68,6 +73,7 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom) ([]base.ActionStruc
 					Action:              "Mute",
 					GeneratingEvaluator: "ChangeAudioInputDSP",
 					Device:              device,
+					DestinationDevice:   destination,
 					DeviceSpecific:      false,
 					EventLog:            []ei.EventInfo{eventInfo},
 				})
@@ -93,7 +99,7 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom) ([]base.ActionStruc
 
 				if device.HasRole("DSP") {
 
-					dspAction, err := GetDSPMediaInputAction(room, eventInfo, room.AudioDevices[0].Input, true)
+					dspAction, err := GetDSPMediaInputAction(room, eventInfo, room.AudioDevices[0].Input, true, destination)
 					if err != nil {
 						errorMessage := "Could not generate actions for specific \"ChangeInput\" requests: " + err.Error()
 						log.Printf(errorMessage)
@@ -122,7 +128,7 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom) ([]base.ActionStruc
 	return actions, nil
 }
 
-func GetDSPMediaInputAction(room base.PublicRoom, eventInfo ei.EventInfo, input string, deviceSpecific bool) (base.ActionStructure, error) {
+func GetDSPMediaInputAction(room base.PublicRoom, eventInfo ei.EventInfo, input string, deviceSpecific bool, destination statusevaluators.DestinationDevice) (base.ActionStructure, error) {
 
 	//get DSP
 	dsp, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "DSP")
@@ -180,10 +186,13 @@ func GetDSPMediaInputAction(room base.PublicRoom, eventInfo ei.EventInfo, input 
 			eventInfo.Device = switchers[0].Name
 			eventInfo.EventInfoValue = input
 
+			destination.Device = device
+
 			return base.ActionStructure{
 				Action:              "ChangeInput",
 				GeneratingEvaluator: "ChangeAudioInputDSP",
 				Device:              switchers[0],
+				DestinationDevice:   destination,
 				DeviceSpecific:      deviceSpecific,
 				Parameters:          parameters,
 				EventLog:            []ei.EventInfo{eventInfo},

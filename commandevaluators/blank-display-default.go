@@ -8,6 +8,7 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
+	"github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
@@ -45,14 +46,22 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStruc
 		log.Printf("Assigning BlankDisplayCommands")
 		// Currently we only check for output devices
 		for _, device := range devices {
+
 			if device.Output {
+
 				log.Printf("Adding device %+v", device.Name)
+
+				destination := statusevaluators.DestinationDevice{
+					Device:  device,
+					Display: true,
+				}
 
 				eventInfo.Device = device.Name
 				actions = append(actions, base.ActionStructure{
 					Action:              "BlankDisplay",
 					GeneratingEvaluator: "BlankDisplayDefault",
 					Device:              device,
+					DestinationDevice:   destination,
 					DeviceSpecific:      false,
 					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 				})
@@ -72,11 +81,17 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStruc
 				return []base.ActionStructure{}, err
 			}
 
+			destination := statusevaluators.DestinationDevice{
+				Device:  device,
+				Display: true,
+			}
+
 			eventInfo.Device = device.Name
 			actions = append(actions, base.ActionStructure{
 				Action:              "BlankDisplay",
 				GeneratingEvaluator: "BlankDisplayDefault",
 				Device:              device,
+				DestinationDevice:   destination,
 				DeviceSpecific:      true,
 				EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 			})

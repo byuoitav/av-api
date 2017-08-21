@@ -8,6 +8,7 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
+	"github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
@@ -24,6 +25,10 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, er
 	log.Printf("Evaluating for Mute command.")
 
 	var actions []base.ActionStructure
+
+	destination := statusevaluators.DestinationDevice{
+		AudioDevice: true,
+	}
 
 	eventInfo := eventinfrastructure.EventInfo{
 		Type:           eventinfrastructure.CORESTATE,
@@ -48,10 +53,13 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, er
 				log.Printf("Adding device %+v", device.Name)
 
 				eventInfo.Device = device.Name
+				destination.Device = device
+
 				actions = append(actions, base.ActionStructure{
 					Action:              "Mute",
 					GeneratingEvaluator: "MuteDefault",
 					Device:              device,
+					DestinationDevice:   destination,
 					DeviceSpecific:      false,
 					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 				})
@@ -73,10 +81,13 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, er
 			}
 
 			eventInfo.Device = device.Name
+			destination.Device = device
+
 			actions = append(actions, base.ActionStructure{
 				Action:              "Mute",
 				GeneratingEvaluator: "MuteDefault",
 				Device:              device,
+				DestinationDevice:   destination,
 				DeviceSpecific:      true,
 				EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 			})

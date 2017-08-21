@@ -1,4 +1,4 @@
-package status
+package statusevaluators
 
 import (
 	"github.com/byuoitav/configuration-database-microservice/structs"
@@ -67,29 +67,4 @@ type DestinationDevice struct {
 	Display     bool `json:"video"`
 }
 
-type StatusEvaluator interface {
-
-	//Identifies relevant devices
-	GetDevices(room structs.Room) ([]structs.Device, error)
-
-	//Generates action list
-	GenerateCommands(devices []structs.Device) ([]StatusCommand, error)
-
-	//Evaluate Response
-	EvaluateResponse(label string, value interface{}, Source structs.Device, Destination DestinationDevice) (string, interface{}, error)
-}
-
 const FLAG = "STATUS"
-
-//TODO: we shoud grab the keys from constants in the evaluators themselves
-var STATUS_EVALUATORS = map[string]StatusEvaluator{
-	"STATUS_PowerDefault":       &PowerDefault{},
-	"STATUS_BlankedDefault":     &BlankedDefault{},
-	"STATUS_MutedDefault":       &MutedDefault{},
-	"STATUS_InputDefault":       &InputDefault{},
-	"STATUS_VolumeDefault":      &VolumeDefault{},
-	"STATUS_InputVideoSwitcher": &InputVideoSwitcher{},
-	"STATUS_InputDSP":           &InputDSP{},
-	"STATUS_MutedDSP":           &MutedDSP{},
-	"STATUS_VolumeDSP":          &VolumeDSP{},
-}

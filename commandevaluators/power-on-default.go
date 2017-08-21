@@ -7,6 +7,7 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
+	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
@@ -43,12 +44,25 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom) (actions []base.ActionSt
 
 			if device.Output {
 
+				destination := se.DestinationDevice{
+					Device: device,
+				}
+
+				if device.HasRole("AudioOut") {
+					destination.AudioDevice = true
+				}
+
+				if device.HasRole("VideoOut") {
+					destination.Display = true
+				}
+
 				log.Printf("Adding device %+v", device.Name)
 
 				eventInfo.Device = device.Name
 				actions = append(actions, base.ActionStructure{
 					Action:              "PowerOn",
 					Device:              device,
+					DestinationDevice:   destination,
 					GeneratingEvaluator: "PowerOnDefault",
 					DeviceSpecific:      false,
 					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
@@ -60,15 +74,26 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom) (actions []base.ActionSt
 	// Now we go through and check if power 'on' was set for any other device.
 	log.Printf("Evaluating displays for power on command.")
 	for _, device := range room.Displays {
-		actions, err = p.evaluateDevice(device.Device, actions, devices, room.Room, room.Building, eventInfo)
+
+		destination := se.DestinationDevice{
+			Display: true,
+		}
+
+		actions, err = p.evaluateDevice(device.Device, destination, actions, devices, room.Room, room.Building, eventInfo)
 		if err != nil {
 			return
 		}
 	}
 
 	for _, device := range room.AudioDevices {
+
 		log.Printf("Evaluating audio devices for command power on. ")
-		actions, err = p.evaluateDevice(device.Device, actions, devices, room.Room, room.Building, eventInfo)
+
+		destination := se.DestinationDevice{
+			Display: true,
+		}
+
+		actions, err = p.evaluateDevice(device.Device, destination, actions, devices, room.Room, room.Building, eventInfo)
 		if err != nil {
 			return
 		}
@@ -106,6 +131,7 @@ func (p *PowerOnDefault) GetIncompatibleCommands() (incompatableActions []string
 
 // Evaluate devices just pulls out the process we do with the audio-devices and displays into one function.
 func (p *PowerOnDefault) evaluateDevice(device base.Device,
+	destination se.DestinationDevice,
 	actions []base.ActionStructure,
 	devices []structs.Device,
 	room string,
@@ -125,9 +151,12 @@ func (p *PowerOnDefault) evaluateDevice(device base.Device,
 			}
 
 			eventInfo.Device = dev.Name
+			destination.Device = dev
+
 			actions = append(actions, base.ActionStructure{
 				Action:              "PowerOn",
 				Device:              dev,
+				DestinationDevice:   destination,
 				GeneratingEvaluator: "PowerOnDefault",
 				DeviceSpecific:      true,
 				EventLog:            []eventinfrastructure.EventInfo{eventInfo},

@@ -1,8 +1,9 @@
 package base
 
 import (
+	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
-	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	ei "github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
 //PublicRoom is the struct that is returned (or put) as part of the public API
@@ -43,13 +44,15 @@ type Display struct {
 //they've been evaluated.
 //also contains a list of Events to be published
 type ActionStructure struct {
-	Action              string                          `json:"action"`
-	GeneratingEvaluator string                          `json:"generatingEvaluator"`
-	Device              structs.Device                  `json:"device"`
-	Parameters          map[string]string               `json:"parameters"`
-	DeviceSpecific      bool                            `json:"deviceSpecific,omitempty"`
-	Overridden          bool                            `json:"overridden"`
-	EventLog            []eventinfrastructure.EventInfo `json:"events"`
+	Action              string               `json:"action"`
+	GeneratingEvaluator string               `json:"generatingEvaluator"`
+	Device              structs.Device       `json:"device"`
+	DestinationDevice   se.DestinationDevice `json:"destination_device"`
+	Parameters          map[string]string    `json:"parameters"`
+	DeviceSpecific      bool                 `json:"deviceSpecific,omitempty"`
+	Overridden          bool                 `json:"overridden"`
+	EventLog            []ei.EventInfo       `json:"events"`
+	Children            []*ActionStructure   `json:"children"`
 }
 
 //Equals checks if the action structures are equal

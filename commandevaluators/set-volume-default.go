@@ -8,6 +8,7 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
+	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
@@ -23,6 +24,10 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure,
 		Type:         eventinfrastructure.CORESTATE,
 		EventCause:   eventinfrastructure.USERINPUT,
 		EventInfoKey: "volume",
+	}
+
+	destination := se.DestinationDevice{
+		AudioDevice: true,
 	}
 
 	// general room volume
@@ -44,11 +49,14 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure,
 
 				eventInfo.EventInfoValue = fmt.Sprintf("%v", *room.Volume)
 				eventInfo.Device = device.Name
+				destination.Device = device
+
 				actions = append(actions, base.ActionStructure{
 					Action:              "SetVolume",
 					Parameters:          parameters,
 					GeneratingEvaluator: "SetVolumeDefault",
 					Device:              device,
+					DestinationDevice:   destination,
 					DeviceSpecific:      false,
 					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 				})
@@ -81,10 +89,13 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure,
 
 				eventInfo.EventInfoValue = fmt.Sprintf("%v", *audioDevice.Volume)
 				eventInfo.Device = device.Name
+				destination.Device = device
+
 				actions = append(actions, base.ActionStructure{
 					Action:              "SetVolume",
 					GeneratingEvaluator: "SetVolumeDefault",
 					Device:              device,
+					DestinationDevice:   destination,
 					DeviceSpecific:      true,
 					Parameters:          parameters,
 					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
