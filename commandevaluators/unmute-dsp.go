@@ -201,7 +201,7 @@ func GetMicUnMuteAction(mic structs.Device, room base.PublicRoom, eventInfo ei.E
 
 			return base.ActionStructure{
 				Action:              "UnMute",
-				GeneratingEvaluator: "UnMuteDSP",
+				GeneratingEvaluator: "UnmuteDSP",
 				Device:              dsp,
 				DestinationDevice:   destination,
 				DeviceSpecific:      true,
@@ -246,7 +246,7 @@ func GetDSPMediaUnMuteAction(dsp structs.Device, room base.PublicRoom, eventInfo
 
 			toReturn = append(toReturn, base.ActionStructure{
 				Action:              "UnMute",
-				GeneratingEvaluator: "UnMuteDSP",
+				GeneratingEvaluator: "UnmuteDSP",
 				Device:              dsp,
 				DestinationDevice:   destination,
 				DeviceSpecific:      deviceSpecific,
@@ -272,7 +272,7 @@ func GetDisplayUnMuteAction(device structs.Device, room base.PublicRoom, eventIn
 
 	return base.ActionStructure{
 		Action:              "UnMute",
-		GeneratingEvaluator: "UnMuteDSP",
+		GeneratingEvaluator: "UnmuteDSP",
 		Device:              device,
 		DestinationDevice:   destination,
 		DeviceSpecific:      deviceSpecific,

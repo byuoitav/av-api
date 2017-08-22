@@ -1,6 +1,7 @@
 package state
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"log"
@@ -16,13 +17,13 @@ import (
 )
 
 //for each command in the configuration, evaluate and validate.
-func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom) (batches []base.ActionStructure, err error) {
+func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom) ([]base.ActionStructure, error) {
 
-	color.Set(color.FgYellow)
+	color.Set(color.FgHiCyan)
 	log.Printf("[state] generating actions...")
 	color.Unset()
 
-	var actions []base.ActionStructure
+	var output []base.ActionStructure
 	for _, evaluator := range dbRoom.Configuration.Evaluators {
 
 		if strings.Contains(evaluator.EvaluatorKey, "STATUS") {
@@ -33,41 +34,56 @@ func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom) (batches []b
 
 		curEvaluator := ce.EVALUATORS[evaluator.EvaluatorKey]
 		if curEvaluator == nil {
-			err = errors.New("No evaluator corresponding to key " + evaluator.EvaluatorKey)
-			return
+			err := errors.New("No evaluator corresponding to key " + evaluator.EvaluatorKey)
+			return []base.ActionStructure{}, err
 		}
 
-		actions, err = curEvaluator.Evaluate(bodyRoom)
+		actions, err := curEvaluator.Evaluate(bodyRoom)
 		if err != nil {
-			return
+			return []base.ActionStructure{}, err
 		}
 
 		for _, action := range actions {
-			err = curEvaluator.Validate(action)
+			err := curEvaluator.Validate(action)
 			if err != nil {
 				log.Printf("Error on validation of %s on evaluator %s", action.Action, evaluator.EvaluatorKey)
-				return
+				return []base.ActionStructure{}, err
 			}
 
 			// Provide a map from the generating evaluator to the generated action in
 			// case they want to use the Incompatable actions in the reconcilers.
 			action.GeneratingEvaluator = evaluator.EvaluatorKey
-			actions = append(actions, action)
 		}
+
+		output = append(output, actions...)
 	}
 
-	color.Set(color.FgYellow)
-	log.Printf("[state] done generating actions.")
+	color.Set(color.FgHiCyan)
+	log.Printf("[state] generated %v total actions.", len(output))
 	color.Unset()
 
-	return ReconcileActions(dbRoom, actions)
+	//DEBUGGING=========================================================================================
+
+	var buffer bytes.Buffer
+
+	for _, action := range output {
+		buffer.WriteString(action.Action + "->" + action.Device.Name + " ")
+	}
+
+	color.Set(color.FgHiCyan)
+	log.Printf("[state] actions generated: %s", buffer.String())
+	color.Unset()
+
+	//==========================================================================================================
+
+	return ReconcileActions(dbRoom, output)
 }
 
 //produces a DAG
 func ReconcileActions(room structs.Room, actions []base.ActionStructure) (batches []base.ActionStructure, err error) {
 
-	color.Set(color.FgYellow)
-	log.Printf("[state] Reconciling actions...")
+	color.Set(color.FgHiCyan)
+	log.Printf("[state] reconciling actions...")
 	color.Unset()
 
 	//Initialize map of strings to commandevaluators
@@ -84,8 +100,8 @@ func ReconcileActions(room structs.Room, actions []base.ActionStructure) (batche
 		return
 	}
 
-	color.Set(color.FgYellow)
-	log.Printf("[state] Done reconcililing actions.")
+	color.Set(color.FgHiCyan)
+	log.Printf("[state] Done reconciling actions.")
 	color.Unset()
 
 	return
@@ -95,7 +111,7 @@ func ReconcileActions(room structs.Room, actions []base.ActionStructure) (batche
 //ExecuteActions carries out the actions defined in the struct
 func ExecuteActions(DAG []base.ActionStructure) ([]se.StatusResponse, error) {
 
-	color.Set(color.FgYellow)
+	color.Set(color.FgHiCyan)
 	log.Printf("[state] Executing actions...")
 	color.Unset()
 
@@ -120,7 +136,7 @@ func ExecuteActions(DAG []base.ActionStructure) ([]se.StatusResponse, error) {
 		output = append(output, response)
 	}
 
-	color.Set(color.FgYellow)
+	color.Set(color.FgHiCyan)
 	color.Unset()
 
 	return output, nil

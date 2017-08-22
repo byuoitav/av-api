@@ -1,12 +1,14 @@
 package actionreconcilers
 
 import (
+	"bytes"
 	"errors"
 	"log"
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/commandevaluators"
+	ce "github.com/byuoitav/av-api/commandevaluators"
+	"github.com/fatih/color"
 )
 
 /*
@@ -48,6 +50,10 @@ func Init() map[string]ActionReconciler {
 
 func StandardReconcile(device int, actions []base.ActionStructure) ([]base.ActionStructure, error) {
 
+	color.Set(color.FgHiMagenta)
+	log.Printf("[reconciler] performing standard reconcile...")
+	color.Unset()
+
 	//for each device, construct set of actions
 	actionsForEvaluation := make(map[string]base.ActionStructure)
 	incompatible := make(map[string]base.ActionStructure)
@@ -56,7 +62,16 @@ func StandardReconcile(device int, actions []base.ActionStructure) ([]base.Actio
 		actionsForEvaluation[action.Action] = action
 		//for each device, construct set of incompatible actions
 		//Value is the action that generated the incompatible action.
-		incompatibleActions := commandevaluators.EVALUATORS[action.GeneratingEvaluator].GetIncompatibleCommands()
+		evaluator := ce.EVALUATORS[action.GeneratingEvaluator]
+
+		if evaluator == nil {
+			color.Set(color.FgHiRed)
+			log.Printf("Alert! Nil pointer for evaluator: %s", action.GeneratingEvaluator)
+			color.Unset()
+			continue
+		}
+
+		incompatibleActions := evaluator.GetIncompatibleCommands()
 
 		for _, incompatibleAction := range incompatibleActions {
 			incompatible[incompatibleAction] = action
@@ -101,6 +116,18 @@ func StandardReconcile(device int, actions []base.ActionStructure) ([]base.Actio
 			}
 		}
 	}
+	//DEBUG ==============================================================================================================================================
+
+	var buffer bytes.Buffer
+	for i, a := range actions {
+
+		buffer.WriteString(a.Action)
+		if i != len(actions)-1 {
+			buffer.WriteString(", ")
+		}
+	}
+	log.Printf("[reconciler] actions after standard reconcile: %s", buffer.String())
+	//=====================================================================================================================================================
 
 	return actions, nil
 }

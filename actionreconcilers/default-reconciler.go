@@ -1,10 +1,12 @@
 package actionreconcilers
 
 import (
+	"bytes"
 	"log"
 	"sort"
 
 	"github.com/byuoitav/av-api/base"
+	"github.com/fatih/color"
 )
 
 //DefaultReconciler is the Default Reconciler
@@ -14,12 +16,39 @@ type DefaultReconciler struct{}
 //Reconcile fulfills the requirement to be a Reconciler.
 func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure) ([]base.ActionStructure, error) {
 
-	log.Printf("Removing incompatible actions...")
+	log.Printf("[reconciler] Removing incompatible actions...")
+	var buffer bytes.Buffer
 
 	actionMap := make(map[int][]base.ActionStructure)
 	for _, action := range actions {
+
+		buffer.WriteString(action.Device.Name + " ")
 		actionMap[action.Device.ID] = append(actionMap[action.Device.ID], action) //this should work every time, right?
 	}
+
+	// DEBUGGING ================================================================================================
+
+	color.Set(color.FgHiMagenta)
+	log.Printf("[reconciler] devices identified: %s", buffer.String())
+	color.Unset()
+
+	buffer.Reset()
+	for deviceID, actions := range actionMap {
+
+		for index, action := range actions {
+
+			buffer.WriteString(action.Action)
+			if index != len(actions)-1 {
+				buffer.WriteString(", ")
+			}
+
+		}
+
+		color.Set(color.FgHiMagenta)
+		log.Printf("[reconciler] found device with ID: %v and commands: %s", deviceID, buffer.String())
+		color.Unset()
+	}
+	// DEBUGGING ================================================================================================
 
 	output := []base.ActionStructure{
 		base.ActionStructure{
