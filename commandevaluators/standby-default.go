@@ -7,7 +7,7 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/accessors"
+	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
@@ -20,7 +20,7 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom) (actions []base.ActionSt
 
 	log.Printf("Evaluating for Standby Command.")
 
-	var devices []accessors.Device
+	var devices []structs.Device
 	eventInfo := eventinfrastructure.EventInfo{
 		Type:           eventinfrastructure.CORESTATE,
 		EventCause:     eventinfrastructure.USERINPUT,
@@ -36,11 +36,17 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom) (actions []base.ActionSt
 			return
 		}
 
-		log.Printf("Setting power to 'standby' state for all output devices.")
+		log.Printf("Setting power to 'standby' state for all devices with a 'standby' power state, that are also output devices.")
 		for _, device := range devices {
+			containsStandby := false
+			for _, ps := range device.PowerStates {
+				if strings.EqualFold(ps, "Standby") {
+					containsStandby = true
+					break
+				}
+			}
 
-			if device.Output {
-
+			if containsStandby && device.Output {
 				log.Printf("Adding device %+v", device.Name)
 				eventInfo.Device = device.Name
 				actions = append(actions, base.ActionStructure{
@@ -100,7 +106,7 @@ func (s *StandbyDefault) GetIncompatibleCommands() (incompatableActions []string
 }
 
 // Evaluate devices just pulls out the process we do with the audio-devices and displays into one function.
-func (s *StandbyDefault) evaluateDevice(device base.Device, actions []base.ActionStructure, devices []accessors.Device, room string, building string, eventInfo eventinfrastructure.EventInfo) ([]base.ActionStructure, error) {
+func (s *StandbyDefault) evaluateDevice(device base.Device, actions []base.ActionStructure, devices []structs.Device, room string, building string, eventInfo eventinfrastructure.EventInfo) ([]base.ActionStructure, error) {
 	// Check if we even need to start anything
 	if strings.EqualFold(device.Power, "standby") {
 		// check if we already added it

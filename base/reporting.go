@@ -1,18 +1,14 @@
 package base
 
 import (
-	"encoding/json"
-	"log"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
-	"github.com/xuther/go-message-router/common"
-	"github.com/xuther/go-message-router/publisher"
 )
 
-var Publisher publisher.Publisher
+var EventNode *eventinfrastructure.EventNode
 
 func PublishHealth(e eventinfrastructure.Event) {
 	Publish(e, false)
@@ -25,7 +21,11 @@ func Publish(e eventinfrastructure.Event, Error bool) error {
 	e.Timestamp = time.Now().Format(time.RFC3339)
 	if len(os.Getenv("LOCAL_ENVIRONMENT")) > 0 {
 		e.Hostname = os.Getenv("PI_HOSTNAME")
+		if len(os.Getenv("DEVELOPMENT_HOSTNAME")) > 0 {
+			e.Hostname = os.Getenv("DEVELOPMENT_HOSTNAME")
+		}
 	} else {
+		// isn't it running in a docker container in aws? this won't work?
 		e.Hostname, err = os.Hostname()
 	}
 	if err != nil {
@@ -34,20 +34,11 @@ func Publish(e eventinfrastructure.Event, Error bool) error {
 
 	e.LocalEnvironment = len(os.Getenv("LOCAL_ENVIRONMENT")) > 0
 
-	toSend, err := json.Marshal(&e)
-	if err != nil {
-		return err
-	}
-
-	header := [24]byte{}
 	if !Error {
-		copy(header[:], eventinfrastructure.APISuccess)
+		EventNode.PublishEvent(e, eventinfrastructure.APISuccess)
 	} else {
-		copy(header[:], eventinfrastructure.APIError)
+		EventNode.PublishEvent(e, eventinfrastructure.APIError)
 	}
-
-	log.Printf("Publishing event: %s", toSend)
-	Publisher.Write(common.Message{MessageHeader: header, MessageBody: toSend})
 
 	return err
 }

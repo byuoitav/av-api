@@ -8,9 +8,10 @@ services:
             - PI_HOSTNAME=$PI_HOSTNAME
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
-            - ELASTIC_API_EVENTS=$ELASTIC_API_EVENTS
+            - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
         network_mode: "host"
         restart: always
+        tty: true
     pjlink-microservice:
         image: byuoitav/pjlink-microservice:${DOCKER_HUB_TAG}
         ports:
@@ -21,6 +22,7 @@ services:
             - PJLINK_PASS=$PJLINK_PASS
         network_mode: "host"
         restart: always
+        tty: true
     configuration-database-microservice:
         image: byuoitav/configuration-database-microservice:${DOCKER_HUB_TAG}
         ports:
@@ -34,6 +36,7 @@ services:
             - CONFIGURATION_DATABASE_NAME=$CONFIGURATION_DATABASE_NAME
         network_mode: "host"
         restart: always
+        tty: true
     sony-control-microservice:
         image: byuoitav/sony-control-microservice:${DOCKER_HUB_TAG}
         ports:
@@ -43,6 +46,7 @@ services:
             - SONY_TV_PSK=$SONY_TV_PSK
         network_mode: "host"
         restart: always
+        tty: true
     london-audio-microservice:
         image: byuoitav/london-audio-microservice:${DOCKER_HUB_TAG}
         ports:
@@ -51,6 +55,7 @@ services:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
         network_mode: "host"
         restart: always
+        tty: true
     pulse-eight-neo-microservice:
         image: byuoitav/pulse-eight-neo-microservice:${DOCKER_HUB_TAG}
         ports:
@@ -59,6 +64,16 @@ services:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
         network_mode: "host"
         restart: always
+        tty: true
+    kramer-microservice:
+        image: byuoitav/kramer-microservice:${DOCKER_HUB_TAG}
+        ports:
+            - "8014:8014"
+        environment:
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+        network_mode: "host"
+        restart: always
+        tty: true
     adcp-control-microservice:
         image: byuoitav/adcp-control-microservice:${DOCKER_HUB_TAG}
         ports:
@@ -67,6 +82,7 @@ services:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
         network_mode: "host"
         restart: always
+        tty: true
     touchpanel-ui-microservice:
         image: byuoitav/touchpanel-ui-microservice:${DOCKER_HUB_TAG}
         ports:
@@ -74,8 +90,12 @@ services:
         environment:
             - PI_HOSTNAME=$PI_HOSTNAME
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+            - HELP_SLACKBOT_WEBHOOK=$HELP_SLACKBOT_WEBHOOK
+            - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
+            - UI_CONFIGURATION_ADDRESS=$UI_CONFIGURATION_ADDRESS
         network_mode: "host"
         restart: always
+        tty: true
     configuration-database-tool:
         image: byuoitav/configuration-database-tool:${DOCKER_HUB_TAG}
         ports:
@@ -85,6 +105,7 @@ services:
             - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
         network_mode: "host"
         restart: always
+        tty: true
     event-router-microservice:
         image: byuoitav/event-router-microservice:${DOCKER_HUB_TAG}
         ports:
@@ -93,7 +114,9 @@ services:
             - PI_HOSTNAME=$PI_HOSTNAME
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
+            - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
         network_mode: "host"
+        tty: true
     event-translator-microservice:
         image: byuoitav/event-translator-microservice:${DOCKER_HUB_TAG}
         ports:
@@ -101,4 +124,19 @@ services:
         environment:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - ELASTIC_API_EVENTS=$ELASTIC_API_EVENTS
+            - ELASTIC_API_EVENTS_DEV=$ELASTIC_API_EVENTS_DEV
+            - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
+        network_mode: "host"
+        tty: true
+    shure-audio-microservice:
+        image: byuoitav/shure-audio-microservice:${DOCKER_HUB_TAG}
+        ports:
+            - "8013:8013"
+        environment:
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+            - ELASTIC_API_EVENTS=$ELASTIC_API_EVENTS
+            - ELASTIC_API_EVENTS_DEV=$ELASTIC_API_EVENTS_DEV
+            - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
+            - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
+            - PI_HOSTNAME=$PI_HOSTNAME
         network_mode: "host"

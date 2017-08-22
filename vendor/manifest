@@ -138,7 +138,7 @@
 			"importpath": "github.com/labstack/echo",
 			"repository": "https://github.com/labstack/echo",
 			"vcs": "git",
-			"revision": "f9e97332f3bebd2c26753f7dc679588a22cb387d",
+			"revision": "935a60782cbbc55110e7bd4b33120e4567cbee43",
 			"branch": "HEAD",
 			"notests": true
 		},
@@ -224,6 +224,15 @@
 			"vcs": "git",
 			"revision": "3b874956e03f1636d171bda64b130f9135f42cff",
 			"branch": "master",
+			"notests": true
+		},
+		{
+			"importpath": "golang.org/x/crypto/acme",
+			"repository": "https://go.googlesource.com/crypto",
+			"vcs": "git",
+			"revision": "42ff06aea7c329876e5a0fe94acc96902accf0ad",
+			"branch": "master",
+			"path": "acme",
 			"notests": true
 		},
 		{

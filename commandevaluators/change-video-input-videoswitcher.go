@@ -7,7 +7,7 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/accessors"
+	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
@@ -64,6 +64,27 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom) ([]base.A
 				actionList = append(actionList, action)
 			}
 		}
+	}
+
+	//check the audio devices struct as well
+	if len(room.AudioDevices) != 0 {
+
+		for _, audioDevice := range room.AudioDevices {
+			if len(audioDevice.Input) != 0 {
+				device, err := dbo.GetDeviceByName(room.Building, room.Room, audioDevice.Name)
+				if err != nil {
+					return []base.ActionStructure{}, err
+				}
+
+				action, err := GetSwitcherAndCreateAction(room, device, audioDevice.Input, "ChangeVideoInputVideoSwitcher")
+				if err != nil {
+					continue
+				}
+				//Undecode the format into the
+				actionList = append(actionList, action)
+			}
+
+		}
 
 	}
 
@@ -83,7 +104,7 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom) ([]base.A
 
 //GetSwitcherAndCreateAction gets the videoswitcher in a room, matches the destination port to the new port
 // and creates an action
-func GetSwitcherAndCreateAction(room base.PublicRoom, device accessors.Device, selectedInput string, generatingEvaluator string) (base.ActionStructure, error) {
+func GetSwitcherAndCreateAction(room base.PublicRoom, device structs.Device, selectedInput string, generatingEvaluator string) (base.ActionStructure, error) {
 
 	switcher, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "VideoSwitcher")
 	if err != nil {
@@ -105,9 +126,9 @@ func GetSwitcherAndCreateAction(room base.PublicRoom, device accessors.Device, s
 			eventInfo := eventinfrastructure.EventInfo{
 				Type:           eventinfrastructure.CORESTATE,
 				EventCause:     eventinfrastructure.USERINPUT,
-				Device:         switcher[0].Name,
+				Device:         device.Name,
 				EventInfoKey:   "input",
-				EventInfoValue: m["output"],
+				EventInfoValue: selectedInput,
 			}
 
 			tempAction := base.ActionStructure{

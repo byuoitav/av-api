@@ -1,7 +1,7 @@
 package status
 
 import (
-	"github.com/byuoitav/configuration-database-microservice/accessors"
+	"github.com/byuoitav/configuration-database-microservice/structs"
 )
 
 type PowerStatus struct {
@@ -17,7 +17,7 @@ type MuteStatus struct {
 }
 
 type Input struct {
-	Input string `json:"input"`
+	Input string `json:"input,omitempty"`
 }
 
 type AudioList struct {
@@ -32,6 +32,10 @@ type Volume struct {
 	Volume int `json:"volume"`
 }
 
+type Battery struct {
+	Battery int `json:"battery"`
+}
+
 //represents output from a device, use Error field to flag errors
 type Status struct {
 	Status            map[string]interface{} `json:"status"`
@@ -40,7 +44,7 @@ type Status struct {
 
 //represents a status response, including the generator that created the command that returned the status
 type StatusResponse struct {
-	SourceDevice      accessors.Device       `json:"source_device"`
+	SourceDevice      structs.Device         `json:"source_device"`
 	DestinationDevice DestinationDevice      `json:"destination_device"`
 	Generator         string                 `json:"generator"`
 	Status            map[string]interface{} `json:"status"`
@@ -49,16 +53,16 @@ type StatusResponse struct {
 
 //StatusCommand contains information to issue a status command against a device
 type StatusCommand struct {
-	Action            accessors.Command `json:"action"`
-	Device            accessors.Device  `json:"device"`
+	Action            structs.Command   `json:"action"`
+	Device            structs.Device    `json:"device"`
 	Generator         string            `json:"generator"`
 	DestinationDevice DestinationDevice `json:"destination"`
 	Parameters        map[string]string `json:"parameters"`
 }
 
-//DestinationDevice represents the device a status command is issued to
+//DestinationDevice represents the device whose status is being queried by user
 type DestinationDevice struct {
-	accessors.Device
+	structs.Device
 	AudioDevice bool `json:"audio"`
 	Display     bool `json:"video"`
 }
@@ -66,21 +70,26 @@ type DestinationDevice struct {
 type StatusEvaluator interface {
 
 	//Identifies relevant devices
-	GetDevices(room accessors.Room) ([]accessors.Device, error)
+	GetDevices(room structs.Room) ([]structs.Device, error)
 
 	//Generates action list
-	GenerateCommands(devices []accessors.Device) ([]StatusCommand, error)
+	GenerateCommands(devices []structs.Device) ([]StatusCommand, error)
 
 	//Evaluate Response
-	EvaluateResponse(label string, value interface{}, Source accessors.Device, Destination DestinationDevice) (string, interface{}, error)
+	EvaluateResponse(label string, value interface{}, Source structs.Device, Destination DestinationDevice) (string, interface{}, error)
 }
 
 const FLAG = "STATUS"
 
-var DEFAULT_MAP = map[string]StatusEvaluator{
-	"STATUS_PowerDefault":   &PowerDefault{},
-	"STATUS_BlankedDefault": &BlankedDefault{},
-	"STATUS_MutedDefault":   &MutedDefault{},
-	"STATUS_InputDefault":   &InputDefault{},
-	"STATUS_VolumeDefault":  &VolumeDefault{},
+//TODO: we shoud grab the keys from constants in the evaluators themselves
+var STATUS_EVALUATORS = map[string]StatusEvaluator{
+	"STATUS_PowerDefault":       &PowerDefault{},
+	"STATUS_BlankedDefault":     &BlankedDefault{},
+	"STATUS_MutedDefault":       &MutedDefault{},
+	"STATUS_InputDefault":       &InputDefault{},
+	"STATUS_VolumeDefault":      &VolumeDefault{},
+	"STATUS_InputVideoSwitcher": &InputVideoSwitcher{},
+	"STATUS_InputDSP":           &InputDSP{},
+	"STATUS_MutedDSP":           &MutedDSP{},
+	"STATUS_VolumeDSP":          &VolumeDSP{},
 }
