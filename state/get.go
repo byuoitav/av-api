@@ -10,6 +10,7 @@ import (
 	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	"github.com/fatih/color"
 )
 
 func GenerateStatusCommands(room structs.Room, commandMap map[string]se.StatusEvaluator) ([]se.StatusCommand, error) {
@@ -109,7 +110,9 @@ func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse
 
 func EvaluateResponses(responses []se.StatusResponse) (base.PublicRoom, error) {
 
-	log.Printf("Evaluating responses...")
+	color.Set(color.FgYellow)
+	log.Printf("[state] Evaluating responses...")
+	color.Unset()
 
 	var AudioDevices []base.AudioDevice
 	var Displays []base.Display
@@ -118,11 +121,11 @@ func EvaluateResponses(responses []se.StatusResponse) (base.PublicRoom, error) {
 	responsesByDestinationDevice := make(map[string]se.Status)
 	for _, resp := range responses {
 		for key, value := range resp.Status {
-			log.Printf("Checking generator: %s", resp.Generator)
+			log.Printf("[state] Checking generator: %s", resp.Generator)
 			k, v, err := se.STATUS_EVALUATORS[resp.Generator].EvaluateResponse(key, value, resp.SourceDevice, resp.DestinationDevice)
 			if err != nil {
 				//log an error
-				log.Printf("There was a problem procesing the response %v - %v with evaluator %v: %s",
+				log.Printf("[state] There was a problem procesing the response %v - %v with evaluator %v: %s",
 					key, value, resp.Generator, err.Error())
 				continue
 			}
@@ -136,7 +139,7 @@ func EvaluateResponses(responses []se.StatusResponse) (base.PublicRoom, error) {
 					DestinationDevice: resp.DestinationDevice,
 				}
 				responsesByDestinationDevice[resp.DestinationDevice.GetFullName()] = statusForDevice
-				log.Printf("Adding Device %v to the map", resp.DestinationDevice.GetFullName())
+				log.Printf("[state] Adding Device %v to the map", resp.DestinationDevice.GetFullName())
 			}
 		}
 	}

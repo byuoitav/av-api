@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 
 	"github.com/byuoitav/av-api/actionreconcilers"
@@ -11,15 +12,22 @@ import (
 	ce "github.com/byuoitav/av-api/commandevaluators"
 	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
+	"github.com/fatih/color"
 )
 
 //for each command in the configuration, evaluate and validate.
 func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom) (batches []base.ActionStructure, err error) {
 
-	log.Printf("Generating actions...")
+	color.Set(color.FgYellow)
+	log.Printf("[state] generating actions...")
+	color.Unset()
 
 	var actions []base.ActionStructure
 	for _, evaluator := range dbRoom.Configuration.Evaluators {
+
+		if strings.Contains(evaluator.EvaluatorKey, "STATUS") {
+			continue
+		}
 
 		log.Printf("Considering evaluator %s", evaluator.EvaluatorKey)
 
@@ -48,13 +56,19 @@ func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom) (batches []b
 		}
 	}
 
+	color.Set(color.FgYellow)
+	log.Printf("[state] done generating actions.")
+	color.Unset()
+
 	return ReconcileActions(dbRoom, actions)
 }
 
 //produces a DAG
 func ReconcileActions(room structs.Room, actions []base.ActionStructure) (batches []base.ActionStructure, err error) {
 
-	log.Printf("Reconciling actions...")
+	color.Set(color.FgYellow)
+	log.Printf("[state] Reconciling actions...")
+	color.Unset()
 
 	//Initialize map of strings to commandevaluators
 	reconcilers := actionreconcilers.Init()
@@ -70,6 +84,10 @@ func ReconcileActions(room structs.Room, actions []base.ActionStructure) (batche
 		return
 	}
 
+	color.Set(color.FgYellow)
+	log.Printf("[state] Done reconcililing actions.")
+	color.Unset()
+
 	return
 }
 
@@ -77,9 +95,13 @@ func ReconcileActions(room structs.Room, actions []base.ActionStructure) (batche
 //ExecuteActions carries out the actions defined in the struct
 func ExecuteActions(DAG []base.ActionStructure) ([]se.StatusResponse, error) {
 
+	color.Set(color.FgYellow)
+	log.Printf("[state] Executing actions...")
+	color.Unset()
+
 	var output []se.StatusResponse
 
-	responses := make(chan se.StatusResponse)
+	responses := make(chan se.StatusResponse, len(DAG))
 	var done sync.WaitGroup
 
 	for _, child := range DAG[0].Children {
@@ -88,11 +110,18 @@ func ExecuteActions(DAG []base.ActionStructure) ([]se.StatusResponse, error) {
 		go ExecuteAction(*child, responses, &done)
 	}
 
+	log.Printf("[state] waiting for responses...")
 	done.Wait()
+
+	log.Printf("[state] done executing actions, closing channel...")
+	close(responses)
 
 	for response := range responses {
 		output = append(output, response)
 	}
+
+	color.Set(color.FgYellow)
+	color.Unset()
 
 	return output, nil
 }
@@ -100,7 +129,7 @@ func ExecuteActions(DAG []base.ActionStructure) ([]se.StatusResponse, error) {
 //builds a status response
 func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusResponse, control *sync.WaitGroup) {
 
-	log.Printf("Executing action %s against device %s...", action.Action, action.Device.Name)
+	log.Printf("[state] Executing action %s against device %s...", action.Action, action.Device.Name)
 
 	if action.Overridden {
 		log.Printf("Action %s on device %s have been overridden. Continuing.",
@@ -132,14 +161,20 @@ func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusRespon
 
 	//Execute the command.
 	status := ExecuteCommand(action, cmd, endpoint)
+
+	log.Printf("[state] Writing response to channel...")
 	responses <- status
-	log.Printf("Status: %v", status)
+	log.Printf("[state] microservice reported status: %s", status.Status)
 
 	for _, child := range action.Children {
+
+		log.Printf("[state] found child: %s. Executing...", child.Action)
 
 		control.Add(1)
 		go ExecuteAction(*child, responses, control)
 	}
+
+	log.Printf("[state] started child actions.")
 
 	control.Done()
 }

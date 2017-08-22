@@ -17,6 +17,7 @@ import (
 	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	"github.com/fatih/color"
 )
 
 const TIMEOUT = 5
@@ -210,7 +211,7 @@ func processDisplay(device se.Status) (base.Display, error) {
 //@pre the parameters have been filled, e.g. the endpoint does not contain ":"
 func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoint string) se.StatusResponse {
 
-	log.Printf("Sending request to %s%s...", command.Microservice, endpoint)
+	log.Printf("[state] Sending request to %s%s...", command.Microservice, endpoint)
 
 	client := &http.Client{
 		Timeout: TIMEOUT * time.Second,
@@ -273,9 +274,12 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 			)
 		}
 
-		log.Printf("Successfully sent command %s to device %s.", action.Action, action.Device.Name)
+		color.Set(color.FgGreen)
+		log.Printf("[state] Successfully sent command %s to device %s.", action.Action, action.Device.Name)
+		color.Unset()
 
-		//unmarshal status
+		log.Printf("[state] Unmarshalling status...")
+
 		status := make(map[string]interface{})
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
