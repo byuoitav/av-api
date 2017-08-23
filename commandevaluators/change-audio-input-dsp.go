@@ -28,7 +28,7 @@ e) microphones are not affected by actions generated in this command evaluator
 
 type ChangeAudioInputDSP struct{}
 
-func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
+func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, error) {
 
 	log.Printf("Evaluating PUT body for \"ChangeInput\" command in an audio DSP context...")
 
@@ -38,6 +38,7 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom) ([]base.ActionStruc
 		Type:         ei.CORESTATE,
 		EventCause:   ei.USERINPUT,
 		EventInfoKey: "input",
+		Requestor:    requestor,
 	}
 
 	destination := statusevaluators.DestinationDevice{
@@ -110,7 +111,7 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom) ([]base.ActionStruc
 
 				} else if device.HasRole("AudioOut") && !device.HasRole("Microphone") {
 
-					mediaAction, err := generateChangeInputByDevice(audioDevice.Device, room.Room, room.Building, "ChangeAudioInputDefault")
+					mediaAction, err := generateChangeInputByDevice(audioDevice.Device, room.Room, room.Building, "ChangeAudioInputDefault", requestor)
 					if err != nil {
 						errorMessage := "Could not generate actions for specific \"ChangeInput\" request for deivce: " + device.Name + ": " + err.Error()
 						log.Printf(errorMessage)

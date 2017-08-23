@@ -26,7 +26,7 @@ import (
 
 type UnMuteDSP struct{}
 
-func (p *UnMuteDSP) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
+func (p *UnMuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, error) {
 
 	log.Printf("Evaluating PUT body for UNMUTE command in DSP context...")
 
@@ -36,6 +36,7 @@ func (p *UnMuteDSP) Evaluate(room base.PublicRoom) ([]base.ActionStructure, erro
 		EventCause:     ei.USERINPUT,
 		EventInfoKey:   "muted",
 		EventInfoValue: "false",
+		Requestor:      requestor,
 	}
 
 	if room.Muted != nil && !(*room.Muted) {

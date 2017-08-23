@@ -17,7 +17,6 @@ func PublishHealth(e eventinfrastructure.Event) {
 func Publish(e eventinfrastructure.Event, Error bool) error {
 	var err error
 
-	// create the event
 	e.Timestamp = time.Now().Format(time.RFC3339)
 	if len(os.Getenv("LOCAL_ENVIRONMENT")) > 0 {
 		e.Hostname = os.Getenv("PI_HOSTNAME")

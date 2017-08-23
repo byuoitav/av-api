@@ -17,7 +17,7 @@ import (
 )
 
 //for each command in the configuration, evaluate and validate.
-func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom) ([]base.ActionStructure, error) {
+func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom, requestor string) ([]base.ActionStructure, error) {
 
 	color.Set(color.FgHiCyan)
 	log.Printf("[state] generating actions...")
@@ -38,7 +38,7 @@ func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom) ([]base.Acti
 			return []base.ActionStructure{}, err
 		}
 
-		actions, err := curEvaluator.Evaluate(bodyRoom)
+		actions, err := curEvaluator.Evaluate(bodyRoom, requestor)
 		if err != nil {
 			return []base.ActionStructure{}, err
 		}

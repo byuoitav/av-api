@@ -14,7 +14,7 @@ import (
 type UnMuteDefault struct {
 }
 
-func (p *UnMuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
+func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, error) {
 	log.Printf("Evaluating UnMute command.")
 
 	var actions []base.ActionStructure
@@ -23,6 +23,7 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, 
 		EventCause:     eventinfrastructure.USERINPUT,
 		EventInfoKey:   "muted",
 		EventInfoValue: "false",
+		Requestor:      requestor,
 	}
 
 	destination := se.DestinationDevice{Display: true}

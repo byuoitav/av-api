@@ -2,7 +2,10 @@ package handlers
 
 import (
 	"log"
+	"net"
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
@@ -49,7 +52,17 @@ func SetRoomState(context echo.Context) error {
 
 	log.Println("Beginning edit of room state")
 
-	report, err := state.SetRoomState(roomInQuestion)
+	var report base.PublicRoom
+
+	hn, err := net.LookupAddr(context.RealIP())
+	if err != nil {
+		log.Printf("err %s", err)
+		report, err = state.SetRoomState(roomInQuestion, context.RealIP())
+	} else if strings.Contains(hn[0], "localhost") {
+		report, err = state.SetRoomState(roomInQuestion, os.Getenv("PI_HOSTNAME"))
+	} else {
+		report, err = state.SetRoomState(roomInQuestion, hn[0])
+	}
 	if err != nil {
 		log.Printf("Error: %s", err.Error())
 		return context.JSON(http.StatusInternalServerError, helpers.ReturnError(err))

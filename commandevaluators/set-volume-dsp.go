@@ -27,7 +27,7 @@ import (
 
 type SetVolumeDSP struct{}
 
-func (p *SetVolumeDSP) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
+func (p *SetVolumeDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, error) {
 
 	log.Printf("Evaluating SetVolume command in DSP context...")
 
@@ -35,6 +35,7 @@ func (p *SetVolumeDSP) Evaluate(room base.PublicRoom) ([]base.ActionStructure, e
 		Type:         ei.CORESTATE,
 		EventCause:   ei.USERINPUT,
 		EventInfoKey: "volume",
+		Requestor:    requestor,
 	}
 
 	var actions []base.ActionStructure
