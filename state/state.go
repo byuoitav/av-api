@@ -46,7 +46,7 @@ func SetRoomState(target base.PublicRoom, requestor string) (base.PublicRoom, er
 		return base.PublicRoom{}, err
 	}
 
-	responses, err := ExecuteActions(actions)
+	responses, err := ExecuteActions(actions, requestor)
 	if err != nil {
 		return base.PublicRoom{}, err
 	}

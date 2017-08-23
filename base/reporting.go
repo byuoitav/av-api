@@ -49,6 +49,7 @@ func SendEvent(Type eventinfrastructure.EventType,
 	Building string,
 	InfoKey string,
 	InfoValue string,
+	Requestor string,
 	Error bool) error {
 
 	e := eventinfrastructure.EventInfo{
@@ -57,6 +58,7 @@ func SendEvent(Type eventinfrastructure.EventType,
 		Device:         Device,
 		EventInfoKey:   InfoKey,
 		EventInfoValue: InfoValue,
+		Requestor:      Requestor,
 	}
 
 	err := Publish(eventinfrastructure.Event{

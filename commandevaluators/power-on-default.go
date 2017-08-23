@@ -10,6 +10,7 @@ import (
 	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	"github.com/fatih/color"
 )
 
 // PowerOn is struct that implements the CommandEvaluation struct
@@ -20,6 +21,9 @@ type PowerOnDefault struct {
 func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actions []base.ActionStructure, err error) {
 
 	log.Printf("Evaluating for PowerOn command.")
+	color.Set(color.FgYellow, color.Bold)
+	log.Printf("requestor: %s", requestor)
+	color.Unset()
 
 	eventInfo := eventinfrastructure.EventInfo{
 		Type:           eventinfrastructure.CORESTATE,
