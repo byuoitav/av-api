@@ -19,7 +19,7 @@ type BlankDisplayDefault struct {
 // Takes a PublicRoom and builds a slice of ActionStructures
 func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
 
-	log.Printf("Evaluating for BlankDisplay command.")
+	log.Printf("[command_evaluators] evaluating BlankDisplay commands...")
 
 	var actions []base.ActionStructure
 
@@ -33,7 +33,7 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStruc
 
 	// Check for room-wide blanking
 	if room.Blanked != nil && *room.Blanked {
-		log.Printf("Room-wide blank request received. Retrieving all devices.")
+		log.Printf("[command_evaluators] room-wide blank request received. Retrieving all devices...")
 
 		// Get all devices
 		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "VideoOut")
@@ -43,13 +43,13 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStruc
 
 		fmt.Printf("VideoOut devices: %+v\n", devices)
 
-		log.Printf("Assigning BlankDisplayCommands")
+		log.Printf("[command_evaluators] assigning BlankDisplay commands...")
 		// Currently we only check for output devices
 		for _, device := range devices {
 
 			if device.Output {
 
-				log.Printf("Adding device %+v", device.Name)
+				log.Printf("[command_evaluators]Adding device %+v", device.Name)
 
 				destination := statusevaluators.DestinationDevice{
 					Device:  device,
@@ -73,10 +73,10 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStruc
 		}
 	}
 
-	log.Printf("Evaluating individual displays for blanking.")
+	log.Printf("[command_evaluators]Evaluating individual displays for blanking.")
 
 	for _, display := range room.Displays {
-		log.Printf("Adding device %+v", display.Name)
+		log.Printf("[command_evaluators]Adding device %+v", display.Name)
 
 		if display.Blanked != nil && *display.Blanked {
 
@@ -106,15 +106,15 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStruc
 		}
 	}
 
-	log.Printf("%v actions generated.", len(actions))
-	log.Printf("Evaluation complete.")
+	log.Printf("[command_evaluators]%v actions generated.", len(actions))
+	log.Printf("[command_evaluators]Evaluation complete.")
 
 	return actions, nil
 }
 
 // Validate fulfills the Fulfill requirement on the command interface
 func (p *BlankDisplayDefault) Validate(action base.ActionStructure) (err error) {
-	log.Printf("Validating action for command %v", action.Action)
+	log.Printf("[command_evaluators] validating action for command %v", action.Action)
 
 	// Check if the BlankDisplay command is a valid name of a command
 	ok, _ := CheckCommands(action.Device.Commands, "BlankDisplay")
@@ -124,7 +124,7 @@ func (p *BlankDisplayDefault) Validate(action base.ActionStructure) (err error) 
 		return errors.New(action.Action + " is an invalid command for" + action.Device.Name)
 	}
 
-	log.Printf("Done.")
+	log.Printf("[command_evaluators] Done.")
 	return
 }
 

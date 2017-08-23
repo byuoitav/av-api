@@ -2,7 +2,6 @@ package actionreconcilers
 
 import (
 	"bytes"
-	"fmt"
 	"log"
 	"sort"
 
@@ -27,30 +26,6 @@ func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure) ([]base.Ac
 		buffer.WriteString(action.Device.Name + " ")
 		actionMap[action.Device.ID] = append(actionMap[action.Device.ID], action) //this should work every time, right?
 	}
-
-	// DEBUGGING ================================================================================================
-
-	color.Set(color.FgHiMagenta)
-	log.Printf("[reconciler] devices identified: %s", buffer.String())
-	color.Unset()
-
-	buffer.Reset()
-	for deviceID, actions := range actionMap {
-
-		for index, action := range actions {
-
-			buffer.WriteString(action.Action)
-			if index != len(actions)-1 {
-				buffer.WriteString(", ")
-			}
-
-		}
-
-		color.Set(color.FgHiMagenta)
-		log.Printf("[reconciler] found device with ID: %v and commands: %s", deviceID, buffer.String())
-		color.Unset()
-	}
-	// DEBUGGING ================================================================================================
 
 	output := []base.ActionStructure{
 		base.ActionStructure{
@@ -92,19 +67,6 @@ func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure) ([]base.Ac
 		output = append(output, actionList...)
 
 	}
-	//======================================================================================================================
-	color.Set(color.FgHiMagenta, color.Bold)
-	log.Printf("[reconciler] DAG:")
-	for _, action := range output {
-
-		for _, child := range action.Children {
-
-			fmt.Printf("%s, %s -> %s, %s\n", action.Action, action.Device.Name, child.Action, child.Device.Name)
-		}
-	}
-
-	color.Unset()
-	//======================================================================================================================
 
 	return output, nil
 }

@@ -1,7 +1,6 @@
 package state
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"log"
@@ -64,20 +63,6 @@ func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom) ([]base.Acti
 	log.Printf("[state] generated %v total actions.", len(output))
 	color.Unset()
 
-	//DEBUGGING=========================================================================================
-
-	var buffer bytes.Buffer
-
-	for _, action := range output {
-		buffer.WriteString(action.Action + "->" + action.Device.Name + " ")
-	}
-
-	color.Set(color.FgHiCyan)
-	log.Printf("[state] actions generated: %s", buffer.String())
-	color.Unset()
-
-	//==========================================================================================================
-
 	return ReconcileActions(dbRoom, output)
 }
 
@@ -113,28 +98,6 @@ func ReconcileActions(room structs.Room, actions []base.ActionStructure) (batche
 //ExecuteActions carries out the actions defined in the struct
 func ExecuteActions(DAG []base.ActionStructure) ([]se.StatusResponse, error) {
 
-	//DEBUG=======================================================================================
-
-	color.Set(color.FgHiCyan, color.Bold)
-	log.Printf("[state] DAG:")
-	for _, action := range DAG {
-
-		for _, child := range action.Children {
-
-			fmt.Printf("%s, %s -> %s, %s\n", action.Action, action.Device.Name, child.Action, child.Device.Name)
-		}
-	}
-
-	log.Printf("[state] destination devices: ")
-
-	for _, action := range DAG {
-
-		fmt.Printf("destination: %s, audio: %t, video: %t, evaluator: %s\n", action.DestinationDevice.Name, action.DestinationDevice.AudioDevice, action.DestinationDevice.Display, action.GeneratingEvaluator)
-	}
-
-	color.Unset()
-	//=============================================================================================================
-
 	color.Set(color.FgHiCyan)
 	log.Printf("[state] Executing actions...")
 	color.Unset()
@@ -156,7 +119,7 @@ func ExecuteActions(DAG []base.ActionStructure) ([]se.StatusResponse, error) {
 	log.Printf("[state] done executing actions, closing channel...")
 	close(responses)
 
-	if len(responses) < len(DAG) {
+	if len(responses) < len(DAG)-1 {
 		color.Set(color.FgHiRed, color.Bold)
 		log.Printf("[error] expecting %v responses, found %v", len(DAG), len(responses))
 		color.Unset()
@@ -167,6 +130,7 @@ func ExecuteActions(DAG []base.ActionStructure) ([]se.StatusResponse, error) {
 	}
 
 	color.Set(color.FgHiCyan)
+	log.Printf("[state] done executing actions")
 	color.Unset()
 
 	return output, nil

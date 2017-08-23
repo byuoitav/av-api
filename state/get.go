@@ -2,7 +2,6 @@ package state
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"strings"
 	"sync"
@@ -113,15 +112,6 @@ func EvaluateResponses(responses []se.StatusResponse) (base.PublicRoom, error) {
 
 	color.Set(color.FgHiCyan)
 	log.Printf("[state] Evaluating responses...")
-	//==========================================================================================================================================================================================================
-	log.Printf("Responses: ")
-
-	for _, response := range responses {
-
-		fmt.Printf("%s -> %s, %s\n", response.Status, response.DestinationDevice.Name, response.Generator)
-	}
-
-	//==========================================================================================================================================================================================================
 	color.Unset()
 
 	var AudioDevices []base.AudioDevice
@@ -158,17 +148,6 @@ func EvaluateResponses(responses []se.StatusResponse) (base.PublicRoom, error) {
 			}
 		}
 	}
-
-	//==================================================================================================================================================================================================================
-
-	color.Set(color.FgHiCyan, color.Bold)
-	for _, status := range responsesByDestinationDevice {
-
-		fmt.Printf("Device: %s, status: %s, display: %t, audio: %t\n", status.DestinationDevice.Name, status.Status, status.DestinationDevice.Display, status.DestinationDevice.AudioDevice)
-	}
-
-	color.Unset()
-	//==================================================================================================================================================================================================================
 
 	for _, v := range responsesByDestinationDevice {
 		if v.DestinationDevice.AudioDevice {
