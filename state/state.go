@@ -1,12 +1,19 @@
 package state
 
 import (
+	"log"
+
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/av-api/statusevaluators"
+	"github.com/fatih/color"
 )
 
 func GetRoomState(building string, roomName string) (base.PublicRoom, error) {
+
+	color.Set(color.FgHiCyan, color.Bold)
+	log.Printf("[state] getting room state...")
+	color.Unset()
 
 	room, err := dbo.GetRoomByInfo(building, roomName)
 	if err != nil {
@@ -31,10 +38,18 @@ func GetRoomState(building string, roomName string) (base.PublicRoom, error) {
 	roomStatus.Building = building
 	roomStatus.Room = roomName
 
+	color.Set(color.FgHiGreen, color.Bold)
+	log.Printf("[state] successfully retrieved room state")
+	color.Unset()
+
 	return roomStatus, nil
 }
 
 func SetRoomState(target base.PublicRoom, requestor string) (base.PublicRoom, error) {
+
+	color.Set(color.FgHiCyan, color.Bold)
+	log.Printf("[state] setting room state...")
+	color.Unset()
 
 	room, err := dbo.GetRoomByInfo(target.Building, target.Room)
 	if err != nil {
@@ -58,6 +73,10 @@ func SetRoomState(target base.PublicRoom, requestor string) (base.PublicRoom, er
 
 	report.Building = target.Building
 	report.Room = target.Room
+
+	color.Set(color.FgHiGreen, color.Bold)
+	log.Printf("[state] successfully set room state")
+	color.Unset()
 
 	return report, nil
 }

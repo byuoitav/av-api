@@ -273,6 +273,10 @@ func GetDisplayMuteAction(device structs.Device, room base.PublicRoom, eventInfo
 		AudioDevice: true,
 	}
 
+	if device.HasRole("VideoOut") {
+		destination.Display = true
+	}
+
 	return base.ActionStructure{
 		Action:              "Mute",
 		GeneratingEvaluator: "MuteDSP",

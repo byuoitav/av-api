@@ -26,7 +26,7 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 		Requestor:      requestor,
 	}
 
-	destination := se.DestinationDevice{Display: true}
+	destination := se.DestinationDevice{AudioDevice: true}
 
 	//check if request is a roomwide unmute
 	if room.Muted != nil && !*room.Muted {
@@ -38,7 +38,7 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 			return []base.ActionStructure{}, err
 		}
 
-		log.Printf("UnMuting alll devices in room.")
+		log.Printf("UnMuting all devices in room.")
 
 		for _, device := range devices {
 
@@ -48,6 +48,10 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 
 				eventInfo.Device = device.Name
 				destination.Device = device
+
+				if device.HasRole("VideoOut") {
+					destination.Display = true
+				}
 
 				actions = append(actions, base.ActionStructure{
 					Action:              "UnMute",
@@ -80,6 +84,10 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 
 			eventInfo.Device = device.Name
 			destination.Device = device
+
+			if device.HasRole("VideoOut") {
+				destination.Display = true
+			}
 
 			actions = append(actions, base.ActionStructure{
 				Action:              "UnMute",

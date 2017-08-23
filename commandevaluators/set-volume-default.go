@@ -52,6 +52,10 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 				eventInfo.Device = device.Name
 				destination.Device = device
 
+				if device.HasRole("VideoOut") {
+					destination.Display = true
+				}
+
 				actions = append(actions, base.ActionStructure{
 					Action:              "SetVolume",
 					Parameters:          parameters,
@@ -91,6 +95,10 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 				eventInfo.EventInfoValue = fmt.Sprintf("%v", *audioDevice.Volume)
 				eventInfo.Device = device.Name
 				destination.Device = device
+
+				if device.HasRole("VideoOut") {
+					destination.Display = true
+				}
 
 				actions = append(actions, base.ActionStructure{
 					Action:              "SetVolume",

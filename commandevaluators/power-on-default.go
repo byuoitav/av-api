@@ -80,11 +80,7 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 	log.Printf("Evaluating displays for power on command.")
 	for _, device := range room.Displays {
 
-		destination := se.DestinationDevice{
-			Display: true,
-		}
-
-		actions, err = p.evaluateDevice(device.Device, destination, actions, devices, room.Room, room.Building, eventInfo)
+		actions, err = p.evaluateDevice(device.Device, actions, devices, room.Room, room.Building, eventInfo)
 		if err != nil {
 			return
 		}
@@ -94,11 +90,7 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 
 		log.Printf("Evaluating audio devices for command power on. ")
 
-		destination := se.DestinationDevice{
-			Display: true,
-		}
-
-		actions, err = p.evaluateDevice(device.Device, destination, actions, devices, room.Room, room.Building, eventInfo)
+		actions, err = p.evaluateDevice(device.Device, actions, devices, room.Room, room.Building, eventInfo)
 		if err != nil {
 			return
 		}
@@ -136,7 +128,6 @@ func (p *PowerOnDefault) GetIncompatibleCommands() (incompatableActions []string
 
 // Evaluate devices just pulls out the process we do with the audio-devices and displays into one function.
 func (p *PowerOnDefault) evaluateDevice(device base.Device,
-	destination se.DestinationDevice,
 	actions []base.ActionStructure,
 	devices []structs.Device,
 	room string,
@@ -153,6 +144,18 @@ func (p *PowerOnDefault) evaluateDevice(device base.Device,
 			dev, err := getDevice(devices, device.Name, room, building)
 			if err != nil {
 				return actions, err
+			}
+
+			destination := se.DestinationDevice{
+				Device: dev,
+			}
+
+			if dev.HasRole("AudioOut") {
+				destination.AudioDevice = true
+			}
+
+			if dev.HasRole("VideoOut") {
+				destination.Display = true
 			}
 
 			eventInfo.Device = dev.Name

@@ -271,6 +271,10 @@ func GetDisplayUnMuteAction(device structs.Device, room base.PublicRoom, eventIn
 		AudioDevice: true,
 	}
 
+	if device.HasRole("VideoOut") {
+		destination.Display = true
+	}
+
 	return base.ActionStructure{
 		Action:              "UnMute",
 		GeneratingEvaluator: "UnmuteDSP",

@@ -56,6 +56,10 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 				eventInfo.Device = device.Name
 				destination.Device = device
 
+				if device.HasRole("VideoOut") {
+					destination.Display = true
+				}
+
 				actions = append(actions, base.ActionStructure{
 					Action:              "Mute",
 					GeneratingEvaluator: "MuteDefault",
