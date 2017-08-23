@@ -240,18 +240,22 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 		PublishError(errorMessage, action)
 		return se.StatusResponse{}
 
-	} else if resp.StatusCode != 200 { //check the response code, if non-200, we need to record and report
+	} else if resp.StatusCode != http.StatusOK { //check the response code, if non-200, we need to record and report
 
-		log.Printf("[error] non-200 response code: %s", resp.StatusCode)
+		color.Set(color.FgHiRed, color.Bold)
+		log.Printf("[error] non-200 response code: %v", resp.StatusCode)
+		color.Unset()
 
 		b, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 
-			log.Printf("Problem reading the response: %v", err.Error())
+			color.Set(color.FgHiRed, color.Bold)
+			log.Printf("[error] Problem reading the response: %s", err.Error())
 			PublishError(err.Error(), action)
+			color.Unset()
 		}
 
-		log.Printf("microservice returned: %v", b)
+		log.Printf("microservice returned: %s", b)
 		PublishError(fmt.Sprintf("%s", b), action)
 
 		return se.StatusResponse{}
@@ -274,7 +278,7 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 			)
 		}
 
-		color.Set(color.FgGreen)
+		color.Set(color.FgHiGreen, color.Bold)
 		log.Printf("[state] Successfully sent command %s to device %s.", action.Action, action.Device.Name)
 		color.Unset()
 
@@ -321,7 +325,7 @@ func ReplaceIPAddressEndpoint(path string, address string) string {
 //@post the endpoint does not contain ':'
 func ReplaceParameters(endpoint string, parameters map[string]string) (string, error) {
 
-	log.Printf("Replacing formal parameters with actual parameters...")
+	log.Printf("[state] Replacing formal parameters with actual parameters...")
 
 	for k, v := range parameters {
 		toReplace := ":" + k
@@ -345,7 +349,7 @@ func ReplaceParameters(endpoint string, parameters map[string]string) (string, e
 
 func PublishError(message string, action base.ActionStructure) {
 
-	log.Printf("Publishing error: %s...", message)
+	log.Printf("[error] Publishing error: %s...", message)
 	base.SendEvent(
 		eventinfrastructure.ERROR,
 		eventinfrastructure.USERINPUT,

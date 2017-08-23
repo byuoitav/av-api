@@ -2,10 +2,12 @@ package actionreconcilers
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"sort"
 
 	"github.com/byuoitav/av-api/base"
+	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/fatih/color"
 )
 
@@ -53,6 +55,7 @@ func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure) ([]base.Ac
 	output := []base.ActionStructure{
 		base.ActionStructure{
 			Action:              "Start",
+			Device:              structs.Device{Name: "DefaultReconciler"},
 			GeneratingEvaluator: "DefaultReconciler",
 			Overridden:          true,
 		},
@@ -70,15 +73,47 @@ func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure) ([]base.Ac
 			return []base.ActionStructure{}, err
 		}
 
+		//		actionList, err = CreateChildRelationships(actionList)
+		//		if err != nil {
+		//			return []base.ActionStructure{}, err
+		//		}
+
+		for i := range actionList {
+
+			if i != len(actionList)-1 {
+
+				log.Printf("[reconciler] creating relationship %s, %s -> %s, %s", actionList[i].Action, actionList[i].Device.Name, actionList[i+1].Action, actionList[i+1].Device.Name)
+
+				actionList[i].Children = append(actionList[i].Children, &actionList[i+1])
+			}
+		}
+
 		output[0].Children = append(output[0].Children, &actionList[0])
 		output = append(output, actionList...)
 
 	}
+	//======================================================================================================================
+	color.Set(color.FgHiMagenta, color.Bold)
+	log.Printf("[reconciler] DAG:")
+	for _, action := range output {
+
+		for _, child := range action.Children {
+
+			fmt.Printf("%s, %s -> %s, %s\n", action.Action, action.Device.Name, child.Action, child.Device.Name)
+		}
+	}
+
+	color.Unset()
+	//======================================================================================================================
 
 	return output, nil
 }
 
 func SortActionsByPriority(actions []base.ActionStructure) (output []base.ActionStructure, err error) {
+
+	color.Set(color.FgHiMagenta)
+	log.Printf("[reconciler] sorting actions by priority...")
+	color.Unset()
 
 	actionMap := make(map[int][]base.ActionStructure)
 
@@ -122,4 +157,26 @@ func SortActionsByPriority(actions []base.ActionStructure) (output []base.Action
 
 	}
 	return output, nil
+}
+
+//since we've already sorted by priority and device, so the first element's child is the second and so on
+func CreateChildRelationships(actions []base.ActionStructure) ([]base.ActionStructure, error) {
+
+	color.Set(color.FgHiMagenta)
+	log.Printf("[reconciler] creating child relationships...")
+
+	for i, action := range actions {
+
+		log.Printf("[reconciler] considering action %s against device %s...", action.Action, action.Device.Name)
+
+		if i != len(actions)-1 {
+
+			log.Printf("[reconciler] creating relationship %s, %s -> %s, %s", action.Action, action.Device.Name, actions[i+1].Action, actions[i+1].Device.Name)
+
+			action.Children = append(action.Children, &actions[i+1])
+		}
+	}
+
+	color.Unset()
+	return actions, nil
 }

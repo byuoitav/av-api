@@ -111,6 +111,21 @@ func ReconcileActions(room structs.Room, actions []base.ActionStructure) (batche
 //ExecuteActions carries out the actions defined in the struct
 func ExecuteActions(DAG []base.ActionStructure) ([]se.StatusResponse, error) {
 
+	//DEBUG=======================================================================================
+
+	color.Set(color.FgHiCyan, color.Bold)
+	log.Printf("[state] DAG:")
+	for _, action := range DAG {
+
+		for _, child := range action.Children {
+
+			fmt.Printf("%s, %s -> %s, %s\n", action.Action, action.Device.Name, child.Action, child.Device.Name)
+		}
+	}
+
+	color.Unset()
+	//=============================================================================================================
+
 	color.Set(color.FgHiCyan)
 	log.Printf("[state] Executing actions...")
 	color.Unset()
@@ -132,6 +147,12 @@ func ExecuteActions(DAG []base.ActionStructure) ([]se.StatusResponse, error) {
 	log.Printf("[state] done executing actions, closing channel...")
 	close(responses)
 
+	if len(responses) < len(DAG) {
+		color.Set(color.FgHiRed, color.Bold)
+		log.Printf("[error] expecting %v responses, found %v", len(DAG), len(responses))
+		color.Unset()
+	}
+
 	for response := range responses {
 		output = append(output, response)
 	}
@@ -148,7 +169,7 @@ func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusRespon
 	log.Printf("[state] Executing action %s against device %s...", action.Action, action.Device.Name)
 
 	if action.Overridden {
-		log.Printf("Action %s on device %s have been overridden. Continuing.",
+		log.Printf("[state] Action %s on device %s have been overridden. Continuing.",
 			action.Action, action.Device.Name)
 		control.Done()
 		return
@@ -156,7 +177,7 @@ func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusRespon
 
 	has, cmd := ce.CheckCommands(action.Device.Commands, action.Action)
 	if !has {
-		errorStr := fmt.Sprintf("Error retrieving the command %s for device %s.", action.Action, action.Device.GetFullName())
+		errorStr := fmt.Sprintf("[state] Error retrieving the command %s for device %s.", action.Action, action.Device.GetFullName())
 		log.Printf(errorStr)
 		PublishError(errorStr, action)
 		control.Done()
@@ -168,7 +189,7 @@ func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusRespon
 
 	endpoint, err := ReplaceParameters(endpoint, action.Parameters)
 	if err != nil {
-		errorString := fmt.Sprintf("Error building endpoint for command %s against device %s: %s", action.Action, action.Device.GetFullName(), err.Error())
+		errorString := fmt.Sprintf("[state] Error building endpoint for command %s against device %s: %s", action.Action, action.Device.GetFullName(), err.Error())
 		log.Printf(errorString)
 		PublishError(errorString, action)
 		control.Done()
@@ -180,7 +201,7 @@ func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusRespon
 
 	log.Printf("[state] Writing response to channel...")
 	responses <- status
-	log.Printf("[state] microservice reported status: %s", status.Status)
+	log.Printf("[state] microservice reported status: %v", status.Status)
 
 	for _, child := range action.Children {
 
@@ -189,8 +210,6 @@ func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusRespon
 		control.Add(1)
 		go ExecuteAction(*child, responses, control)
 	}
-
-	log.Printf("[state] started child actions.")
 
 	control.Done()
 }
