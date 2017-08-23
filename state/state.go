@@ -34,19 +34,19 @@ func GetRoomState(building string, roomName string) (base.PublicRoom, error) {
 	return roomStatus, nil
 }
 
-func SetRoomState(target base.PublicRoom) (base.PublicRoom, error) {
+func SetRoomState(target base.PublicRoom, requestor string) (base.PublicRoom, error) {
 
 	room, err := dbo.GetRoomByInfo(target.Building, target.Room)
 	if err != nil {
 		return base.PublicRoom{}, err
 	}
 
-	actions, err := GenerateActions(room, target)
+	actions, err := GenerateActions(room, target, requestor)
 	if err != nil {
 		return base.PublicRoom{}, err
 	}
 
-	responses, err := ExecuteActions(actions)
+	responses, err := ExecuteActions(actions, requestor)
 	if err != nil {
 		return base.PublicRoom{}, err
 	}

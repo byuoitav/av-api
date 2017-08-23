@@ -17,7 +17,7 @@ type StandbyDefault struct {
 }
 
 // Evaluate fulfills the CommmandEvaluation evaluate requirement.
-func (s *StandbyDefault) Evaluate(room base.PublicRoom) (actions []base.ActionStructure, err error) {
+func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actions []base.ActionStructure, err error) {
 
 	log.Printf("Evaluating for Standby Command.")
 
@@ -27,6 +27,7 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom) (actions []base.ActionSt
 		EventCause:     eventinfrastructure.USERINPUT,
 		EventInfoKey:   "power",
 		EventInfoValue: "standby",
+		Requestor:      requestor,
 	}
 
 	if strings.EqualFold(room.Power, "standby") {

@@ -15,7 +15,7 @@ type UnBlankDisplayDefault struct {
 }
 
 //Evaluate creates UnBlank actions for the entire room and for individual devices
-func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
+func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, error) {
 
 	var actions []base.ActionStructure
 
@@ -24,6 +24,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStr
 		EventCause:     eventinfrastructure.USERINPUT,
 		EventInfoKey:   "blanked",
 		EventInfoValue: "false",
+		Requestor:      requestor,
 	}
 
 	destination := se.DestinationDevice{Display: true}

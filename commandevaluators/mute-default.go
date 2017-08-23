@@ -20,7 +20,7 @@ type MuteDefault struct {
  	Evalute takes a public room struct, scans the struct and builds any needed
 	actions based on the contents of the struct.
 */
-func (p *MuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
+func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, error) {
 
 	log.Printf("Evaluating for Mute command.")
 
@@ -35,6 +35,7 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, er
 		EventCause:     eventinfrastructure.USERINPUT,
 		EventInfoKey:   "muted",
 		EventInfoValue: "true",
+		Requestor:      requestor,
 	}
 
 	if room.Muted != nil && *room.Muted {

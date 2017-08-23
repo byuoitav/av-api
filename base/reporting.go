@@ -17,7 +17,6 @@ func PublishHealth(e eventinfrastructure.Event) {
 func Publish(e eventinfrastructure.Event, Error bool) error {
 	var err error
 
-	// create the event
 	e.Timestamp = time.Now().Format(time.RFC3339)
 	if len(os.Getenv("LOCAL_ENVIRONMENT")) > 0 {
 		e.Hostname = os.Getenv("PI_HOSTNAME")
@@ -50,6 +49,7 @@ func SendEvent(Type eventinfrastructure.EventType,
 	Building string,
 	InfoKey string,
 	InfoValue string,
+	Requestor string,
 	Error bool) error {
 
 	e := eventinfrastructure.EventInfo{
@@ -58,6 +58,7 @@ func SendEvent(Type eventinfrastructure.EventType,
 		Device:         Device,
 		EventInfoKey:   InfoKey,
 		EventInfoValue: InfoValue,
+		Requestor:      Requestor,
 	}
 
 	err := Publish(eventinfrastructure.Event{

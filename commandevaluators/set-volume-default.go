@@ -16,7 +16,7 @@ type SetVolumeDefault struct {
 }
 
 //Validate checks for a volume for the entire room or the volume of a specific device
-func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
+func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, error) {
 
 	var actions []base.ActionStructure
 
@@ -24,6 +24,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure,
 		Type:         eventinfrastructure.CORESTATE,
 		EventCause:   eventinfrastructure.USERINPUT,
 		EventInfoKey: "volume",
+		Requestor:    requestor,
 	}
 
 	destination := se.DestinationDevice{

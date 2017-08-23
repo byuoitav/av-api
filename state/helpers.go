@@ -209,7 +209,7 @@ func processDisplay(device se.Status) (base.Display, error) {
 //returns the state the microservice reports or nothing if the microservice doesn't respond
 //publishes a state event or an error
 //@pre the parameters have been filled, e.g. the endpoint does not contain ":"
-func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoint string) se.StatusResponse {
+func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoint, requestor string) se.StatusResponse {
 
 	log.Printf("[state] Sending request to %s%s...", command.Microservice, endpoint)
 
@@ -237,7 +237,7 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 
 		errorMessage := fmt.Sprintf("Problem sending request: %s", err.Error())
 		log.Printf(errorMessage)
-		PublishError(errorMessage, action)
+		PublishError(errorMessage, action, requestor)
 		return se.StatusResponse{}
 
 	} else if resp.StatusCode != http.StatusOK { //check the response code, if non-200, we need to record and report
@@ -251,12 +251,12 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 
 			color.Set(color.FgHiRed, color.Bold)
 			log.Printf("[error] Problem reading the response: %s", err.Error())
-			PublishError(err.Error(), action)
+			PublishError(err.Error(), action, requestor)
 			color.Unset()
 		}
 
 		log.Printf("microservice returned: %s", b)
-		PublishError(fmt.Sprintf("%s", b), action)
+		PublishError(fmt.Sprintf("%s", b), action, requestor)
 
 		return se.StatusResponse{}
 
@@ -274,6 +274,7 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 				action.Device.Building.Shortname,
 				event.EventInfoKey,
 				event.EventInfoValue,
+				event.Requestor,
 				false,
 			)
 		}
@@ -288,13 +289,13 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			errorString := fmt.Sprintf("Could not read response body: %s", err.Error())
-			PublishError(errorString, action)
+			PublishError(errorString, action, requestor)
 		}
 
 		err = json.Unmarshal(body, &status)
 		if err != nil {
 			message := fmt.Sprint("Could not unmarshal response struct: %s", err.Error())
-			PublishError(message, action)
+			PublishError(message, action, requestor)
 		}
 		response := se.StatusResponse{
 			SourceDevice:      action.Device,
@@ -347,7 +348,7 @@ func ReplaceParameters(endpoint string, parameters map[string]string) (string, e
 	return endpoint, nil
 }
 
-func PublishError(message string, action base.ActionStructure) {
+func PublishError(message string, action base.ActionStructure, requestor string) {
 
 	log.Printf("[error] Publishing error: %s...", message)
 	base.SendEvent(
@@ -358,6 +359,7 @@ func PublishError(message string, action base.ActionStructure) {
 		action.Device.Building.Shortname,
 		action.Action,
 		message,
+		requestor,
 		true)
 
 }

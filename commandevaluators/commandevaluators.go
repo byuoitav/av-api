@@ -26,7 +26,7 @@ type CommandEvaluator interface {
 		 	Evalute takes a public room struct, scans the struct and builds any needed
 			actions based on the contents of the struct.
 	*/
-	Evaluate(base.PublicRoom) ([]base.ActionStructure, error)
+	Evaluate(base.PublicRoom, string) ([]base.ActionStructure, error)
 	/*
 		  Validate takes an action structure (for the command) and validates
 			that the device and parameter are valid for the command.
