@@ -8,8 +8,8 @@ import (
 
 //PublicRoom is the struct that is returned (or put) as part of the public API
 type PublicRoom struct {
-	Building          string        `json:"building,omitempty"`
-	Room              string        `json:"room,omitempty"`
+	Building          string        `json:"-"`
+	Room              string        `json:"-"`
 	CurrentVideoInput string        `json:"currentVideoInput,omitempty"`
 	CurrentAudioInput string        `json:"currentAudioInput,omitempty"`
 	Power             string        `json:"power,omitempty"`
