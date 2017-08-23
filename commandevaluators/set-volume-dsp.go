@@ -309,6 +309,10 @@ func GetDisplayVolumeAction(device structs.Device, room base.PublicRoom, eventIn
 		AudioDevice: true,
 	}
 
+	if device.HasRole("VideoOut") {
+		destination.Display = true
+	}
+
 	eventInfo.EventInfoValue = strconv.Itoa(volume)
 	eventInfo.Device = device.Name
 	parameters["level"] = strconv.Itoa(volume)

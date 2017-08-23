@@ -46,7 +46,9 @@ func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom) ([]base.Acti
 		for _, action := range actions {
 			err := curEvaluator.Validate(action)
 			if err != nil {
-				log.Printf("Error on validation of %s on evaluator %s", action.Action, evaluator.EvaluatorKey)
+				color.Set(color.FgHiRed, color.Bold)
+				log.Printf("[error] error validating %s on evaluator %s", action.Action, evaluator.EvaluatorKey)
+				color.Unset()
 				return []base.ActionStructure{}, err
 			}
 
@@ -121,6 +123,13 @@ func ExecuteActions(DAG []base.ActionStructure) ([]se.StatusResponse, error) {
 
 			fmt.Printf("%s, %s -> %s, %s\n", action.Action, action.Device.Name, child.Action, child.Device.Name)
 		}
+	}
+
+	log.Printf("[state] destination devices: ")
+
+	for _, action := range DAG {
+
+		fmt.Printf("destination: %s, audio: %t, video: %t, evaluator: %s\n", action.DestinationDevice.Name, action.DestinationDevice.AudioDevice, action.DestinationDevice.Display, action.GeneratingEvaluator)
 	}
 
 	color.Unset()

@@ -56,6 +56,10 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStruc
 					Display: true,
 				}
 
+				if device.HasRole("AudioOut") {
+					destination.AudioDevice = true
+				}
+
 				eventInfo.Device = device.Name
 				actions = append(actions, base.ActionStructure{
 					Action:              "BlankDisplay",
@@ -84,6 +88,10 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStruc
 			destination := statusevaluators.DestinationDevice{
 				Device:  device,
 				Display: true,
+			}
+
+			if device.HasRole("AudioOut") {
+				destination.AudioDevice = true
 			}
 
 			eventInfo.Device = device.Name

@@ -2,6 +2,7 @@ package state
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 	"sync"
@@ -112,6 +113,15 @@ func EvaluateResponses(responses []se.StatusResponse) (base.PublicRoom, error) {
 
 	color.Set(color.FgHiCyan)
 	log.Printf("[state] Evaluating responses...")
+	//==========================================================================================================================================================================================================
+	log.Printf("Responses: ")
+
+	for _, response := range responses {
+
+		fmt.Printf("%s -> %s, %s\n", response.Status, response.DestinationDevice.Name, response.Generator)
+	}
+
+	//==========================================================================================================================================================================================================
 	color.Unset()
 
 	var AudioDevices []base.AudioDevice
@@ -120,16 +130,20 @@ func EvaluateResponses(responses []se.StatusResponse) (base.PublicRoom, error) {
 	//make our array of Statuses by device
 	responsesByDestinationDevice := make(map[string]se.Status)
 	for _, resp := range responses {
+
 		for key, value := range resp.Status {
+
 			log.Printf("[state] Checking generator: %s", resp.Generator)
 			k, v, err := se.STATUS_EVALUATORS[resp.Generator].EvaluateResponse(key, value, resp.SourceDevice, resp.DestinationDevice)
 			if err != nil {
+
 				color.Set(color.FgHiRed, color.Bold)
 				log.Printf("[state] problem procesing the response %v - %v with evaluator %v: %s",
 					key, value, resp.Generator, err.Error())
 				color.Unset()
 				continue
 			}
+
 			if _, ok := responsesByDestinationDevice[resp.DestinationDevice.GetFullName()]; ok {
 				responsesByDestinationDevice[resp.DestinationDevice.GetFullName()].Status[k] = v
 			} else {
@@ -144,6 +158,18 @@ func EvaluateResponses(responses []se.StatusResponse) (base.PublicRoom, error) {
 			}
 		}
 	}
+
+	//==================================================================================================================================================================================================================
+
+	color.Set(color.FgHiCyan, color.Bold)
+	for _, status := range responsesByDestinationDevice {
+
+		fmt.Printf("Device: %s, status: %s, display: %t, audio: %t\n", status.DestinationDevice.Name, status.Status, status.DestinationDevice.Display, status.DestinationDevice.AudioDevice)
+	}
+
+	color.Unset()
+	//==================================================================================================================================================================================================================
+
 	for _, v := range responsesByDestinationDevice {
 		if v.DestinationDevice.AudioDevice {
 			audioDevice, err := processAudioDevice(v)

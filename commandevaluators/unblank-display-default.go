@@ -48,6 +48,10 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStr
 				eventInfo.Device = device.Name
 				destination.Device = device
 
+				if device.HasRole("AudioOut") {
+					destination.AudioDevice = true
+				}
+
 				actions = append(actions, base.ActionStructure{
 					Action:              "UnblankDisplay",
 					GeneratingEvaluator: "UnBlankDisplayDefault",
@@ -77,6 +81,10 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStr
 
 			eventInfo.Device = device.Name
 			destination.Device = device
+
+			if device.HasRole("AudioOut") {
+				destination.AudioDevice = true
+			}
 
 			actions = append(actions, base.ActionStructure{
 				Action:              "UnblankDisplay",
