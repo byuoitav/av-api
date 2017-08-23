@@ -16,7 +16,7 @@ type ChangeVideoInputDefault struct {
 }
 
 //Evaluate fulfills the CommmandEvaluation evaluate requirement.
-func (p *ChangeVideoInputDefault) Evaluate(room base.PublicRoom) (actions []base.ActionStructure, err error) {
+func (p *ChangeVideoInputDefault) Evaluate(room base.PublicRoom, requestor string) (actions []base.ActionStructure, err error) {
 	//RoomWideSetVideoInput
 	if len(room.CurrentVideoInput) > 0 { // Check if the user sent a PUT body changing the current video input
 		var tempActions []base.ActionStructure
@@ -27,6 +27,7 @@ func (p *ChangeVideoInputDefault) Evaluate(room base.PublicRoom) (actions []base
 			room.Room,
 			room.Building,
 			"ChangeVideoInputDefault",
+			requestor,
 		)
 
 		if err != nil {
@@ -44,7 +45,7 @@ func (p *ChangeVideoInputDefault) Evaluate(room base.PublicRoom) (actions []base
 
 		var action base.ActionStructure
 
-		action, err = generateChangeInputByDevice(d.Device, room.Room, room.Building, "ChangeVideoInputDefault")
+		action, err = generateChangeInputByDevice(d.Device, room.Room, room.Building, "ChangeVideoInputDefault", requestor)
 		if err != nil {
 			return
 		}
@@ -64,7 +65,7 @@ func (p *ChangeVideoInputDefault) GetIncompatibleCommands() (incompatableActions
 	return
 }
 
-func generateChangeInputByDevice(dev base.Device, room string, building string, generatingEvaluator string) (action base.ActionStructure, err error) {
+func generateChangeInputByDevice(dev base.Device, room, building, generatingEvaluator, requestor string) (action base.ActionStructure, err error) {
 
 	var curDevice structs.Device
 
@@ -107,6 +108,7 @@ func generateChangeInputByDevice(dev base.Device, room string, building string, 
 		Device:         dev.Name,
 		EventInfoKey:   "input",
 		EventInfoValue: portSource,
+		Requestor:      requestor,
 	}
 
 	action = base.ActionStructure{
@@ -122,7 +124,7 @@ func generateChangeInputByDevice(dev base.Device, room string, building string, 
 	return
 }
 
-func generateChangeInputByRole(role string, input string, room string, building string, generatingEvaluator string) (actions []base.ActionStructure, err error) {
+func generateChangeInputByRole(role, input, room, building, generatingEvaluator, requestor string) (actions []base.ActionStructure, err error) {
 	devicesToChange, err := dbo.GetDevicesByBuildingAndRoomAndRole(building, room, role)
 	if err != nil {
 		return
@@ -169,6 +171,7 @@ func generateChangeInputByRole(role string, input string, room string, building 
 			Device:         d.Name,
 			EventInfoKey:   "input",
 			EventInfoValue: source,
+			Requestor:      requestor,
 		}
 
 		action := base.ActionStructure{

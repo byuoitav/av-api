@@ -24,7 +24,7 @@ import (
 
 type MuteDSP struct{}
 
-func (p *MuteDSP) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
+func (p *MuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, error) {
 
 	log.Printf("Evaluating PUT body for \"Mute\" command in DSP context...")
 
@@ -35,6 +35,7 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error)
 		EventCause:     ei.USERINPUT,
 		EventInfoKey:   "muted",
 		EventInfoValue: "true",
+		Requestor:      requestor,
 	}
 
 	destination := se.DestinationDevice{

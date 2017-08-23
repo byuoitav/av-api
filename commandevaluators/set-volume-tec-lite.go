@@ -17,11 +17,11 @@ Evaluate fulfils the requirements of the interface.
 
 The Tec-Liet Evaluate calls the SetVoulmeDefault evaluate function - but re-maps the volume levels from 0-100 to 0-65 to be issued to the device.
 */
-func (*SetVolumeTecLite) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
+func (*SetVolumeTecLite) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, error) {
 	//call the default set volume to get the list of actions, then go through and remap them
 	//for the new volme level
 	defaultSetVolume := &SetVolumeDefault{}
-	actions, err := defaultSetVolume.Evaluate(room)
+	actions, err := defaultSetVolume.Evaluate(room, requestor)
 
 	if err != nil {
 		return actions, err

@@ -16,7 +16,7 @@ import (
 )
 
 //for each command in the configuration, evaluate and validate.
-func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom) ([]base.ActionStructure, error) {
+func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom, requestor string) ([]base.ActionStructure, error) {
 
 	color.Set(color.FgHiCyan)
 	log.Printf("[state] generating actions...")
@@ -37,7 +37,7 @@ func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom) ([]base.Acti
 			return []base.ActionStructure{}, err
 		}
 
-		actions, err := curEvaluator.Evaluate(bodyRoom)
+		actions, err := curEvaluator.Evaluate(bodyRoom, requestor)
 		if err != nil {
 			return []base.ActionStructure{}, err
 		}
@@ -96,7 +96,7 @@ func ReconcileActions(room structs.Room, actions []base.ActionStructure) (batche
 
 //@pre TODO DestinationDevice field is populated for every action!!
 //ExecuteActions carries out the actions defined in the struct
-func ExecuteActions(DAG []base.ActionStructure) ([]se.StatusResponse, error) {
+func ExecuteActions(DAG []base.ActionStructure, requestor string) ([]se.StatusResponse, error) {
 
 	color.Set(color.FgHiCyan)
 	log.Printf("[state] Executing actions...")
@@ -110,7 +110,7 @@ func ExecuteActions(DAG []base.ActionStructure) ([]se.StatusResponse, error) {
 	for _, child := range DAG[0].Children {
 
 		done.Add(1)
-		go ExecuteAction(*child, responses, &done)
+		go ExecuteAction(*child, responses, &done, requestor)
 	}
 
 	log.Printf("[state] waiting for responses...")
@@ -137,7 +137,7 @@ func ExecuteActions(DAG []base.ActionStructure) ([]se.StatusResponse, error) {
 }
 
 //builds a status response
-func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusResponse, control *sync.WaitGroup) {
+func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusResponse, control *sync.WaitGroup, requestor string) {
 
 	log.Printf("[state] Executing action %s against device %s...", action.Action, action.Device.Name)
 
@@ -152,7 +152,7 @@ func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusRespon
 	if !has {
 		errorStr := fmt.Sprintf("[state] Error retrieving the command %s for device %s.", action.Action, action.Device.GetFullName())
 		log.Printf(errorStr)
-		PublishError(errorStr, action)
+		PublishError(errorStr, action, requestor)
 		control.Done()
 		return
 	}
@@ -164,13 +164,13 @@ func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusRespon
 	if err != nil {
 		errorString := fmt.Sprintf("[state] Error building endpoint for command %s against device %s: %s", action.Action, action.Device.GetFullName(), err.Error())
 		log.Printf(errorString)
-		PublishError(errorString, action)
+		PublishError(errorString, action, requestor)
 		control.Done()
 		return
 	}
 
 	//Execute the command.
-	status := ExecuteCommand(action, cmd, endpoint)
+	status := ExecuteCommand(action, cmd, endpoint, requestor)
 
 	log.Printf("[state] Writing response to channel...")
 	responses <- status
@@ -181,7 +181,7 @@ func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusRespon
 		log.Printf("[state] found child: %s. Executing...", child.Action)
 
 		control.Add(1)
-		go ExecuteAction(*child, responses, control)
+		go ExecuteAction(*child, responses, control, requestor)
 	}
 
 	control.Done()

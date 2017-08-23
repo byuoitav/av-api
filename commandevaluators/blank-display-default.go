@@ -17,7 +17,7 @@ type BlankDisplayDefault struct {
 }
 
 // Takes a PublicRoom and builds a slice of ActionStructures
-func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
+func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, error) {
 
 	log.Printf("[command_evaluators] evaluating BlankDisplay commands...")
 
@@ -29,6 +29,7 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStruc
 		EventCause:     eventinfrastructure.USERINPUT,
 		EventInfoKey:   "blanked",
 		EventInfoValue: "true",
+		Requestor:      requestor,
 	}
 
 	// Check for room-wide blanking
