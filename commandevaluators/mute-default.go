@@ -8,6 +8,7 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
+	"github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
@@ -19,17 +20,22 @@ type MuteDefault struct {
  	Evalute takes a public room struct, scans the struct and builds any needed
 	actions based on the contents of the struct.
 */
-func (p *MuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
+func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, error) {
 
 	log.Printf("Evaluating for Mute command.")
 
 	var actions []base.ActionStructure
+
+	destination := statusevaluators.DestinationDevice{
+		AudioDevice: true,
+	}
 
 	eventInfo := eventinfrastructure.EventInfo{
 		Type:           eventinfrastructure.CORESTATE,
 		EventCause:     eventinfrastructure.USERINPUT,
 		EventInfoKey:   "muted",
 		EventInfoValue: "true",
+		Requestor:      requestor,
 	}
 
 	if room.Muted != nil && *room.Muted {
@@ -48,10 +54,17 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, er
 				log.Printf("Adding device %+v", device.Name)
 
 				eventInfo.Device = device.Name
+				destination.Device = device
+
+				if device.HasRole("VideoOut") {
+					destination.Display = true
+				}
+
 				actions = append(actions, base.ActionStructure{
 					Action:              "Mute",
 					GeneratingEvaluator: "MuteDefault",
 					Device:              device,
+					DestinationDevice:   destination,
 					DeviceSpecific:      false,
 					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 				})
@@ -73,10 +86,13 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, er
 			}
 
 			eventInfo.Device = device.Name
+			destination.Device = device
+
 			actions = append(actions, base.ActionStructure{
 				Action:              "Mute",
 				GeneratingEvaluator: "MuteDefault",
 				Device:              device,
+				DestinationDevice:   destination,
 				DeviceSpecific:      true,
 				EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 			})

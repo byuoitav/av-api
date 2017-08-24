@@ -8,6 +8,7 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
+	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
@@ -15,7 +16,7 @@ type SetVolumeDefault struct {
 }
 
 //Validate checks for a volume for the entire room or the volume of a specific device
-func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
+func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, error) {
 
 	var actions []base.ActionStructure
 
@@ -23,6 +24,11 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure,
 		Type:         eventinfrastructure.CORESTATE,
 		EventCause:   eventinfrastructure.USERINPUT,
 		EventInfoKey: "volume",
+		Requestor:    requestor,
+	}
+
+	destination := se.DestinationDevice{
+		AudioDevice: true,
 	}
 
 	// general room volume
@@ -44,11 +50,18 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure,
 
 				eventInfo.EventInfoValue = fmt.Sprintf("%v", *room.Volume)
 				eventInfo.Device = device.Name
+				destination.Device = device
+
+				if device.HasRole("VideoOut") {
+					destination.Display = true
+				}
+
 				actions = append(actions, base.ActionStructure{
 					Action:              "SetVolume",
 					Parameters:          parameters,
 					GeneratingEvaluator: "SetVolumeDefault",
 					Device:              device,
+					DestinationDevice:   destination,
 					DeviceSpecific:      false,
 					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 				})
@@ -81,10 +94,17 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure,
 
 				eventInfo.EventInfoValue = fmt.Sprintf("%v", *audioDevice.Volume)
 				eventInfo.Device = device.Name
+				destination.Device = device
+
+				if device.HasRole("VideoOut") {
+					destination.Display = true
+				}
+
 				actions = append(actions, base.ActionStructure{
 					Action:              "SetVolume",
 					GeneratingEvaluator: "SetVolumeDefault",
 					Device:              device,
+					DestinationDevice:   destination,
 					DeviceSpecific:      true,
 					Parameters:          parameters,
 					EventLog:            []eventinfrastructure.EventInfo{eventInfo},

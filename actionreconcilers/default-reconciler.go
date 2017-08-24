@@ -1,97 +1,144 @@
 package actionreconcilers
 
 import (
-	"errors"
+	"bytes"
 	"log"
-	"strings"
+	"sort"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/commandevaluators"
+	"github.com/byuoitav/configuration-database-microservice/structs"
+	"github.com/fatih/color"
 )
 
 //DefaultReconciler is the Default Reconciler
+//Sorts by device, then by priority
 type DefaultReconciler struct{}
 
 //Reconcile fulfills the requirement to be a Reconciler.
-func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure) (actionsNew []base.ActionStructure, err error) {
+func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure) ([]base.ActionStructure, error) {
 
-	//map all possible commands to a reference to the command struct
-	CommandMap := commandevaluators.Init()
+	log.Printf("[reconciler] Removing incompatible actions...")
+	var buffer bytes.Buffer
 
-	log.Printf("Reconciling actions.")
+	actionMap := make(map[int][]base.ActionStructure)
+	for _, action := range actions {
 
-	//map a device ID to an array of actions specific to the device
-	deviceActionMap := make(map[int][]base.ActionStructure)
-
-	log.Printf("Generating device action set.")
-	//generate a set of actions for each device.
-	for _, a := range actions {
-		if _, has := deviceActionMap[a.Device.ID]; has {
-			deviceActionMap[a.Device.ID] = append(deviceActionMap[a.Device.ID], a)
-		} else {
-			deviceActionMap[a.Device.ID] = []base.ActionStructure{a}
-		}
+		buffer.WriteString(action.Device.Name + " ")
+		actionMap[action.Device.ID] = append(actionMap[action.Device.ID], action) //this should work every time, right?
 	}
 
-	log.Printf("Checking for incompatible actions.")
-	for devID, v := range deviceActionMap {
-		//for each device, construct set of actions
-		actionsForEvaluation := make(map[string]base.ActionStructure)
-		incompat := make(map[string]base.ActionStructure)
+	output := []base.ActionStructure{
+		base.ActionStructure{
+			Action:              "Start",
+			Device:              structs.Device{Name: "DefaultReconciler"},
+			GeneratingEvaluator: "DefaultReconciler",
+			Overridden:          true,
+		},
+	}
 
-		for i := 0; i < len(v); i++ {
-			actionsForEvaluation[v[i].Action] = v[i]
-			//for each device, construct set of incompatable actions
-			//Value is the action that generated the incompatable action.
-			incompatableActions := CommandMap[v[i].GeneratingEvaluator].GetIncompatibleCommands()
+	for device, actionList := range actionMap {
 
-			for _, incompatAct := range incompatableActions {
-				incompat[incompatAct] = v[i]
+		actionList, err := StandardReconcile(device, actionList)
+		if err != nil {
+			return []base.ActionStructure{}, err
+		}
+
+		actionList, err = SortActionsByPriority(actionList)
+		if err != nil {
+			return []base.ActionStructure{}, err
+		}
+
+		//		actionList, err = CreateChildRelationships(actionList)
+		//		if err != nil {
+		//			return []base.ActionStructure{}, err
+		//		}
+
+		for i := range actionList {
+
+			if i != len(actionList)-1 {
+
+				log.Printf("[reconciler] creating relationship %s, %s -> %s, %s", actionList[i].Action, actionList[i].Device.Name, actionList[i+1].Action, actionList[i+1].Device.Name)
+
+				actionList[i].Children = append(actionList[i].Children, &actionList[i+1])
 			}
 		}
 
-		//find intersection of sets.
+		output[0].Children = append(output[0].Children, &actionList[0])
+		output = append(output, actionList...)
 
-		//baseAction is the actionStructure generating the action (for cur action)
-		//incompatableBaseAction is the actionStructure that generated the incompatable action.
-		for curAction, baseAction := range actionsForEvaluation {
-			if baseAction.Overridden {
+	}
+
+	return output, nil
+}
+
+func SortActionsByPriority(actions []base.ActionStructure) (output []base.ActionStructure, err error) {
+
+	color.Set(color.FgHiMagenta)
+	log.Printf("[reconciler] sorting actions by priority...")
+	color.Unset()
+
+	actionMap := make(map[int][]base.ActionStructure)
+
+	for _, action := range actions {
+
+		for _, command := range action.Device.Commands {
+
+			if command.Name == action.Action {
+
+				actionMap[command.Priority] = append(actionMap[command.Priority], action)
+			}
+		}
+	}
+
+	var keys []int
+	for key := range actionMap {
+		keys = append(keys, key)
+	}
+
+	sort.Ints(keys)
+	output = append(output, actionMap[keys[0]]...) //parents of everything
+	marker := len(output) - 1
+	delete(actionMap, keys[0])
+
+	for len(actionMap) != 0 {
+		for index, key := range keys {
+
+			if index == 0 {
 				continue
 			}
 
-			for incompatableAction, incompatableBaseAction := range incompat {
-				if incompatableBaseAction.Overridden {
-					continue
-				}
+			output = append(output, actionMap[key]...)
+			marker = len(output) - 1
+			for _, action := range actionMap[key] {
 
-				if strings.EqualFold(curAction, incompatableAction) {
-					log.Printf("%s is incompatable with %s.", incompatableAction, incompatableBaseAction.Action)
-					// if one of them is room wide and the other is not override the room-wide
-					// action.
-
-					if !baseAction.DeviceSpecific && incompatableBaseAction.DeviceSpecific {
-						log.Printf("%s is a device specific command. Overriding %s in favor of device-specific command %s.",
-							incompatableBaseAction.Action, baseAction.Action, incompatableBaseAction.Action)
-						baseAction.Overridden = true
-
-					} else if baseAction.DeviceSpecific && !incompatableBaseAction.DeviceSpecific {
-						log.Printf("%s is a device specific command. Overriding %s in favor of device-specific command %s.",
-							baseAction.Action, incompatableBaseAction.Action, baseAction.Action)
-
-						incompatableBaseAction.Overridden = true
-					} else {
-						errorString := incompatableAction + " is an incompatable action with " + incompatableBaseAction.Action + " for device with ID: " +
-							string(devID)
-						log.Printf("%s", errorString)
-						err = errors.New(errorString)
-						return
-					}
-				}
+				output[marker].Children = append(output[marker].Children, &action)
 			}
+
+			delete(actionMap, key)
+		}
+
+	}
+	return output, nil
+}
+
+//since we've already sorted by priority and device, so the first element's child is the second and so on
+func CreateChildRelationships(actions []base.ActionStructure) ([]base.ActionStructure, error) {
+
+	color.Set(color.FgHiMagenta)
+	log.Printf("[reconciler] creating child relationships...")
+
+	for i, action := range actions {
+
+		log.Printf("[reconciler] considering action %s against device %s...", action.Action, action.Device.Name)
+
+		if i != len(actions)-1 {
+
+			log.Printf("[reconciler] creating relationship %s, %s -> %s, %s", action.Action, action.Device.Name, actions[i+1].Action, actions[i+1].Device.Name)
+
+			action.Children = append(action.Children, &actions[i+1])
 		}
 	}
 
-	log.Printf("Done.")
-	actionsNew = actions
-	return
+	color.Unset()
+	return actions, nil
 }

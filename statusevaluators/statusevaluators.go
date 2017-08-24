@@ -1,0 +1,84 @@
+package statusevaluators
+
+import (
+	"log"
+	"strings"
+
+	"github.com/byuoitav/configuration-database-microservice/structs"
+)
+
+type StatusEvaluator interface {
+
+	//Identifies relevant devices
+	GetDevices(room structs.Room) ([]structs.Device, error)
+
+	//Generates action list
+	GenerateCommands(devices []structs.Device) ([]StatusCommand, error)
+
+	//Evaluate Response
+	EvaluateResponse(label string, value interface{}, Source structs.Device, Destination DestinationDevice) (string, interface{}, error)
+}
+
+//TODO: we shoud grab the keys from constants in the evaluators themselves
+var STATUS_EVALUATORS = map[string]StatusEvaluator{
+	"STATUS_PowerDefault":       &PowerDefault{},
+	"STATUS_BlankedDefault":     &BlankedDefault{},
+	"STATUS_MutedDefault":       &MutedDefault{},
+	"STATUS_InputDefault":       &InputDefault{},
+	"STATUS_VolumeDefault":      &VolumeDefault{},
+	"STATUS_InputVideoSwitcher": &InputVideoSwitcher{},
+	"STATUS_InputDSP":           &InputDSP{},
+	"STATUS_MutedDSP":           &MutedDSP{},
+	"STATUS_VolumeDSP":          &VolumeDSP{},
+}
+
+func generateStandardStatusCommand(devices []structs.Device, evaluatorName string, commandName string) ([]StatusCommand, error) {
+	log.Printf("Generating status commands from %v", evaluatorName)
+	var output []StatusCommand
+
+	//iterate over each device
+	for _, device := range devices {
+
+		log.Printf("Considering device: %s", device.Name)
+
+		for _, command := range device.Commands {
+			if strings.HasPrefix(command.Name, FLAG) && strings.Contains(command.Name, commandName) {
+				log.Printf("Command found")
+
+				//every power command needs an address parameter
+				parameters := make(map[string]string)
+				parameters["address"] = device.Address
+
+				//build destination device
+				var destinationDevice DestinationDevice
+				for _, role := range device.Roles {
+
+					if role == "AudioOut" {
+						destinationDevice.AudioDevice = true
+					}
+
+					if role == "VideoOut" {
+						destinationDevice.Display = true
+					}
+
+				}
+
+				destinationDevice.Device = device
+
+				log.Printf("Adding command: %s to action list with device %s", command.Name, device.Name)
+				output = append(output, StatusCommand{
+					Action:            command,
+					Device:            device,
+					Parameters:        parameters,
+					DestinationDevice: destinationDevice,
+					Generator:         evaluatorName,
+				})
+
+			}
+
+		}
+
+	}
+	return output, nil
+
+}
