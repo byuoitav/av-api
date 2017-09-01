@@ -1,0 +1,13 @@
+{
+	"version": 0,
+	"dependencies": [
+		{
+			"importpath": "github.com/fatih/color",
+			"repository": "https://github.com/fatih/color",
+			"vcs": "git",
+			"revision": "67c513e5729f918f5e69786686770c27141a4490",
+			"branch": "master",
+			"notests": true
+		}
+	]
+}

@@ -6,6 +6,7 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
+	"github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
@@ -15,7 +16,7 @@ type ChangeVideoInputDefault struct {
 }
 
 //Evaluate fulfills the CommmandEvaluation evaluate requirement.
-func (p *ChangeVideoInputDefault) Evaluate(room base.PublicRoom) (actions []base.ActionStructure, err error) {
+func (p *ChangeVideoInputDefault) Evaluate(room base.PublicRoom, requestor string) (actions []base.ActionStructure, err error) {
 	//RoomWideSetVideoInput
 	if len(room.CurrentVideoInput) > 0 { // Check if the user sent a PUT body changing the current video input
 		var tempActions []base.ActionStructure
@@ -26,6 +27,7 @@ func (p *ChangeVideoInputDefault) Evaluate(room base.PublicRoom) (actions []base
 			room.Room,
 			room.Building,
 			"ChangeVideoInputDefault",
+			requestor,
 		)
 
 		if err != nil {
@@ -43,7 +45,7 @@ func (p *ChangeVideoInputDefault) Evaluate(room base.PublicRoom) (actions []base
 
 		var action base.ActionStructure
 
-		action, err = generateChangeInputByDevice(d.Device, room.Room, room.Building, "ChangeVideoInputDefault")
+		action, err = generateChangeInputByDevice(d.Device, room.Room, room.Building, "ChangeVideoInputDefault", requestor)
 		if err != nil {
 			return
 		}
@@ -63,7 +65,7 @@ func (p *ChangeVideoInputDefault) GetIncompatibleCommands() (incompatableActions
 	return
 }
 
-func generateChangeInputByDevice(dev base.Device, room string, building string, generatingEvaluator string) (action base.ActionStructure, err error) {
+func generateChangeInputByDevice(dev base.Device, room, building, generatingEvaluator, requestor string) (action base.ActionStructure, err error) {
 
 	var curDevice structs.Device
 
@@ -88,12 +90,25 @@ func generateChangeInputByDevice(dev base.Device, room string, building string, 
 		return
 	}
 
+	destination := statusevaluators.DestinationDevice{
+		Device: curDevice,
+	}
+
+	if curDevice.HasRole("AudioOut") {
+		destination.AudioDevice = true
+	}
+
+	if curDevice.HasRole("VideoOut") {
+		destination.Display = true
+	}
+
 	eventInfo := eventinfrastructure.EventInfo{
 		Type:           eventinfrastructure.CORESTATE,
 		EventCause:     eventinfrastructure.USERINPUT,
 		Device:         dev.Name,
 		EventInfoKey:   "input",
 		EventInfoValue: portSource,
+		Requestor:      requestor,
 	}
 
 	action = base.ActionStructure{
@@ -109,7 +124,7 @@ func generateChangeInputByDevice(dev base.Device, room string, building string, 
 	return
 }
 
-func generateChangeInputByRole(role string, input string, room string, building string, generatingEvaluator string) (actions []base.ActionStructure, err error) {
+func generateChangeInputByRole(role, input, room, building, generatingEvaluator, requestor string) (actions []base.ActionStructure, err error) {
 	devicesToChange, err := dbo.GetDevicesByBuildingAndRoomAndRole(building, room, role)
 	if err != nil {
 		return
@@ -138,18 +153,32 @@ func generateChangeInputByRole(role string, input string, room string, building 
 			return
 		}
 
+		dest := statusevaluators.DestinationDevice{
+			Device: d,
+		}
+
+		if d.HasRole("AudioOut") {
+			dest.AudioDevice = true
+		}
+
+		if d.HasRole("VideoOut") {
+			dest.Display = true
+		}
+
 		eventInfo := eventinfrastructure.EventInfo{
 			Type:           eventinfrastructure.USERACTION,
 			EventCause:     eventinfrastructure.USERINPUT,
 			Device:         d.Name,
 			EventInfoKey:   "input",
 			EventInfoValue: source,
+			Requestor:      requestor,
 		}
 
 		action := base.ActionStructure{
 			Action:              "ChangeInput",
 			GeneratingEvaluator: generatingEvaluator,
 			Device:              d,
+			DestinationDevice:   dest,
 			Parameters:          paramMap,
 			DeviceSpecific:      false,
 			Overridden:          false,

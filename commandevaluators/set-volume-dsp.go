@@ -19,6 +19,7 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
+	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 
 	ei "github.com/byuoitav/event-router-microservice/eventinfrastructure"
@@ -26,7 +27,7 @@ import (
 
 type SetVolumeDSP struct{}
 
-func (p *SetVolumeDSP) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
+func (p *SetVolumeDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, error) {
 
 	log.Printf("Evaluating SetVolume command in DSP context...")
 
@@ -34,6 +35,7 @@ func (p *SetVolumeDSP) Evaluate(room base.PublicRoom) ([]base.ActionStructure, e
 		Type:         ei.CORESTATE,
 		EventCause:   ei.USERINPUT,
 		EventInfoKey: "volume",
+		Requestor:    requestor,
 	}
 
 	var actions []base.ActionStructure
@@ -196,6 +198,11 @@ func GetMicVolumeAction(mic structs.Device, room base.PublicRoom, eventInfo ei.E
 
 	log.Printf("Identified microphone volume request")
 
+	destination := se.DestinationDevice{
+		Device:      mic,
+		AudioDevice: true,
+	}
+
 	//get DSP
 	dsps, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "DSP")
 	if err != nil {
@@ -235,6 +242,7 @@ func GetMicVolumeAction(mic structs.Device, room base.PublicRoom, eventInfo ei.E
 				Action:              "SetVolume",
 				GeneratingEvaluator: "SetVolumeDSP",
 				Device:              dsp,
+				DestinationDevice:   destination,
 				DeviceSpecific:      true,
 				EventLog:            []ei.EventInfo{eventInfo},
 				Parameters:          parameters,
@@ -267,11 +275,17 @@ func GetDSPMediaVolumeAction(dsp structs.Device, room base.PublicRoom, eventInfo
 
 		if !(sourceDevice.HasRole("Microphone")) {
 
+			destination := se.DestinationDevice{
+				Device:      dsp,
+				AudioDevice: true,
+			}
+
 			parameters["input"] = port.Name
 			action := base.ActionStructure{
 				Action:              "SetVolume",
 				GeneratingEvaluator: "SetVolumeDSP",
 				Device:              dsp,
+				DestinationDevice:   destination,
 				DeviceSpecific:      true,
 				EventLog:            []ei.EventInfo{eventInfo},
 				Parameters:          parameters,
@@ -291,6 +305,15 @@ func GetDisplayVolumeAction(device structs.Device, room base.PublicRoom, eventIn
 
 	parameters := make(map[string]string)
 
+	destination := se.DestinationDevice{
+		Device:      device,
+		AudioDevice: true,
+	}
+
+	if device.HasRole("VideoOut") {
+		destination.Display = true
+	}
+
 	eventInfo.EventInfoValue = strconv.Itoa(volume)
 	eventInfo.Device = device.Name
 	parameters["level"] = strconv.Itoa(volume)
@@ -299,6 +322,7 @@ func GetDisplayVolumeAction(device structs.Device, room base.PublicRoom, eventIn
 		Action:              "SetVolume",
 		GeneratingEvaluator: "SetVolumeDSP",
 		Device:              device,
+		DestinationDevice:   destination,
 		DeviceSpecific:      true,
 		EventLog:            []ei.EventInfo{eventInfo},
 		Parameters:          parameters,

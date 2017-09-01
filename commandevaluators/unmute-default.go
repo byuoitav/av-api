@@ -7,13 +7,14 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
+	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
 type UnMuteDefault struct {
 }
 
-func (p *UnMuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
+func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, error) {
 	log.Printf("Evaluating UnMute command.")
 
 	var actions []base.ActionStructure
@@ -22,7 +23,10 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, 
 		EventCause:     eventinfrastructure.USERINPUT,
 		EventInfoKey:   "muted",
 		EventInfoValue: "false",
+		Requestor:      requestor,
 	}
+
+	destination := se.DestinationDevice{AudioDevice: true}
 
 	//check if request is a roomwide unmute
 	if room.Muted != nil && !*room.Muted {
@@ -34,7 +38,7 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, 
 			return []base.ActionStructure{}, err
 		}
 
-		log.Printf("UnMuting alll devices in room.")
+		log.Printf("UnMuting all devices in room.")
 
 		for _, device := range devices {
 
@@ -43,10 +47,17 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, 
 				log.Printf("Adding device %+v", device.Name)
 
 				eventInfo.Device = device.Name
+				destination.Device = device
+
+				if device.HasRole("VideoOut") {
+					destination.Display = true
+				}
+
 				actions = append(actions, base.ActionStructure{
 					Action:              "UnMute",
 					GeneratingEvaluator: "UnMuteDefault",
 					Device:              device,
+					DestinationDevice:   destination,
 					DeviceSpecific:      false,
 					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 				})
@@ -72,10 +83,17 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, 
 			}
 
 			eventInfo.Device = device.Name
+			destination.Device = device
+
+			if device.HasRole("VideoOut") {
+				destination.Display = true
+			}
+
 			actions = append(actions, base.ActionStructure{
 				Action:              "UnMute",
 				GeneratingEvaluator: "UnMuteDefault",
 				Device:              device,
+				DestinationDevice:   destination,
 				DeviceSpecific:      true,
 				EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 			})
