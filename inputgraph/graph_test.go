@@ -221,26 +221,40 @@ var o5 = structs.Device{
 var Devices = []structs.Device{a, b, c, d, i1, i2, i3, i4, i5, o1, o2, o3, o4, o5, i6}
 
 func TestGraphBuilding(t *testing.T) {
+
+	debug = false
+
 	graph, err := BuildGraph(Devices)
 	if err != nil {
 		log.Printf("error: %v", err.Error())
 		t.FailNow()
 	}
 
-	log.Printf("%+v", graph.AdjecencyMap)
+	if debug {
+		log.Printf("%+v", graph.AdjecencyMap)
+	}
 }
 
 func TestReachability(t *testing.T) {
+
 	graph, err := BuildGraph(Devices)
 	if err != nil {
 		log.Printf("error: %v", err.Error())
 		t.FailNow()
 	}
 
-	ok, _, _ := CheckReachability("o3", "i1", graph)
+	debug = true
+	ok, ret, _ := CheckReachability("o3", "i1", graph)
 	if !ok {
 		t.FailNow()
 	}
+
+	if debug {
+		for _, v := range ret {
+			log.Printf("%v", v.ID)
+		}
+	}
+	debug = false
 
 	ok, _, _ = CheckReachability("o5", "i1", graph)
 	if ok {

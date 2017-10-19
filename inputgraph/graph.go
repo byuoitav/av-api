@@ -96,8 +96,20 @@ func CheckReachability(deviceA, deviceB string, ig InputGraph) (bool, []Node, er
 				log.Printf("Evaluating %v", cur)
 			}
 			if cur == deviceB {
+				dev := cur
+
+				toReturn := []Node{}
+				toReturn = append(toReturn, *ig.DeviceMap[dev])
+
+				dev, ok := path[dev]
+
+				for ok {
+					toReturn = append(toReturn, *ig.DeviceMap[dev])
+
+					dev, ok = path[dev]
+				}
 				//get our path and return it
-				return true, []Node{}, nil
+				return true, toReturn, nil
 			}
 
 			for _, next := range ig.AdjecencyMap[cur] {
