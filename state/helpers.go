@@ -230,7 +230,6 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 	}
 
 	resp, err := client.Do(req)
-	defer resp.Body.Close()
 
 	//if error, record it
 	if err != nil {
@@ -240,7 +239,11 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 		PublishError(errorMessage, action, requestor)
 		return se.StatusResponse{}
 
-	} else if resp.StatusCode != http.StatusOK { //check the response code, if non-200, we need to record and report
+	}
+
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK { //check the response code, if non-200, we need to record and report
 
 		color.Set(color.FgHiRed, color.Bold)
 		log.Printf("[error] non-200 response code: %v", resp.StatusCode)
@@ -260,53 +263,51 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 
 		return se.StatusResponse{}
 
-	} else {
-
-		//TODO: we need to find some way to check against the correct response value, just as a further validation
-
-		for _, event := range action.EventLog {
-
-			base.SendEvent(
-				event.Type,
-				event.EventCause,
-				event.Device,
-				action.Device.Room.Name,
-				action.Device.Building.Shortname,
-				event.EventInfoKey,
-				event.EventInfoValue,
-				event.Requestor,
-				false,
-			)
-		}
-
-		color.Set(color.FgHiGreen, color.Bold)
-		log.Printf("[state] Successfully sent command %s to device %s.", action.Action, action.Device.Name)
-		color.Unset()
-
-		log.Printf("[state] Unmarshalling status...")
-
-		status := make(map[string]interface{})
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			errorString := fmt.Sprintf("Could not read response body: %s", err.Error())
-			PublishError(errorString, action, requestor)
-		}
-
-		err = json.Unmarshal(body, &status)
-		if err != nil {
-			message := fmt.Sprint("Could not unmarshal response struct: %s", err.Error())
-			PublishError(message, action, requestor)
-		}
-		response := se.StatusResponse{
-			SourceDevice:      action.Device,
-			DestinationDevice: action.DestinationDevice,
-			Generator:         SET_STATE_STATUS_EVALUATORS[action.GeneratingEvaluator],
-			Status:            status,
-		}
-
-		return response
-
 	}
+
+	//TODO: we need to find some way to check against the correct response value, just as a further validation
+
+	for _, event := range action.EventLog {
+
+		base.SendEvent(
+			event.Type,
+			event.EventCause,
+			event.Device,
+			action.Device.Room.Name,
+			action.Device.Building.Shortname,
+			event.EventInfoKey,
+			event.EventInfoValue,
+			event.Requestor,
+			false,
+		)
+	}
+
+	color.Set(color.FgHiGreen, color.Bold)
+	log.Printf("[state] Successfully sent command %s to device %s.", action.Action, action.Device.Name)
+	color.Unset()
+
+	log.Printf("[state] Unmarshalling status...")
+
+	status := make(map[string]interface{})
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		errorString := fmt.Sprintf("Could not read response body: %s", err.Error())
+		PublishError(errorString, action, requestor)
+	}
+
+	err = json.Unmarshal(body, &status)
+	if err != nil {
+		message := fmt.Sprint("Could not unmarshal response struct: %s", err.Error())
+		PublishError(message, action, requestor)
+	}
+	response := se.StatusResponse{
+		SourceDevice:      action.Device,
+		DestinationDevice: action.DestinationDevice,
+		Generator:         SET_STATE_STATUS_EVALUATORS[action.GeneratingEvaluator],
+		Status:            status,
+	}
+
+	return response
 
 }
 
