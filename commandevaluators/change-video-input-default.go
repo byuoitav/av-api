@@ -6,7 +6,6 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
@@ -92,7 +91,7 @@ func generateChangeInputByDevice(dev base.Device, room, building, generatingEval
 		return
 	}
 
-	destination := statusevaluators.DestinationDevice{
+	destination := base.DestinationDevice{
 		Device: curDevice,
 	}
 
@@ -155,7 +154,7 @@ func generateChangeInputByRole(role, input, room, building, generatingEvaluator,
 			return
 		}
 
-		dest := statusevaluators.DestinationDevice{
+		dest := base.DestinationDevice{
 			Device: d,
 		}
 

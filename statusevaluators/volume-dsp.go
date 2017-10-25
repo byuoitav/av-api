@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 
+	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 )
 
@@ -70,7 +71,7 @@ func (p *VolumeDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand,
 	return commands, nil
 }
 
-func (p *VolumeDSP) EvaluateResponse(label string, value interface{}, source structs.Device, destination DestinationDevice) (string, interface{}, error) {
+func (p *VolumeDSP) EvaluateResponse(label string, value interface{}, source structs.Device, destination base.DestinationDevice) (string, interface{}, error) {
 
 	const SCALE_FACTOR = 3
 	const MINIMUM = 45

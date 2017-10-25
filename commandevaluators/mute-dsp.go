@@ -17,7 +17,6 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
-	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 	ei "github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
@@ -38,7 +37,7 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Actio
 		Requestor:      requestor,
 	}
 
-	destination := se.DestinationDevice{
+	destination := base.DestinationDevice{
 		AudioDevice: true,
 	}
 
@@ -122,7 +121,7 @@ func (p *MuteDSP) GetIncompatibleCommands() []string {
 
 //assumes only one DSP, but allows for the possiblity of multiple devices not routed through the DSP
 //room-wide mute requests DO NOT include mics
-func GetGeneralMuteRequestActionsDSP(room base.PublicRoom, eventInfo ei.EventInfo, destination se.DestinationDevice) ([]base.ActionStructure, error) {
+func GetGeneralMuteRequestActionsDSP(room base.PublicRoom, eventInfo ei.EventInfo, destination base.DestinationDevice) ([]base.ActionStructure, error) {
 
 	log.Printf("Generating actions for room-wide \"Mute\" request")
 
@@ -175,7 +174,7 @@ func GetMicMuteAction(mic structs.Device, room base.PublicRoom, eventInfo ei.Eve
 
 	log.Printf("Generating action for command \"Mute\" on microphone %s", mic.Name)
 
-	destination := se.DestinationDevice{
+	destination := base.DestinationDevice{
 		Device:      mic,
 		AudioDevice: true,
 	}
@@ -239,7 +238,7 @@ func GetDSPMediaMuteAction(dsp structs.Device, room base.PublicRoom, eventInfo e
 
 		if !sourceDevice.HasRole("Microphone") {
 
-			destination := se.DestinationDevice{
+			destination := base.DestinationDevice{
 				Device:      dsp,
 				AudioDevice: true,
 			}
@@ -268,7 +267,7 @@ func GetDisplayMuteAction(device structs.Device, room base.PublicRoom, eventInfo
 
 	eventInfo.Device = device.Name
 
-	destination := se.DestinationDevice{
+	destination := base.DestinationDevice{
 		Device:      device,
 		AudioDevice: true,
 	}

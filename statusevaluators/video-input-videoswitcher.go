@@ -5,6 +5,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 )
@@ -65,7 +66,7 @@ func (p *InputVideoSwitcher) GenerateCommands(devices []structs.Device) ([]Statu
 		log.Printf("Considering device: %v", device.GetFullName())
 
 		cont := false
-		var destinationDevice DestinationDevice
+		var destinationDevice base.DestinationDevice
 		//for now assume that everything is going through the switcher, check to make sure it's a device we care about
 		for _, role := range device.Roles {
 			if role == "AudioOut" {
@@ -120,7 +121,7 @@ func (p *InputVideoSwitcher) GenerateCommands(devices []structs.Device) ([]Statu
 	return statusCommands, nil
 }
 
-func (p *InputVideoSwitcher) EvaluateResponse(label string, value interface{}, source structs.Device, dest DestinationDevice) (string, interface{}, error) {
+func (p *InputVideoSwitcher) EvaluateResponse(label string, value interface{}, source structs.Device, dest base.DestinationDevice) (string, interface{}, error) {
 	log.Printf("Evaluating response: %s, %s in evaluator %v", label, value, BlankedDefaultName)
 
 	//in this case we assume that there's a single video switcher, so first we get the video switcher in the room, then we match source and dest

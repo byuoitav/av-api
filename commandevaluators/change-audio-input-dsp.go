@@ -7,7 +7,6 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/av-api/statusevaluators"
 	ei "github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
@@ -41,7 +40,7 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) (
 		Requestor:    requestor,
 	}
 
-	destination := statusevaluators.DestinationDevice{
+	destination := base.DestinationDevice{
 		AudioDevice: true,
 	}
 
@@ -129,7 +128,7 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) (
 	return actions, len(actions), nil
 }
 
-func GetDSPMediaInputAction(room base.PublicRoom, eventInfo ei.EventInfo, input string, deviceSpecific bool, destination statusevaluators.DestinationDevice) (base.ActionStructure, error) {
+func GetDSPMediaInputAction(room base.PublicRoom, eventInfo ei.EventInfo, input string, deviceSpecific bool, destination base.DestinationDevice) (base.ActionStructure, error) {
 
 	//get DSP
 	dsp, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "DSP")

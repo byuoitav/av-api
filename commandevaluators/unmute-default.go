@@ -7,7 +7,6 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
-	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
@@ -26,7 +25,7 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 		Requestor:      requestor,
 	}
 
-	destination := se.DestinationDevice{AudioDevice: true}
+	destination := base.DestinationDevice{AudioDevice: true}
 
 	//check if request is a roomwide unmute
 	if room.Muted != nil && !*room.Muted {

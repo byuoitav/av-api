@@ -7,7 +7,6 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
@@ -133,7 +132,7 @@ func GetSwitcherAndCreateAction(room base.PublicRoom, device structs.Device, sel
 				Requestor:      requestor,
 			}
 
-			destination := statusevaluators.DestinationDevice{
+			destination := base.DestinationDevice{
 				Device: device,
 			}
 

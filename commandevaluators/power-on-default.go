@@ -7,7 +7,6 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
-	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 	"github.com/fatih/color"
@@ -50,7 +49,7 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 
 			if device.Output {
 
-				destination := se.DestinationDevice{
+				destination := base.DestinationDevice{
 					Device: device,
 				}
 
@@ -148,7 +147,7 @@ func (p *PowerOnDefault) evaluateDevice(device base.Device,
 				return actions, err
 			}
 
-			destination := se.DestinationDevice{
+			destination := base.DestinationDevice{
 				Device: dev,
 			}
 

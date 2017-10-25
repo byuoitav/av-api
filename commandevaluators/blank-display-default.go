@@ -8,7 +8,6 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
@@ -52,7 +51,7 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 
 				log.Printf("[command_evaluators]Adding device %+v", device.Name)
 
-				destination := statusevaluators.DestinationDevice{
+				destination := base.DestinationDevice{
 					Device:  device,
 					Display: true,
 				}
@@ -86,7 +85,7 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 				return []base.ActionStructure{}, 0, err
 			}
 
-			destination := statusevaluators.DestinationDevice{
+			destination := base.DestinationDevice{
 				Device:  device,
 				Display: true,
 			}

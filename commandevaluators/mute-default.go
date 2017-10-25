@@ -8,7 +8,6 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
@@ -26,7 +25,7 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 
 	var actions []base.ActionStructure
 
-	destination := statusevaluators.DestinationDevice{
+	destination := base.DestinationDevice{
 		AudioDevice: true,
 	}
 

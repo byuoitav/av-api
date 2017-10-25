@@ -19,7 +19,6 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
-	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 
 	ei "github.com/byuoitav/event-router-microservice/eventinfrastructure"
@@ -198,7 +197,7 @@ func GetMicVolumeAction(mic structs.Device, room base.PublicRoom, eventInfo ei.E
 
 	log.Printf("Identified microphone volume request")
 
-	destination := se.DestinationDevice{
+	destination := base.DestinationDevice{
 		Device:      mic,
 		AudioDevice: true,
 	}
@@ -275,7 +274,7 @@ func GetDSPMediaVolumeAction(dsp structs.Device, room base.PublicRoom, eventInfo
 
 		if !(sourceDevice.HasRole("Microphone")) {
 
-			destination := se.DestinationDevice{
+			destination := base.DestinationDevice{
 				Device:      dsp,
 				AudioDevice: true,
 			}
@@ -305,7 +304,7 @@ func GetDisplayVolumeAction(device structs.Device, room base.PublicRoom, eventIn
 
 	parameters := make(map[string]string)
 
-	destination := se.DestinationDevice{
+	destination := base.DestinationDevice{
 		Device:      device,
 		AudioDevice: true,
 	}

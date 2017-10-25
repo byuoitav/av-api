@@ -7,7 +7,6 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
-	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
@@ -27,7 +26,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 		Requestor:      requestor,
 	}
 
-	destination := se.DestinationDevice{Display: true}
+	destination := base.DestinationDevice{Display: true}
 
 	if room.Blanked != nil && !*room.Blanked {
 

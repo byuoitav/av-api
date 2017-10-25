@@ -9,7 +9,6 @@ import (
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/av-api/inputgraph"
-	"github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 	"github.com/fatih/color"
@@ -272,7 +271,7 @@ func generateActionForNonSwitch(prev, cur inputgraph.Node, destination structs.D
 		EventInfoValue: selected,
 	}
 
-	destStruct := statusevaluators.DestinationDevice{
+	destStruct := base.DestinationDevice{
 		Device: destination,
 	}
 
@@ -334,7 +333,7 @@ func generateActionForSwitch(prev, cur, next inputgraph.Node, destination struct
 		EventInfoValue: selected,
 	}
 
-	destStruct := statusevaluators.DestinationDevice{
+	destStruct := base.DestinationDevice{
 		Device: destination,
 	}
 

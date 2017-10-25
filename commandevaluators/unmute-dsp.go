@@ -19,7 +19,6 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
-	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 	ei "github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
@@ -171,7 +170,7 @@ func GetMicUnMuteAction(mic structs.Device, room base.PublicRoom, eventInfo ei.E
 
 	log.Printf("Generating action for command \"UnMute\" on microphone %s", mic.Name)
 
-	destination := se.DestinationDevice{
+	destination := base.DestinationDevice{
 		Device:      mic,
 		AudioDevice: true,
 	}
@@ -219,7 +218,7 @@ func GetMicUnMuteAction(mic structs.Device, room base.PublicRoom, eventInfo ei.E
 func GetDSPMediaUnMuteAction(dsp structs.Device, room base.PublicRoom, eventInfo ei.EventInfo, deviceSpecific bool) ([]base.ActionStructure, error) {
 	toReturn := []base.ActionStructure{}
 
-	destination := se.DestinationDevice{
+	destination := base.DestinationDevice{
 		Device:      dsp,
 		AudioDevice: true,
 	}
@@ -266,7 +265,7 @@ func GetDisplayUnMuteAction(device structs.Device, room base.PublicRoom, eventIn
 
 	eventInfo.Device = device.Name
 
-	destination := se.DestinationDevice{
+	destination := base.DestinationDevice{
 		Device:      device,
 		AudioDevice: true,
 	}
