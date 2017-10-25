@@ -24,8 +24,11 @@ type ChangeVideoInputTieredSwitchers struct {
 }
 
 //Evaluate fulfills the CommmandEvaluation evaluate requirement
-func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, error) {
+func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 	//so first we need to go through and see if anyone even wants a piece of us, is there an 'input' field that isn't empty.
+
+	//count is the number of outputs generated
+	count := 0
 
 	has := (len(room.CurrentVideoInput) > 0)
 	for d := range room.Displays {
@@ -36,7 +39,7 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 	}
 	if !has {
 		//there's nothing to do in the room
-		return []base.ActionStructure{}, nil
+		return []base.ActionStructure{}, 0, nil
 	}
 
 	//build the graph
@@ -46,12 +49,12 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 	if err != nil {
 
 		log.Printf(color.HiRedString("There was an issue getting the devices from the room: %v", err.Error()))
-		return []base.ActionStructure{}, err
+		return []base.ActionStructure{}, 0, err
 	}
 
 	graph, err := inputgraph.BuildGraph(devices)
 	if err != nil {
-		return []base.ActionStructure{}, err
+		return []base.ActionStructure{}, 0, err
 	}
 	log.Printf("%v", graph)
 
@@ -59,9 +62,9 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 
 	//if we have a room wide input we need to validate that we can reach all of the outputs with the indicated input.
 	if len(room.CurrentVideoInput) > 0 {
-		actions, err = c.ChangeAll(room.CurrentVideoInput, devices, graph)
+		actions, count, err = c.ChangeAll(room.CurrentVideoInput, devices, graph)
 		if err != nil {
-			return []base.ActionStructure{}, err
+			return []base.ActionStructure{}, 0, err
 		}
 	}
 
@@ -71,18 +74,19 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 			if len(room.Displays[d].Input) > 0 {
 				tempActions, err := c.RoutePath(room.Displays[d].Input, room.Displays[d].Name, graph)
 				if err != nil {
-					return []base.ActionStructure{}, err
+					return []base.ActionStructure{}, 0, err
 				}
 				actions = append(actions, tempActions...)
+				//we don't want to expect another output here, as we already expect one for every device in the room
+				if len(room.CurrentVideoInput) == 0 {
+					count++
+				}
 			}
 		}
 
 	}
 
-	//otherwise we go thoguh the list of devices, if there's an 'input' command we check the reachability graph and then build the actions necessary.
-
-	return actions, nil
-
+	return actions, count, nil
 }
 
 //Validate f
@@ -156,7 +160,7 @@ func (c *ChangeVideoInputTieredSwitchers) RoutePath(input, output string, graph 
 	return as, nil
 }
 
-func (c *ChangeVideoInputTieredSwitchers) ChangeAll(input string, devices []structs.Device, graph inputgraph.InputGraph) ([]base.ActionStructure, error) {
+func (c *ChangeVideoInputTieredSwitchers) ChangeAll(input string, devices []structs.Device, graph inputgraph.InputGraph) ([]base.ActionStructure, int, error) {
 
 	//we need to go through and validate that for all the output devices in the room that the selected input is a valid input
 	var ok bool
@@ -165,13 +169,13 @@ func (c *ChangeVideoInputTieredSwitchers) ChangeAll(input string, devices []stru
 	if dev, ok = graph.DeviceMap[input]; !ok {
 		msg := fmt.Sprintf("Device %v is not included in the connection graph for this room.")
 		log.Printf(color.HiRedString(msg))
-		return []base.ActionStructure{}, errors.New(msg)
+		return []base.ActionStructure{}, 0, errors.New(msg)
 	}
 
 	if !dev.Device.Input {
 		msg := fmt.Sprintf("Device %v is not an input device in this room")
 		log.Printf(color.HiRedString(msg))
-		return []base.ActionStructure{}, errors.New(msg)
+		return []base.ActionStructure{}, 0, errors.New(msg)
 	}
 
 	//ok we know it's in the room, check it's reachability in the graph
@@ -180,12 +184,12 @@ func (c *ChangeVideoInputTieredSwitchers) ChangeAll(input string, devices []stru
 		if d.Output {
 			ok, p, err := inputgraph.CheckReachability(d.Name, input, graph)
 			if err != nil {
-				return []base.ActionStructure{}, err
+				return []base.ActionStructure{}, 0, err
 			}
 			if !ok {
 				msg := fmt.Sprintf("Cannot set room wide input %v. There does not exist a signal path from %v to %v", input, input, d.Name)
 				log.Printf(color.HiRedString(msg))
-				return []base.ActionStructure{}, errors.New(msg)
+				return []base.ActionStructure{}, 0, errors.New(msg)
 			}
 
 			//it's reachable, store the path and move on
@@ -194,18 +198,20 @@ func (c *ChangeVideoInputTieredSwitchers) ChangeAll(input string, devices []stru
 	}
 
 	toReturn := []base.ActionStructure{}
+	count := 0
 
 	//we know it's fully reachable and we have a list of paths, now we need to go through that list and generate all the actions
 	for p := range paths {
 		as, err := c.GenerateActionsFromPath(paths[p])
 		if err != nil {
-			return []base.ActionStructure{}, err
+			return []base.ActionStructure{}, 0, err
 		}
 
 		toReturn = append(toReturn, as...)
+		count++
 	}
 
-	return toReturn, nil
+	return toReturn, count, nil
 }
 
 func (c *ChangeVideoInputTieredSwitchers) GenerateActionsFromPath(path []inputgraph.Node) ([]base.ActionStructure, error) {

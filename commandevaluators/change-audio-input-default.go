@@ -7,7 +7,8 @@ type ChangeAudioInputDefault struct {
 }
 
 //Evaluate f
-func (p *ChangeAudioInputDefault) Evaluate(room base.PublicRoom, requestor string) (actions []base.ActionStructure, err error) {
+func (p *ChangeAudioInputDefault) Evaluate(room base.PublicRoom, requestor string) (actions []base.ActionStructure, count int, err error) {
+	count = 0
 
 	if len(room.CurrentAudioInput) > 0 { // Check if the user sent a PUT body changing the current audio input
 
@@ -44,6 +45,7 @@ func (p *ChangeAudioInputDefault) Evaluate(room base.PublicRoom, requestor strin
 		}
 		actions = append(actions, action)
 	}
+	count = len(actions)
 	return
 }
 

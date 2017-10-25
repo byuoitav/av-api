@@ -16,7 +16,8 @@ type ChangeVideoInputDefault struct {
 }
 
 //Evaluate fulfills the CommmandEvaluation evaluate requirement.
-func (p *ChangeVideoInputDefault) Evaluate(room base.PublicRoom, requestor string) (actions []base.ActionStructure, err error) {
+func (p *ChangeVideoInputDefault) Evaluate(room base.PublicRoom, requestor string) (actions []base.ActionStructure, count int, err error) {
+	count = 0
 	//RoomWideSetVideoInput
 	if len(room.CurrentVideoInput) > 0 { // Check if the user sent a PUT body changing the current video input
 		var tempActions []base.ActionStructure
@@ -52,6 +53,7 @@ func (p *ChangeVideoInputDefault) Evaluate(room base.PublicRoom, requestor strin
 		actions = append(actions, action)
 	}
 
+	count = len(actions)
 	return
 }
 

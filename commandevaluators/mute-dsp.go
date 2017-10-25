@@ -24,7 +24,7 @@ import (
 
 type MuteDSP struct{}
 
-func (p *MuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, error) {
+func (p *MuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 
 	log.Printf("Evaluating PUT body for \"Mute\" command in DSP context...")
 
@@ -48,7 +48,7 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Actio
 		if err != nil {
 			errorMessage := "Could not generate actions for room-wide \"Mute\" request: " + err.Error()
 			log.Printf(errorMessage)
-			return []base.ActionStructure{}, errors.New(errorMessage)
+			return []base.ActionStructure{}, 0, errors.New(errorMessage)
 		}
 
 		actions = append(actions, generalActions...)
@@ -73,7 +73,7 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Actio
 
 				action, err := GetMicMuteAction(device, room, eventInfo)
 				if err != nil {
-					return []base.ActionStructure{}, err
+					return []base.ActionStructure{}, 0, err
 				}
 
 				actions = append(actions, action)
@@ -82,7 +82,7 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Actio
 
 				dspActions, err := GetDSPMediaMuteAction(device, room, eventInfo, true)
 				if err != nil {
-					return []base.ActionStructure{}, err
+					return []base.ActionStructure{}, 0, err
 				}
 
 				actions = append(actions, dspActions...)
@@ -91,7 +91,7 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Actio
 
 				action, err := GetDisplayMuteAction(device, room, eventInfo, true)
 				if err != nil {
-					return []base.ActionStructure{}, err
+					return []base.ActionStructure{}, 0, err
 				}
 
 				actions = append(actions, action)
@@ -99,7 +99,7 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Actio
 			} else { //bad device
 				errorMessage := "Cannot set volume of device " + device.Name
 				log.Printf(errorMessage)
-				return []base.ActionStructure{}, errors.New(errorMessage)
+				return []base.ActionStructure{}, 0, errors.New(errorMessage)
 			}
 		}
 	}
@@ -107,7 +107,7 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Actio
 	log.Printf("%s actions generated.", len(actions))
 	log.Printf("Evaluation complete.")
 
-	return actions, nil
+	return actions, len(actions), nil
 
 }
 

@@ -14,7 +14,7 @@ import (
 type UnMuteDefault struct {
 }
 
-func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, error) {
+func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 	log.Printf("Evaluating UnMute command.")
 
 	var actions []base.ActionStructure
@@ -35,7 +35,7 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 
 		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "AudioOut")
 		if err != nil {
-			return []base.ActionStructure{}, err
+			return []base.ActionStructure{}, 0, err
 		}
 
 		log.Printf("UnMuting all devices in room.")
@@ -79,7 +79,7 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 
 			device, err := dbo.GetDeviceByName(room.Building, room.Room, audioDevice.Name)
 			if err != nil {
-				return []base.ActionStructure{}, err
+				return []base.ActionStructure{}, 0, err
 			}
 
 			eventInfo.Device = device.Name
@@ -105,7 +105,7 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 	log.Printf("%v actions generated.", len(actions))
 	log.Printf("Evalutation complete.")
 
-	return actions, nil
+	return actions, len(actions), nil
 
 }
 

@@ -53,6 +53,13 @@ type ActionStructure struct {
 	Overridden          bool                 `json:"overridden"`
 	EventLog            []ei.EventInfo       `json:"events"`
 	Children            []*ActionStructure   `json:"children"`
+	Callback            func(StatusPackage, chan<- StatusPackage) error
+}
+
+type StatusPackage struct {
+	Key    string
+	Value  interface{}
+	Device structs.Device
 }
 
 //Equals checks if the action structures are equal

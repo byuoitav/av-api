@@ -16,7 +16,7 @@ type SetVolumeDefault struct {
 }
 
 //Validate checks for a volume for the entire room or the volume of a specific device
-func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, error) {
+func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 
 	var actions []base.ActionStructure
 
@@ -38,7 +38,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 
 		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "AudioOut")
 		if err != nil {
-			return []base.ActionStructure{}, err
+			return []base.ActionStructure{}, 0, err
 		}
 
 		for _, device := range devices {
@@ -85,7 +85,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 
 				device, err := dbo.GetDeviceByName(room.Building, room.Room, audioDevice.Name)
 				if err != nil {
-					return []base.ActionStructure{}, err
+					return []base.ActionStructure{}, 0, err
 				}
 
 				parameters := make(map[string]string)
@@ -119,7 +119,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 	log.Printf("%v actions generated.", len(actions))
 	log.Printf("Evaluation complete.")
 
-	return actions, nil
+	return actions, len(actions), nil
 }
 
 func validateSetVolumeMaxMin(action base.ActionStructure, maximum int, minimum int) error {

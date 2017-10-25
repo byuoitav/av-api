@@ -18,7 +18,8 @@ type PowerOnDefault struct {
 }
 
 // Evaluate fulfills the CommmandEvaluation evaluate requirement.
-func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actions []base.ActionStructure, err error) {
+func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actions []base.ActionStructure, count int, err error) {
+	count = 0
 
 	log.Printf("Evaluating for PowerOn command.")
 	color.Set(color.FgYellow, color.Bold)
@@ -99,6 +100,7 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 	log.Printf("%v actions generated.", len(actions))
 	log.Printf("Evaluation complete.")
 
+	count = len(actions)
 	return
 }
 

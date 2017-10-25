@@ -17,7 +17,7 @@ type BlankDisplayDefault struct {
 }
 
 // Takes a PublicRoom and builds a slice of ActionStructures
-func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, error) {
+func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 
 	log.Printf("[command_evaluators] evaluating BlankDisplay commands...")
 
@@ -39,7 +39,7 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 		// Get all devices
 		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "VideoOut")
 		if err != nil {
-			return []base.ActionStructure{}, err
+			return []base.ActionStructure{}, 0, err
 		}
 
 		fmt.Printf("VideoOut devices: %+v\n", devices)
@@ -83,7 +83,7 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 
 			device, err := dbo.GetDeviceByName(room.Building, room.Room, display.Name)
 			if err != nil {
-				return []base.ActionStructure{}, err
+				return []base.ActionStructure{}, 0, err
 			}
 
 			destination := statusevaluators.DestinationDevice{
@@ -110,7 +110,7 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 	log.Printf("[command_evaluators]%v actions generated.", len(actions))
 	log.Printf("[command_evaluators]Evaluation complete.")
 
-	return actions, nil
+	return actions, len(actions), nil
 }
 
 // Validate fulfills the Fulfill requirement on the command interface

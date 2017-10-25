@@ -56,6 +56,7 @@ func SetRoomState(target base.PublicRoom, requestor string) (base.PublicRoom, er
 		return base.PublicRoom{}, err
 	}
 
+	//so here we need to know how many things we're actually expecting.
 	actions, err := GenerateActions(room, target, requestor)
 	if err != nil {
 		return base.PublicRoom{}, err
@@ -66,6 +67,7 @@ func SetRoomState(target base.PublicRoom, requestor string) (base.PublicRoom, er
 		return base.PublicRoom{}, err
 	}
 
+	//here's where we then pass that information through so that we can make a decent decision.
 	report, err := EvaluateResponses(responses)
 	if err != nil {
 		return base.PublicRoom{}, err

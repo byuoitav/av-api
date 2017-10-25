@@ -15,7 +15,7 @@ type UnBlankDisplayDefault struct {
 }
 
 //Evaluate creates UnBlank actions for the entire room and for individual devices
-func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, error) {
+func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 
 	var actions []base.ActionStructure
 
@@ -35,7 +35,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 
 		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "VideoOut")
 		if err != nil {
-			return []base.ActionStructure{}, err
+			return []base.ActionStructure{}, 0, err
 		}
 
 		log.Printf("Un-Blanking all displays in room.")
@@ -77,7 +77,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 
 			device, err := dbo.GetDeviceByName(room.Building, room.Room, display.Name)
 			if err != nil {
-				return []base.ActionStructure{}, err
+				return []base.ActionStructure{}, 0, err
 			}
 
 			eventInfo.Device = device.Name
@@ -101,7 +101,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 
 	log.Printf("Evaluation complete; %v actions generated.", len(actions))
 
-	return actions, nil
+	return actions, len(actions), nil
 }
 
 //Validate returns an error if a command is invalid for a device

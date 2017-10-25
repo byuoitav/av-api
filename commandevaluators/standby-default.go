@@ -17,7 +17,7 @@ type StandbyDefault struct {
 }
 
 // Evaluate fulfills the CommmandEvaluation evaluate requirement.
-func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actions []base.ActionStructure, err error) {
+func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actions []base.ActionStructure, count int, err error) {
 
 	log.Printf("Evaluating for Standby Command.")
 
@@ -99,6 +99,7 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 	log.Printf("%v actions generated.", len(actions))
 	log.Printf("Evaluation complete.")
 
+	count = len(actions)
 	return
 }
 
