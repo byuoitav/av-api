@@ -15,7 +15,7 @@ import (
 type DefaultReconciler struct{}
 
 //Reconcile fulfills the requirement to be a Reconciler.
-func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure) ([]base.ActionStructure, error) {
+func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure, inCount int) ([]base.ActionStructure, int, error) {
 
 	log.Printf("[reconciler] Removing incompatible actions...")
 	var buffer bytes.Buffer
@@ -35,17 +35,18 @@ func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure) ([]base.Ac
 			Overridden:          true,
 		},
 	}
+	var count int
 
 	for device, actionList := range actionMap {
 
-		actionList, err := StandardReconcile(device, actionList)
+		actionList, c, err := StandardReconcile(device, inCount, actionList)
 		if err != nil {
-			return []base.ActionStructure{}, err
+			return []base.ActionStructure{}, 0, err
 		}
 
 		actionList, err = SortActionsByPriority(actionList)
 		if err != nil {
-			return []base.ActionStructure{}, err
+			return []base.ActionStructure{}, 0, err
 		}
 
 		//		actionList, err = CreateChildRelationships(actionList)
@@ -65,10 +66,10 @@ func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure) ([]base.Ac
 
 		output[0].Children = append(output[0].Children, &actionList[0])
 		output = append(output, actionList...)
-
+		count = c
 	}
 
-	return output, nil
+	return output, count, nil
 }
 
 func SortActionsByPriority(actions []base.ActionStructure) (output []base.ActionStructure, err error) {

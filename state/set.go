@@ -16,11 +16,13 @@ import (
 )
 
 //for each command in the configuration, evaluate and validate.
-func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom, requestor string) ([]base.ActionStructure, error) {
+func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 
 	color.Set(color.FgHiCyan)
 	log.Printf("[state] generating actions...")
 	color.Unset()
+
+	var count int
 
 	var output []base.ActionStructure
 	for _, evaluator := range dbRoom.Configuration.Evaluators {
@@ -34,12 +36,12 @@ func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom, requestor st
 		curEvaluator := ce.EVALUATORS[evaluator.EvaluatorKey]
 		if curEvaluator == nil {
 			err := errors.New("No evaluator corresponding to key " + evaluator.EvaluatorKey)
-			return []base.ActionStructure{}, err
+			return []base.ActionStructure{}, 0, err
 		}
 
-		actions, _, err := curEvaluator.Evaluate(bodyRoom, requestor)
+		actions, c, err := curEvaluator.Evaluate(bodyRoom, requestor)
 		if err != nil {
-			return []base.ActionStructure{}, err
+			return []base.ActionStructure{}, 0, err
 		}
 
 		for _, action := range actions {
@@ -48,7 +50,7 @@ func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom, requestor st
 				color.Set(color.FgHiRed, color.Bold)
 				log.Printf("[error] error validating %s on evaluator %s", action.Action, evaluator.EvaluatorKey)
 				color.Unset()
-				return []base.ActionStructure{}, err
+				return []base.ActionStructure{}, 0, err
 			}
 
 			// Provide a map from the generating evaluator to the generated action in
@@ -57,17 +59,20 @@ func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom, requestor st
 		}
 
 		output = append(output, actions...)
+		count += c
 	}
 
 	color.Set(color.FgHiCyan)
 	log.Printf("[state] generated %v total actions.", len(output))
 	color.Unset()
 
-	return ReconcileActions(dbRoom, output)
+	batches, count, err := ReconcileActions(dbRoom, output, count)
+
+	return batches, count, err
 }
 
 //produces a DAG
-func ReconcileActions(room structs.Room, actions []base.ActionStructure) (batches []base.ActionStructure, err error) {
+func ReconcileActions(room structs.Room, actions []base.ActionStructure, inCount int) (batches []base.ActionStructure, count int, err error) {
 
 	color.Set(color.FgHiCyan)
 	log.Printf("[state] reconciling actions...")
@@ -82,7 +87,7 @@ func ReconcileActions(room structs.Room, actions []base.ActionStructure) (batche
 		return
 	}
 
-	batches, err = curReconciler.Reconcile(actions)
+	batches, count, err = curReconciler.Reconcile(actions, inCount)
 	if err != nil {
 		return
 	}
