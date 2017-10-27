@@ -305,6 +305,7 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 		DestinationDevice: action.DestinationDevice,
 		Generator:         SET_STATE_STATUS_EVALUATORS[action.GeneratingEvaluator],
 		Status:            status,
+		Callback:          action.Callback,
 	}
 
 	return response

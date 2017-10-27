@@ -41,7 +41,10 @@ func BuildGraph(devs []structs.Device) (InputGraph, error) {
 		}
 
 		for _, port := range devs[d].Ports {
-			//we add the entry in the adjacency map - we add it in both directions
+			if debug {
+				log.Printf("Addding %v to the adjecency for %v based on port %v", port.Source, port.Destination, port.Name)
+			}
+			//we add the entry in the adjacency map
 			if _, ok := ig.AdjecencyMap[port.Destination]; ok {
 				ig.AdjecencyMap[port.Destination] = append(ig.AdjecencyMap[port.Destination], port.Source)
 			} else {
@@ -96,31 +99,60 @@ func CheckReachability(deviceA, deviceB string, ig InputGraph) (bool, []Node, er
 				log.Printf("Evaluating %v", cur)
 			}
 			if cur == deviceB {
+				if debug {
+					log.Printf("Destination reached.", cur)
+				}
 				dev := cur
 
 				toReturn := []Node{}
 				toReturn = append(toReturn, *ig.DeviceMap[dev])
+				if debug {
+					log.Printf("First Hop: %v -> %v", dev, path[dev])
+				}
 
 				dev, ok := path[dev]
 
+				count := 0
 				for ok {
+					if count > len(path) {
+						msg := "Circular path detected: returnin"
+						log.Printf(color.HiRedString(msg))
+
+						return false, []Node{}, errors.New(msg)
+					}
+					if debug {
+						log.Printf("Next hop: %v -> %v", dev, path[dev])
+					}
+
 					toReturn = append(toReturn, *ig.DeviceMap[dev])
 
 					dev, ok = path[dev]
+					count++
+
 				}
 				//get our path and return it
 				return true, toReturn, nil
 			}
 
 			for _, next := range ig.AdjecencyMap[cur] {
-				if _, ok := path[next]; ok {
+				if _, ok := path[next]; ok || next == deviceA {
 					continue
 				}
 
 				path[next] = cur
 				if debug {
+
 					log.Printf("Path from %v to %v, adding %v to frontier", cur, next, next)
-				}
+					log.Printf("Path as it stands is: ")
+
+					curDev := next
+					dev, ok := path[curDev]
+					for ok {
+						log.Printf("%v -> %v", curDev, dev)
+						curDev = dev
+						dev, ok = path[curDev]
+					}
+				} //END DEBUG
 				frontier <- next
 			}
 		default:

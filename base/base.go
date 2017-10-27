@@ -65,6 +65,7 @@ type StatusPackage struct {
 	Key    string
 	Value  interface{}
 	Device structs.Device
+	Dest   DestinationDevice
 }
 
 //Equals checks if the action structures are equal
