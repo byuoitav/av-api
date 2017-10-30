@@ -24,8 +24,11 @@ type ChangeVideoInputTieredSwitchers struct {
 }
 
 //Evaluate fulfills the CommmandEvaluation evaluate requirement
-func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, error) {
+func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 	//so first we need to go through and see if anyone even wants a piece of us, is there an 'input' field that isn't empty.
+
+	//count is the number of outputs generated
+	count := 0
 
 	has := (len(room.CurrentVideoInput) > 0)
 	for d := range room.Displays {
@@ -34,54 +37,99 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 			break
 		}
 	}
-	if !has {
-		//there's nothing to do in the room
-		return []base.ActionStructure{}, nil
+
+	has = (len(room.CurrentAudioInput) > 0) || has
+	for d := range room.AudioDevices {
+		if len(room.AudioDevices[d].Input) != 0 {
+			has = true
+			break
+		}
 	}
 
+	if !has {
+		//there's nothing to do in the room
+		return []base.ActionStructure{}, 0, nil
+	}
+
+	log.Printf(color.HiBlueString("[tiered-switcher-eval] Evaluating the body for inputs. Building graph..."))
+
+	callbackEngine := &statusevaluators.TieredSwitcherCallback{}
+
 	//build the graph
+
+	if (len(room.CurrentVideoInput) > 0) && (len(room.CurrentVideoInput) > 0) && (room.CurrentVideoInput != room.CurrentAudioInput) {
+		return []base.ActionStructure{}, 0, errors.New("Cannot change room wide video and audio input with the same request")
+	}
 
 	//get all the devices from the room
 	devices, err := dbo.GetDevicesByRoom(room.Building, room.Room)
 	if err != nil {
 
 		log.Printf(color.HiRedString("There was an issue getting the devices from the room: %v", err.Error()))
-		return []base.ActionStructure{}, err
+		return []base.ActionStructure{}, 0, err
 	}
 
 	graph, err := inputgraph.BuildGraph(devices)
 	if err != nil {
-		return []base.ActionStructure{}, err
+		return []base.ActionStructure{}, 0, err
 	}
-	log.Printf("%v", graph)
+	for k, v := range graph.AdjecencyMap {
+		log.Printf("%v: %v", k, v)
+	}
 
+	log.Printf(color.HiBlueString("[tiered-switcher-eval] Graph Built."))
 	actions := []base.ActionStructure{}
 
 	//if we have a room wide input we need to validate that we can reach all of the outputs with the indicated input.
 	if len(room.CurrentVideoInput) > 0 {
-		actions, err = c.ChangeAll(room.CurrentVideoInput, devices, graph)
+		actions, count, err = c.ChangeAll(room.CurrentVideoInput, devices, graph, callbackEngine)
 		if err != nil {
-			return []base.ActionStructure{}, err
+			return []base.ActionStructure{}, 0, err
 		}
 	}
 
-	if len(room.Displays) > 1 {
+	log.Printf(color.HiBlueString("[tiered-switcher-eval] DEBUG %v", len(room.Displays)))
+	if len(room.Displays) > 0 {
+		log.Printf(color.HiBlueString("[tiered-switcher-eval] Evaluating individual device input."))
 		//go through each display and set the input
 		for d := range room.Displays {
 			if len(room.Displays[d].Input) > 0 {
-				tempActions, err := c.RoutePath(room.Displays[d].Input, room.Displays[d].Name, graph)
+				tempActions, err := c.RoutePath(room.Displays[d].Input, room.Displays[d].Name, graph, callbackEngine)
 				if err != nil {
-					return []base.ActionStructure{}, err
+					return []base.ActionStructure{}, 0, err
 				}
 				actions = append(actions, tempActions...)
+				//we don't want to expect another output here, as we already expect one for every device in the room
+				if len(room.CurrentVideoInput) == 0 {
+					count++
+				}
 			}
 		}
 
 	}
 
+	if len(room.AudioDevices) > 0 {
+		log.Printf(color.HiBlueString("[tiered-switcher-eval] Evaluating individual device input."))
+		//go through each display and set the input
+		for d := range room.AudioDevices {
+			if len(room.AudioDevices[d].Input) > 0 {
+				tempActions, err := c.RoutePath(room.AudioDevices[d].Input, room.AudioDevices[d].Name, graph, callbackEngine)
+				if err != nil {
+					return []base.ActionStructure{}, 0, err
+				}
+				actions = append(actions, tempActions...)
+				count++
+			}
+		}
+
+	}
+
+	callbackEngine.InChan = make(chan base.StatusPackage, len(actions))
+	callbackEngine.ExpectedCount = count
+
 	//otherwise we go thoguh the list of devices, if there's an 'input' command we check the reachability graph and then build the actions necessary.
 
-	return actions, nil
+	return actions, count, nil
 
 }
 
@@ -107,7 +155,7 @@ func (c *ChangeVideoInputTieredSwitchers) GetIncompatibleCommands() []string {
 	return nil
 }
 
-func (c *ChangeVideoInputTieredSwitchers) RoutePath(input, output string, graph inputgraph.InputGraph) ([]base.ActionStructure, error) {
+func (c *ChangeVideoInputTieredSwitchers) RoutePath(input, output string, graph inputgraph.InputGraph, callbackEngine *statusevaluators.TieredSwitcherCallback) ([]base.ActionStructure, error) {
 
 	var ok bool
 	var inDev, outDev *inputgraph.Node
@@ -138,14 +186,18 @@ func (c *ChangeVideoInputTieredSwitchers) RoutePath(input, output string, graph 
 
 	ok, p, err := inputgraph.CheckReachability(output, input, graph)
 	if err != nil {
+		log.Printf(color.HiRedString("Error: %v", err.Error()))
 		return []base.ActionStructure{}, err
 	}
+
+	log.Printf(color.HiBlueString("[tiered-switcher-eval] Found path for %v to %v.", inDev.ID, outDev.ID))
+
 	if !ok {
-		msg := fmt.Sprintf("Cannot set room wide input %v. There does not exist a signal path from %v to %v", input, input, output)
+		msg := fmt.Sprintf("Cannot set input %v. There does not exist a signal path from %v to %v", input, input, output)
 		log.Printf(color.HiRedString(msg))
 		return []base.ActionStructure{}, errors.New(msg)
 	}
-	as, err := c.GenerateActionsFromPath(p)
+	as, err := c.GenerateActionsFromPath(p, callbackEngine)
 	if err != nil {
 		return []base.ActionStructure{}, err
 	}
@@ -156,7 +208,8 @@ func (c *ChangeVideoInputTieredSwitchers) RoutePath(input, output string, graph 
 	return as, nil
 }
 
-func (c *ChangeVideoInputTieredSwitchers) ChangeAll(input string, devices []structs.Device, graph inputgraph.InputGraph) ([]base.ActionStructure, error) {
+func (c *ChangeVideoInputTieredSwitchers) ChangeAll(input string, devices []structs.Device, graph inputgraph.InputGraph, callbackEngine *statusevaluators.TieredSwitcherCallback) ([]base.ActionStructure, int, error) {
+	log.Printf(color.HiBlueString("[tiered-switcher-eval] Evaluating Room wide input."))
 
 	//we need to go through and validate that for all the output devices in the room that the selected input is a valid input
 	var ok bool
@@ -165,13 +218,13 @@ func (c *ChangeVideoInputTieredSwitchers) ChangeAll(input string, devices []stru
 	if dev, ok = graph.DeviceMap[input]; !ok {
 		msg := fmt.Sprintf("Device %v is not included in the connection graph for this room.")
 		log.Printf(color.HiRedString(msg))
-		return []base.ActionStructure{}, errors.New(msg)
+		return []base.ActionStructure{}, 0, errors.New(msg)
 	}
 
 	if !dev.Device.Input {
 		msg := fmt.Sprintf("Device %v is not an input device in this room")
 		log.Printf(color.HiRedString(msg))
-		return []base.ActionStructure{}, errors.New(msg)
+		return []base.ActionStructure{}, 0, errors.New(msg)
 	}
 
 	//ok we know it's in the room, check it's reachability in the graph
@@ -180,12 +233,12 @@ func (c *ChangeVideoInputTieredSwitchers) ChangeAll(input string, devices []stru
 		if d.Output {
 			ok, p, err := inputgraph.CheckReachability(d.Name, input, graph)
 			if err != nil {
-				return []base.ActionStructure{}, err
+				return []base.ActionStructure{}, 0, err
 			}
 			if !ok {
 				msg := fmt.Sprintf("Cannot set room wide input %v. There does not exist a signal path from %v to %v", input, input, d.Name)
 				log.Printf(color.HiRedString(msg))
-				return []base.ActionStructure{}, errors.New(msg)
+				return []base.ActionStructure{}, 0, errors.New(msg)
 			}
 
 			//it's reachable, store the path and move on
@@ -194,21 +247,24 @@ func (c *ChangeVideoInputTieredSwitchers) ChangeAll(input string, devices []stru
 	}
 
 	toReturn := []base.ActionStructure{}
+	count := 0
 
 	//we know it's fully reachable and we have a list of paths, now we need to go through that list and generate all the actions
 	for p := range paths {
-		as, err := c.GenerateActionsFromPath(paths[p])
+		as, err := c.GenerateActionsFromPath(paths[p], callbackEngine)
 		if err != nil {
-			return []base.ActionStructure{}, err
+			return []base.ActionStructure{}, 0, err
 		}
 
 		toReturn = append(toReturn, as...)
+		count++
 	}
 
-	return toReturn, nil
+	return toReturn, count, nil
 }
 
-func (c *ChangeVideoInputTieredSwitchers) GenerateActionsFromPath(path []inputgraph.Node) ([]base.ActionStructure, error) {
+func (c *ChangeVideoInputTieredSwitchers) GenerateActionsFromPath(path []inputgraph.Node, callbackEngine *statusevaluators.TieredSwitcherCallback) ([]base.ActionStructure, error) {
+	log.Printf("Generating actions for a path from %v to %v", path[0].ID, path[len(path)-1].ID)
 	toReturn := []base.ActionStructure{}
 
 	last := path[0]
@@ -217,26 +273,31 @@ func (c *ChangeVideoInputTieredSwitchers) GenerateActionsFromPath(path []inputgr
 		cur := path[i]
 		//we look for a path from last to cur, assuming that the change has to happen on cur. if cur is a videoswitcher we need to check for an in and out port to generate the action
 		if cur.Device.HasRole("VideoSwitcher") {
+			log.Printf("Generating action for VS %v", cur.ID)
 			//we assume we have an in and out port
-			tempAction, err := generateActionForSwitch(last, cur, path[i+1], path[len(path)-1].Device, path[0].Device.Name)
+			tempAction, err := generateActionForSwitch(last, cur, path[i+1], path[len(path)-1].Device, path[0].Device.Name, callbackEngine)
 			if err != nil {
 				return toReturn, err
 			}
 
 			toReturn = append(toReturn, tempAction)
 		} else {
-			tempAction, err := generateActionForNonSwitch(last, cur, path[len(path)-1].Device, path[0].Device.Name)
+			log.Printf("Generating action for non-vs %v", cur.ID)
+			tempAction, err := generateActionForNonSwitch(last, cur, path[len(path)-1].Device, path[0].Device.Name, callbackEngine)
 			if err != nil {
 				return toReturn, err
 			}
 			toReturn = append(toReturn, tempAction)
 		}
+
+		last = cur
+		log.Printf("Action generated.")
 	}
 
 	return toReturn, nil
 }
 
-func generateActionForNonSwitch(prev, cur inputgraph.Node, destination structs.Device, selected string) (base.ActionStructure, error) {
+func generateActionForNonSwitch(prev, cur inputgraph.Node, destination structs.Device, selected string, callbackEngine *statusevaluators.TieredSwitcherCallback) (base.ActionStructure, error) {
 
 	var in = ""
 
@@ -266,7 +327,7 @@ func generateActionForNonSwitch(prev, cur inputgraph.Node, destination structs.D
 		EventInfoValue: selected,
 	}
 
-	destStruct := statusevaluators.DestinationDevice{
+	destStruct := base.DestinationDevice{
 		Device: destination,
 	}
 
@@ -287,12 +348,13 @@ func generateActionForNonSwitch(prev, cur inputgraph.Node, destination structs.D
 		DeviceSpecific:      false,
 		Overridden:          false,
 		EventLog:            []eventinfrastructure.EventInfo{eventInfo},
+		Callback:            callbackEngine.Callback,
 	}
 	return tempAction, nil
 }
 
 //assume that cur is the videoswitcher
-func generateActionForSwitch(prev, cur, next inputgraph.Node, destination structs.Device, selected string) (base.ActionStructure, error) {
+func generateActionForSwitch(prev, cur, next inputgraph.Node, destination structs.Device, selected string, callbackEngine *statusevaluators.TieredSwitcherCallback) (base.ActionStructure, error) {
 
 	in := ""
 	out := ""
@@ -317,8 +379,9 @@ func generateActionForSwitch(prev, cur, next inputgraph.Node, destination struct
 	//we put the inX:outY in the format X:Y
 
 	m := make(map[string]string)
-	m["input"] = strings.Replace(in, "IN", "", 0)
-	m["output"] = strings.Replace(out, "OUT", "", 0)
+	m["input"] = strings.Replace(in, "IN", "", 1)
+	m["output"] = strings.Replace(out, "OUT", "", 1)
+	log.Printf("params: %v", m)
 
 	eventInfo := eventinfrastructure.EventInfo{
 		Type:           eventinfrastructure.CORESTATE,
@@ -328,7 +391,7 @@ func generateActionForSwitch(prev, cur, next inputgraph.Node, destination struct
 		EventInfoValue: selected,
 	}
 
-	destStruct := statusevaluators.DestinationDevice{
+	destStruct := base.DestinationDevice{
 		Device: destination,
 	}
 
@@ -349,6 +412,7 @@ func generateActionForSwitch(prev, cur, next inputgraph.Node, destination struct
 		DeviceSpecific:      false,
 		Overridden:          false,
 		EventLog:            []eventinfrastructure.EventInfo{eventInfo},
+		Callback:            callbackEngine.Callback,
 	}
 
 	return tempAction, nil

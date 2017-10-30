@@ -5,6 +5,7 @@ import (
 	"log"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/byuoitav/av-api/base"
 	se "github.com/byuoitav/av-api/statusevaluators"
@@ -108,7 +109,7 @@ func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse
 	return
 }
 
-func EvaluateResponses(responses []se.StatusResponse) (base.PublicRoom, error) {
+func EvaluateResponses(responses []se.StatusResponse, count int) (base.PublicRoom, error) {
 
 	color.Set(color.FgHiCyan)
 	log.Printf("[state] Evaluating responses...")
@@ -116,38 +117,84 @@ func EvaluateResponses(responses []se.StatusResponse) (base.PublicRoom, error) {
 
 	var AudioDevices []base.AudioDevice
 	var Displays []base.Display
+	doneCount := 0
+
+	//we need to create our return channel
+	returnChan := make(chan base.StatusPackage, len(responses))
 
 	//make our array of Statuses by device
 	responsesByDestinationDevice := make(map[string]se.Status)
 	for _, resp := range responses {
 
-		for key, value := range resp.Status {
+		//we do thing the old fashioned way
+		if resp.Callback == nil {
+			for key, value := range resp.Status {
+				log.Printf("[state] Checking generator: %s", resp.Generator)
+				k, v, err := se.STATUS_EVALUATORS[resp.Generator].EvaluateResponse(key, value, resp.SourceDevice, resp.DestinationDevice)
+				if err != nil {
 
-			log.Printf("[state] Checking generator: %s", resp.Generator)
-			k, v, err := se.STATUS_EVALUATORS[resp.Generator].EvaluateResponse(key, value, resp.SourceDevice, resp.DestinationDevice)
-			if err != nil {
-
-				color.Set(color.FgHiRed, color.Bold)
-				log.Printf("[state] problem procesing the response %v - %v with evaluator %v: %s",
-					key, value, resp.Generator, err.Error())
-				color.Unset()
-				continue
-			}
-
-			if _, ok := responsesByDestinationDevice[resp.DestinationDevice.GetFullName()]; ok {
-				responsesByDestinationDevice[resp.DestinationDevice.GetFullName()].Status[k] = v
-			} else {
-				newMap := make(map[string]interface{})
-				newMap[k] = v
-				statusForDevice := se.Status{
-					Status:            newMap,
-					DestinationDevice: resp.DestinationDevice,
+					color.Set(color.FgHiRed, color.Bold)
+					log.Printf("[state] problem procesing the response %v - %v with evaluator %v: %s",
+						key, value, resp.Generator, err.Error())
+					color.Unset()
+					continue
 				}
-				responsesByDestinationDevice[resp.DestinationDevice.GetFullName()] = statusForDevice
-				log.Printf("[state] Adding Device %v to the map", resp.DestinationDevice.GetFullName())
+
+				if _, ok := responsesByDestinationDevice[resp.DestinationDevice.GetFullName()]; ok {
+					responsesByDestinationDevice[resp.DestinationDevice.GetFullName()].Status[k] = v
+					doneCount++
+				} else {
+					newMap := make(map[string]interface{})
+					newMap[k] = v
+					statusForDevice := se.Status{
+						Status:            newMap,
+						DestinationDevice: resp.DestinationDevice,
+					}
+					responsesByDestinationDevice[resp.DestinationDevice.GetFullName()] = statusForDevice
+					log.Printf("[state] Adding Device %v to the map", resp.DestinationDevice.GetFullName())
+					doneCount++
+				}
+			}
+		} else {
+			//we call the callback and then wait for it to come back to us
+			for key, value := range resp.Status {
+				resp.Callback(base.StatusPackage{key, value, resp.SourceDevice, resp.DestinationDevice}, returnChan)
 			}
 		}
 	}
+
+	//start a timer to give us our timeout
+	timer := time.NewTimer(time.Second)
+	done := false
+
+	//now we wait for the timeout, or all of the responses
+	for doneCount < count && !done {
+		select {
+		case <-timer.C:
+			//get out
+			done = true
+			break
+
+		//pull something out of the response channel
+		case val := <-returnChan:
+			if _, ok := responsesByDestinationDevice[val.Dest.GetFullName()]; ok {
+				responsesByDestinationDevice[val.Dest.GetFullName()].Status[val.Key] = val.Value
+				doneCount++
+			} else {
+				newMap := make(map[string]interface{})
+				newMap[val.Key] = val.Value
+				statusForDevice := se.Status{
+					Status:            newMap,
+					DestinationDevice: val.Dest,
+				}
+				responsesByDestinationDevice[val.Dest.GetFullName()] = statusForDevice
+				log.Printf("[state] Adding Device %v to the map", val.Dest.GetFullName())
+				doneCount++
+			}
+		}
+	}
+
+	//now we carry on
 
 	for _, v := range responsesByDestinationDevice {
 		if v.DestinationDevice.AudioDevice {

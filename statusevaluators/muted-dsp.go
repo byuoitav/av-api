@@ -5,6 +5,7 @@ import (
 	"log"
 	"strconv"
 
+	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 )
@@ -86,7 +87,7 @@ func (p *MutedDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand, 
 
 }
 
-func (p *MutedDSP) EvaluateResponse(label string, value interface{}, source structs.Device, destintation DestinationDevice) (string, interface{}, error) {
+func (p *MutedDSP) EvaluateResponse(label string, value interface{}, source structs.Device, destintation base.DestinationDevice) (string, interface{}, error) {
 
 	return label, value, nil
 }
@@ -122,7 +123,7 @@ func generateMicStatusCommands(mics []structs.Device, evaluator string, command 
 
 			if port.Source == mic.Name {
 				log.Printf("Port configuration identified for mic %s and DSP %s", mic.Name, dsp[0].Name)
-				destinationDevice := DestinationDevice{
+				destinationDevice := base.DestinationDevice{
 					Device:      mic,
 					AudioDevice: true,
 				}
@@ -166,7 +167,7 @@ func generateDSPStatusCommands(dsp []structs.Device, evaluator string, command s
 
 	statusCommand := dsp[0].GetCommandByName(command)
 
-	destinationDevice := DestinationDevice{
+	destinationDevice := base.DestinationDevice{
 		Device:      dsp[0],
 		AudioDevice: true,
 	}

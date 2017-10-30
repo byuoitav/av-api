@@ -1,7 +1,6 @@
 package base
 
 import (
-	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 	ei "github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
@@ -44,15 +43,29 @@ type Display struct {
 //they've been evaluated.
 //also contains a list of Events to be published
 type ActionStructure struct {
-	Action              string               `json:"action"`
-	GeneratingEvaluator string               `json:"generatingEvaluator"`
-	Device              structs.Device       `json:"device"`
-	DestinationDevice   se.DestinationDevice `json:"destination_device"`
-	Parameters          map[string]string    `json:"parameters"`
-	DeviceSpecific      bool                 `json:"deviceSpecific,omitempty"`
-	Overridden          bool                 `json:"overridden"`
-	EventLog            []ei.EventInfo       `json:"events"`
-	Children            []*ActionStructure   `json:"children"`
+	Action              string             `json:"action"`
+	GeneratingEvaluator string             `json:"generatingEvaluator"`
+	Device              structs.Device     `json:"device"`
+	DestinationDevice   DestinationDevice  `json:"destination_device"`
+	Parameters          map[string]string  `json:"parameters"`
+	DeviceSpecific      bool               `json:"deviceSpecific,omitempty"`
+	Overridden          bool               `json:"overridden"`
+	EventLog            []ei.EventInfo     `json:"events"`
+	Children            []*ActionStructure `json:"children"`
+	Callback            func(StatusPackage, chan<- StatusPackage) error
+}
+
+type DestinationDevice struct {
+	structs.Device
+	AudioDevice bool `json:"audio"`
+	Display     bool `json:"video"`
+}
+
+type StatusPackage struct {
+	Key    string
+	Value  interface{}
+	Device structs.Device
+	Dest   DestinationDevice
 }
 
 //Equals checks if the action structures are equal

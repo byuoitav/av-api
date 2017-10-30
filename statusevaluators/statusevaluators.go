@@ -4,6 +4,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 )
 
@@ -16,7 +17,7 @@ type StatusEvaluator interface {
 	GenerateCommands(devices []structs.Device) ([]StatusCommand, error)
 
 	//Evaluate Response
-	EvaluateResponse(label string, value interface{}, Source structs.Device, Destination DestinationDevice) (string, interface{}, error)
+	EvaluateResponse(label string, value interface{}, Source structs.Device, Destination base.DestinationDevice) (string, interface{}, error)
 }
 
 //TODO: we shoud grab the keys from constants in the evaluators themselves
@@ -50,7 +51,7 @@ func generateStandardStatusCommand(devices []structs.Device, evaluatorName strin
 				parameters["address"] = device.Address
 
 				//build destination device
-				var destinationDevice DestinationDevice
+				var destinationDevice base.DestinationDevice
 				for _, role := range device.Roles {
 
 					if role == "AudioOut" {

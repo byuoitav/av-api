@@ -5,6 +5,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 )
@@ -74,7 +75,7 @@ func (p *InputDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand, 
 			realPorts := strings.Split(port.Name, ":")
 			parameters["port"] = realPorts[1]
 
-			destinationDevice := DestinationDevice{
+			destinationDevice := base.DestinationDevice{
 				Device:      dsp,
 				AudioDevice: true,
 			}
@@ -96,7 +97,7 @@ func (p *InputDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand, 
 	return commands, nil
 }
 
-func (p *InputDSP) EvaluateResponse(label string, value interface{}, source structs.Device, destination DestinationDevice) (string, interface{}, error) {
+func (p *InputDSP) EvaluateResponse(label string, value interface{}, source structs.Device, destination base.DestinationDevice) (string, interface{}, error) {
 	for _, port := range destination.Ports {
 
 		valueString, ok := value.(string)
