@@ -51,10 +51,7 @@ func (sp *SingalPathfinder) AddEdge(Device structs.Device, port string) {
 		//check to see if we have a path we can expand
 
 		//check forward path
-		val, ok := sp.ForwardPath[out.Destination]; ok {
-			val[
-
-		}
+		//val, ok := sp.ForwardPath[out.Destination]
 
 	}
 }
