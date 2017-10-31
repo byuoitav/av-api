@@ -145,3 +145,12 @@ services:
             - PI_HOSTNAME=$PI_HOSTNAME
             - EVENT_ROUTER_ADDRESS=$EVENT_ROUTER_ADDRESS
         network_mode: "host"
+    atlona-microservice:
+        image: byuoitav/atlona-microservice:${DOCKER_HUB_TAG}
+        ports:
+            - "8015:8015"
+        environment:
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+        network_mode: "host"
+        restart: always
+        tty: true
