@@ -126,6 +126,10 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 
 	callbackEngine.InChan = make(chan base.StatusPackage, len(actions))
 	callbackEngine.ExpectedCount = count
+	callbackEngine.ExpectedActionCount = len(actions)
+	callbackEngine.Devices = devices
+
+	go callbackEngine.StartAggregator()
 
 	//otherwise we go thoguh the list of devices, if there's an 'input' command we check the reachability graph and then build the actions necessary.
 
