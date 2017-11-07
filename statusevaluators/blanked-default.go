@@ -17,7 +17,7 @@ func (p *BlankedDefault) GetDevices(room structs.Room) ([]structs.Device, error)
 	return room.Devices, nil
 }
 
-func (p *BlankedDefault) GenerateCommands(devices []structs.Device) ([]StatusCommand, error) {
+func (p *BlankedDefault) GenerateCommands(devices []structs.Device) ([]StatusCommand, int, error) {
 	return generateStandardStatusCommand(devices, BlankedDefaultName, BlankedDefaultCommandName)
 }
 func (p *BlankedDefault) EvaluateResponse(label string, value interface{}, Source structs.Device, dest base.DestinationDevice) (string, interface{}, error) {

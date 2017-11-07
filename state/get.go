@@ -14,13 +14,14 @@ import (
 	"github.com/fatih/color"
 )
 
-func GenerateStatusCommands(room structs.Room, commandMap map[string]se.StatusEvaluator) ([]se.StatusCommand, error) {
+func GenerateStatusCommands(room structs.Room, commandMap map[string]se.StatusEvaluator) ([]se.StatusCommand, int, error) {
 
 	color.Set(color.FgHiCyan)
 	log.Printf("[state] generating status commands...")
 	color.Unset()
 
 	var output []se.StatusCommand
+	var count int
 
 	for _, possibleEvaluator := range room.Configuration.Evaluators {
 
@@ -28,21 +29,23 @@ func GenerateStatusCommands(room structs.Room, commandMap map[string]se.StatusEv
 
 			currentEvaluator := se.STATUS_EVALUATORS[possibleEvaluator.EvaluatorKey]
 
+			//we can get the number of output devices here
 			devices, err := currentEvaluator.GetDevices(room)
 			if err != nil {
-				return []se.StatusCommand{}, err
+				return []se.StatusCommand{}, 0, err
 			}
 
-			commands, err := currentEvaluator.GenerateCommands(devices)
+			//we get the number of commands here
+			commands, c, err := currentEvaluator.GenerateCommands(devices)
 			if err != nil {
-				return []se.StatusCommand{}, err
+				return []se.StatusCommand{}, 0, err
 			}
-
+			count += c
 			output = append(output, commands...)
 		}
 	}
 
-	return output, nil
+	return output, count, nil
 }
 
 func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse, err error) {

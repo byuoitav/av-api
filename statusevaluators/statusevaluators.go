@@ -14,7 +14,7 @@ type StatusEvaluator interface {
 	GetDevices(room structs.Room) ([]structs.Device, error)
 
 	//Generates action list
-	GenerateCommands(devices []structs.Device) ([]StatusCommand, error)
+	GenerateCommands(devices []structs.Device) ([]StatusCommand, int, error)
 
 	//Evaluate Response
 	EvaluateResponse(label string, value interface{}, Source structs.Device, Destination base.DestinationDevice) (string, interface{}, error)
@@ -31,9 +31,13 @@ var STATUS_EVALUATORS = map[string]StatusEvaluator{
 	"STATUS_InputDSP":           &InputDSP{},
 	"STATUS_MutedDSP":           &MutedDSP{},
 	"STATUS_VolumeDSP":          &VolumeDSP{},
+	"STATUS_Tiered_Switching":   &InputTieredSwitcher{},
 }
 
-func generateStandardStatusCommand(devices []structs.Device, evaluatorName string, commandName string) ([]StatusCommand, error) {
+func generateStandardStatusCommand(devices []structs.Device, evaluatorName string, commandName string) ([]StatusCommand, int, error) {
+
+	var count int
+
 	log.Printf("Generating status commands from %v", evaluatorName)
 	var output []StatusCommand
 
@@ -74,12 +78,13 @@ func generateStandardStatusCommand(devices []structs.Device, evaluatorName strin
 					DestinationDevice: destinationDevice,
 					Generator:         evaluatorName,
 				})
+				count++
 
 			}
 
 		}
 
 	}
-	return output, nil
+	return output, count, nil
 
 }
