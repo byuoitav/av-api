@@ -20,7 +20,8 @@ func GetRoomState(building string, roomName string) (base.PublicRoom, error) {
 		return base.PublicRoom{}, err
 	}
 
-	commands, err := GenerateStatusCommands(room, statusevaluators.STATUS_EVALUATORS)
+	//we get the number of actions generated
+	commands, count, err := GenerateStatusCommands(room, statusevaluators.STATUS_EVALUATORS)
 	if err != nil {
 		return base.PublicRoom{}, err
 	}
@@ -30,7 +31,7 @@ func GetRoomState(building string, roomName string) (base.PublicRoom, error) {
 		return base.PublicRoom{}, err
 	}
 
-	roomStatus, err := EvaluateResponses(responses, 0)
+	roomStatus, err := EvaluateResponses(responses, count)
 	if err != nil {
 		return base.PublicRoom{}, err
 	}

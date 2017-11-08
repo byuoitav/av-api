@@ -17,7 +17,7 @@ func (p *InputDefault) GetDevices(room structs.Room) ([]structs.Device, error) {
 	return room.Devices, nil
 }
 
-func (p *InputDefault) GenerateCommands(devices []structs.Device) ([]StatusCommand, error) {
+func (p *InputDefault) GenerateCommands(devices []structs.Device) ([]StatusCommand, int, error) {
 	return generateStandardStatusCommand(devices, DEFAULT_INPUT_EVALUATOR, DEFAULT_INPUT_COMMAND)
 }
 

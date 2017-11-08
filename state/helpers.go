@@ -37,6 +37,7 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 		log.Printf("Command: %s against device %s, destination device: %s, parameters: %v", command.Action.Name, command.Device.Name, command.DestinationDevice.Device.Name, command.Parameters)
 
 		output := se.StatusResponse{
+			Callback:          command.Callback,
 			Generator:         command.Generator,
 			SourceDevice:      command.Device,
 			DestinationDevice: command.DestinationDevice,

@@ -19,7 +19,7 @@ func (p *InputVideoSwitcher) GetDevices(room structs.Room) ([]structs.Device, er
 	return room.Devices, nil
 }
 
-func (p *InputVideoSwitcher) GenerateCommands(devices []structs.Device) ([]StatusCommand, error) {
+func (p *InputVideoSwitcher) GenerateCommands(devices []structs.Device) ([]StatusCommand, int, error) {
 	log.Printf("Generating status commands from STATUS_Video_Switcher")
 
 	//first thing is to get the video switcher in the room
@@ -60,6 +60,8 @@ func (p *InputVideoSwitcher) GenerateCommands(devices []structs.Device) ([]Statu
 		log.Printf("No video switcher found in the room, generating standard commands")
 		return generateStandardStatusCommand(devices, DEFAULT_INPUT_EVALUATOR, DEFAULT_INPUT_COMMAND)
 	}
+
+	var count int
 
 	//this isn't going to be standard
 	for _, device := range devices {
@@ -114,11 +116,11 @@ func (p *InputVideoSwitcher) GenerateCommands(devices []structs.Device) ([]Statu
 			DestinationDevice: destinationDevice,
 			Parameters:        parameters,
 		})
-
+		count++
 	}
 	log.Printf("Done.")
 
-	return statusCommands, nil
+	return statusCommands, count, nil
 }
 
 func (p *InputVideoSwitcher) EvaluateResponse(label string, value interface{}, source structs.Device, dest base.DestinationDevice) (string, interface{}, error) {

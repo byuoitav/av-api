@@ -20,7 +20,7 @@ func (p *InputDSP) GetDevices(room structs.Room) ([]structs.Device, error) {
 	return room.Devices, nil
 }
 
-func (p *InputDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand, error) {
+func (p *InputDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand, int, error) {
 
 	var audioDevices, dsps []structs.Device
 	for _, device := range devices {
@@ -37,16 +37,16 @@ func (p *InputDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand, 
 	}
 
 	//business as usual for audioDevices
-	commands, err := generateStandardStatusCommand(audioDevices, INPUT_DSP, STATUS_INPUT_DSP)
+	commands, count, err := generateStandardStatusCommand(audioDevices, INPUT_DSP, STATUS_INPUT_DSP)
 	if err != nil {
 		errorMessage := "Could not generate audio device status commands: " + err.Error()
 		log.Printf(errorMessage)
-		return []StatusCommand{}, errors.New(errorMessage)
+		return []StatusCommand{}, 0, errors.New(errorMessage)
 	}
 
 	//validate DSP configuration
 	if dsps == nil || len(dsps) != 1 {
-		return []StatusCommand{}, errors.New("Invalid DSP configuration detected")
+		return []StatusCommand{}, 0, errors.New("Invalid DSP configuration detected")
 	}
 
 	dsp := dsps[0]
@@ -57,12 +57,12 @@ func (p *InputDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand, 
 	if err != nil {
 		errorMessage := "Could not get video switcher in building: " + dsp.Building.Shortname + ", room: " + dsp.Room.Name + "" + err.Error()
 		log.Printf(errorMessage)
-		return []StatusCommand{}, errors.New(errorMessage)
+		return []StatusCommand{}, 0, errors.New(errorMessage)
 	}
 
 	//validate number of switchers
 	if switchers == nil || len(switchers) != 1 {
-		return []StatusCommand{}, errors.New("Invalid video switcher configuration detected")
+		return []StatusCommand{}, 0, errors.New("Invalid video switcher configuration detected")
 	}
 
 	for _, port := range switchers[0].Ports {
@@ -92,9 +92,10 @@ func (p *InputDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand, 
 
 			commands = append(commands, statusCommand)
 		}
+		count++
 	}
 
-	return commands, nil
+	return commands, count, nil
 }
 
 func (p *InputDSP) EvaluateResponse(label string, value interface{}, source structs.Device, destination base.DestinationDevice) (string, interface{}, error) {
