@@ -3,6 +3,7 @@ package statusevaluators
 import (
 	"log"
 
+	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 )
 
@@ -16,10 +17,10 @@ func (p *BlankedDefault) GetDevices(room structs.Room) ([]structs.Device, error)
 	return room.Devices, nil
 }
 
-func (p *BlankedDefault) GenerateCommands(devices []structs.Device) ([]StatusCommand, error) {
+func (p *BlankedDefault) GenerateCommands(devices []structs.Device) ([]StatusCommand, int, error) {
 	return generateStandardStatusCommand(devices, BlankedDefaultName, BlankedDefaultCommandName)
 }
-func (p *BlankedDefault) EvaluateResponse(label string, value interface{}, Source structs.Device, dest DestinationDevice) (string, interface{}, error) {
+func (p *BlankedDefault) EvaluateResponse(label string, value interface{}, Source structs.Device, dest base.DestinationDevice) (string, interface{}, error) {
 	log.Printf("Evaluating response: %s, %s in evaluator %v", label, value, BlankedDefaultName)
 	return label, value, nil
 }

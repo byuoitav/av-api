@@ -27,7 +27,7 @@ type ActionReconciler interface {
 	   The ActionStructure elements will be evaluated (executed) in the order returned
 	   from Reconcile.
 	*/
-	Reconcile([]base.ActionStructure) ([]base.ActionStructure, error)
+	Reconcile([]base.ActionStructure, int) ([]base.ActionStructure, int, error)
 }
 
 //reconcilerMap is a singleton that maps known keys to their reconciler struct.
@@ -48,7 +48,7 @@ func Init() map[string]ActionReconciler {
 	return reconcilerMap
 }
 
-func StandardReconcile(device int, actions []base.ActionStructure) ([]base.ActionStructure, error) {
+func StandardReconcile(device int, inCount int, actions []base.ActionStructure) ([]base.ActionStructure, int, error) {
 
 	color.Set(color.FgHiMagenta)
 	log.Printf("[reconciler] performing standard reconcile...")
@@ -100,18 +100,19 @@ func StandardReconcile(device int, actions []base.ActionStructure) ([]base.Actio
 				if !baseAction.DeviceSpecific && incompatibleBaseAction.DeviceSpecific {
 					log.Printf("%s is a device specific command. Overriding %s in favor of device-specific command %s.",
 						incompatibleBaseAction.Action, baseAction.Action, incompatibleBaseAction.Action)
+					inCount--
 					baseAction.Overridden = true
 
 				} else if baseAction.DeviceSpecific && !incompatibleBaseAction.DeviceSpecific {
 					log.Printf("%s is a device specific command. Overriding %s in favor of device-specific command %s.",
 						baseAction.Action, incompatibleBaseAction.Action, baseAction.Action)
-
+					inCount--
 					incompatibleBaseAction.Overridden = true
 				} else {
 					errorString := incompatibleAction + " is an incompatible action with " + incompatibleBaseAction.Action + " for device with ID: " +
 						string(device)
 					log.Printf("%s", errorString)
-					return []base.ActionStructure{}, errors.New(errorString)
+					return []base.ActionStructure{}, 0, errors.New(errorString)
 				}
 			}
 		}
@@ -129,5 +130,5 @@ func StandardReconcile(device int, actions []base.ActionStructure) ([]base.Actio
 	log.Printf("[reconciler] actions after standard reconcile: %s", buffer.String())
 	//=====================================================================================================================================================
 
-	return actions, nil
+	return actions, inCount, nil
 }

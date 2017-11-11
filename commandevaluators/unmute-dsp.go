@@ -19,14 +19,13 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
-	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 	ei "github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
 type UnMuteDSP struct{}
 
-func (p *UnMuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, error) {
+func (p *UnMuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 
 	log.Printf("Evaluating PUT body for UNMUTE command in DSP context...")
 
@@ -45,7 +44,7 @@ func (p *UnMuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Act
 		if err != nil {
 			errorMessage := "Could not generate actions for room-wide \"UnMute\" request: " + err.Error()
 			log.Printf(errorMessage)
-			return []base.ActionStructure{}, errors.New(errorMessage)
+			return []base.ActionStructure{}, 0, errors.New(errorMessage)
 		}
 
 		actions = append(actions, generalActions...)
@@ -66,7 +65,7 @@ func (p *UnMuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Act
 
 					action, err := GetMicUnMuteAction(device, room, eventInfo)
 					if err != nil {
-						return []base.ActionStructure{}, err
+						return []base.ActionStructure{}, 0, err
 					}
 
 					actions = append(actions, action)
@@ -75,7 +74,7 @@ func (p *UnMuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Act
 
 					action, err := GetDSPMediaUnMuteAction(device, room, eventInfo, true)
 					if err != nil {
-						return []base.ActionStructure{}, err
+						return []base.ActionStructure{}, 0, err
 					}
 
 					actions = append(actions, action...)
@@ -84,7 +83,7 @@ func (p *UnMuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Act
 
 					action, err := GetDisplayUnMuteAction(device, room, eventInfo, true)
 					if err != nil {
-						return []base.ActionStructure{}, err
+						return []base.ActionStructure{}, 0, err
 					}
 
 					actions = append(actions, action)
@@ -92,7 +91,7 @@ func (p *UnMuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Act
 				} else { //bad device
 					errorMessage := "Cannot set volume of device " + device.Name
 					log.Printf(errorMessage)
-					return []base.ActionStructure{}, errors.New(errorMessage)
+					return []base.ActionStructure{}, 0, errors.New(errorMessage)
 				}
 			}
 		}
@@ -101,7 +100,7 @@ func (p *UnMuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Act
 	log.Printf("%s actions generated.", len(actions))
 	log.Printf("Evaluation complete.")
 
-	return actions, nil
+	return actions, len(actions), nil
 }
 
 func (p *UnMuteDSP) Validate(base.ActionStructure) error {
@@ -171,7 +170,7 @@ func GetMicUnMuteAction(mic structs.Device, room base.PublicRoom, eventInfo ei.E
 
 	log.Printf("Generating action for command \"UnMute\" on microphone %s", mic.Name)
 
-	destination := se.DestinationDevice{
+	destination := base.DestinationDevice{
 		Device:      mic,
 		AudioDevice: true,
 	}
@@ -219,7 +218,7 @@ func GetMicUnMuteAction(mic structs.Device, room base.PublicRoom, eventInfo ei.E
 func GetDSPMediaUnMuteAction(dsp structs.Device, room base.PublicRoom, eventInfo ei.EventInfo, deviceSpecific bool) ([]base.ActionStructure, error) {
 	toReturn := []base.ActionStructure{}
 
-	destination := se.DestinationDevice{
+	destination := base.DestinationDevice{
 		Device:      dsp,
 		AudioDevice: true,
 	}
@@ -266,7 +265,7 @@ func GetDisplayUnMuteAction(device structs.Device, room base.PublicRoom, eventIn
 
 	eventInfo.Device = device.Name
 
-	destination := se.DestinationDevice{
+	destination := base.DestinationDevice{
 		Device:      device,
 		AudioDevice: true,
 	}

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 
+	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 )
 
@@ -17,7 +18,7 @@ func (p *VolumeDSP) GetDevices(room structs.Room) ([]structs.Device, error) {
 	return room.Devices, nil
 }
 
-func (p *VolumeDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand, error) {
+func (p *VolumeDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand, int, error) {
 
 	var audioDevices, mics, dsp []structs.Device
 
@@ -42,35 +43,37 @@ func (p *VolumeDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand,
 		}
 	}
 
-	commands, err := generateStandardStatusCommand(audioDevices, VOLUME_DSP, VolumeDefaultCommandName)
+	commands, count, err := generateStandardStatusCommand(audioDevices, VOLUME_DSP, VolumeDefaultCommandName)
 	if err != nil {
 		errorMessage := "Could not generate " + STATUS_VOLUME_DSP + "commands for audio devices: " + err.Error()
 		log.Printf(errorMessage)
-		return []StatusCommand{}, errors.New(errorMessage)
+		return []StatusCommand{}, 0, errors.New(errorMessage)
 	}
 
-	micCommands, err := generateMicStatusCommands(mics, VOLUME_DSP, STATUS_VOLUME_DSP)
+	micCommands, c, err := generateMicStatusCommands(mics, VOLUME_DSP, STATUS_VOLUME_DSP)
 	if err != nil {
 		errorMessage := "Could not generate " + STATUS_VOLUME_DSP + "commands for microphones: " + err.Error()
 		log.Printf(errorMessage)
-		return []StatusCommand{}, errors.New(errorMessage)
+		return []StatusCommand{}, 0, errors.New(errorMessage)
 	}
 
+	count += c
 	commands = append(commands, micCommands...)
 
-	dspCommands, err := generateDSPStatusCommands(dsp, VOLUME_DSP, STATUS_VOLUME_DSP)
+	dspCommands, c, err := generateDSPStatusCommands(dsp, VOLUME_DSP, STATUS_VOLUME_DSP)
 	if err != nil {
 		errorMessage := "Could not generate " + STATUS_VOLUME_DSP + "commands for DSP: " + err.Error()
 		log.Printf(errorMessage)
-		return []StatusCommand{}, errors.New(errorMessage)
+		return []StatusCommand{}, 0, errors.New(errorMessage)
 	}
 
+	count += c
 	commands = append(commands, dspCommands...)
 
-	return commands, nil
+	return commands, count, nil
 }
 
-func (p *VolumeDSP) EvaluateResponse(label string, value interface{}, source structs.Device, destination DestinationDevice) (string, interface{}, error) {
+func (p *VolumeDSP) EvaluateResponse(label string, value interface{}, source structs.Device, destination base.DestinationDevice) (string, interface{}, error) {
 
 	const SCALE_FACTOR = 3
 	const MINIMUM = 45

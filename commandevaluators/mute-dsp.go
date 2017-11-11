@@ -17,14 +17,13 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
-	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 	ei "github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
 type MuteDSP struct{}
 
-func (p *MuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, error) {
+func (p *MuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 
 	log.Printf("Evaluating PUT body for \"Mute\" command in DSP context...")
 
@@ -38,7 +37,7 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Actio
 		Requestor:      requestor,
 	}
 
-	destination := se.DestinationDevice{
+	destination := base.DestinationDevice{
 		AudioDevice: true,
 	}
 
@@ -48,7 +47,7 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Actio
 		if err != nil {
 			errorMessage := "Could not generate actions for room-wide \"Mute\" request: " + err.Error()
 			log.Printf(errorMessage)
-			return []base.ActionStructure{}, errors.New(errorMessage)
+			return []base.ActionStructure{}, 0, errors.New(errorMessage)
 		}
 
 		actions = append(actions, generalActions...)
@@ -73,7 +72,7 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Actio
 
 				action, err := GetMicMuteAction(device, room, eventInfo)
 				if err != nil {
-					return []base.ActionStructure{}, err
+					return []base.ActionStructure{}, 0, err
 				}
 
 				actions = append(actions, action)
@@ -82,7 +81,7 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Actio
 
 				dspActions, err := GetDSPMediaMuteAction(device, room, eventInfo, true)
 				if err != nil {
-					return []base.ActionStructure{}, err
+					return []base.ActionStructure{}, 0, err
 				}
 
 				actions = append(actions, dspActions...)
@@ -91,7 +90,7 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Actio
 
 				action, err := GetDisplayMuteAction(device, room, eventInfo, true)
 				if err != nil {
-					return []base.ActionStructure{}, err
+					return []base.ActionStructure{}, 0, err
 				}
 
 				actions = append(actions, action)
@@ -99,7 +98,7 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Actio
 			} else { //bad device
 				errorMessage := "Cannot set volume of device " + device.Name
 				log.Printf(errorMessage)
-				return []base.ActionStructure{}, errors.New(errorMessage)
+				return []base.ActionStructure{}, 0, errors.New(errorMessage)
 			}
 		}
 	}
@@ -107,7 +106,7 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Actio
 	log.Printf("%s actions generated.", len(actions))
 	log.Printf("Evaluation complete.")
 
-	return actions, nil
+	return actions, len(actions), nil
 
 }
 
@@ -122,7 +121,7 @@ func (p *MuteDSP) GetIncompatibleCommands() []string {
 
 //assumes only one DSP, but allows for the possiblity of multiple devices not routed through the DSP
 //room-wide mute requests DO NOT include mics
-func GetGeneralMuteRequestActionsDSP(room base.PublicRoom, eventInfo ei.EventInfo, destination se.DestinationDevice) ([]base.ActionStructure, error) {
+func GetGeneralMuteRequestActionsDSP(room base.PublicRoom, eventInfo ei.EventInfo, destination base.DestinationDevice) ([]base.ActionStructure, error) {
 
 	log.Printf("Generating actions for room-wide \"Mute\" request")
 
@@ -175,7 +174,7 @@ func GetMicMuteAction(mic structs.Device, room base.PublicRoom, eventInfo ei.Eve
 
 	log.Printf("Generating action for command \"Mute\" on microphone %s", mic.Name)
 
-	destination := se.DestinationDevice{
+	destination := base.DestinationDevice{
 		Device:      mic,
 		AudioDevice: true,
 	}
@@ -239,7 +238,7 @@ func GetDSPMediaMuteAction(dsp structs.Device, room base.PublicRoom, eventInfo e
 
 		if !sourceDevice.HasRole("Microphone") {
 
-			destination := se.DestinationDevice{
+			destination := base.DestinationDevice{
 				Device:      dsp,
 				AudioDevice: true,
 			}
@@ -268,7 +267,7 @@ func GetDisplayMuteAction(device structs.Device, room base.PublicRoom, eventInfo
 
 	eventInfo.Device = device.Name
 
-	destination := se.DestinationDevice{
+	destination := base.DestinationDevice{
 		Device:      device,
 		AudioDevice: true,
 	}
