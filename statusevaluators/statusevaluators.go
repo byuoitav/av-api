@@ -4,6 +4,7 @@ import (
 	"log"
 	"strings"
 
+	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 )
 
@@ -13,10 +14,10 @@ type StatusEvaluator interface {
 	GetDevices(room structs.Room) ([]structs.Device, error)
 
 	//Generates action list
-	GenerateCommands(devices []structs.Device) ([]StatusCommand, error)
+	GenerateCommands(devices []structs.Device) ([]StatusCommand, int, error)
 
 	//Evaluate Response
-	EvaluateResponse(label string, value interface{}, Source structs.Device, Destination DestinationDevice) (string, interface{}, error)
+	EvaluateResponse(label string, value interface{}, Source structs.Device, Destination base.DestinationDevice) (string, interface{}, error)
 }
 
 //TODO: we shoud grab the keys from constants in the evaluators themselves
@@ -30,9 +31,13 @@ var STATUS_EVALUATORS = map[string]StatusEvaluator{
 	"STATUS_InputDSP":           &InputDSP{},
 	"STATUS_MutedDSP":           &MutedDSP{},
 	"STATUS_VolumeDSP":          &VolumeDSP{},
+	"STATUS_Tiered_Switching":   &InputTieredSwitcher{},
 }
 
-func generateStandardStatusCommand(devices []structs.Device, evaluatorName string, commandName string) ([]StatusCommand, error) {
+func generateStandardStatusCommand(devices []structs.Device, evaluatorName string, commandName string) ([]StatusCommand, int, error) {
+
+	var count int
+
 	log.Printf("Generating status commands from %v", evaluatorName)
 	var output []StatusCommand
 
@@ -50,7 +55,7 @@ func generateStandardStatusCommand(devices []structs.Device, evaluatorName strin
 				parameters["address"] = device.Address
 
 				//build destination device
-				var destinationDevice DestinationDevice
+				var destinationDevice base.DestinationDevice
 				for _, role := range device.Roles {
 
 					if role == "AudioOut" {
@@ -73,12 +78,13 @@ func generateStandardStatusCommand(devices []structs.Device, evaluatorName strin
 					DestinationDevice: destinationDevice,
 					Generator:         evaluatorName,
 				})
+				count++
 
 			}
 
 		}
 
 	}
-	return output, nil
+	return output, count, nil
 
 }

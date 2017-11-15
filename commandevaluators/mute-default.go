@@ -8,7 +8,6 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
@@ -20,13 +19,13 @@ type MuteDefault struct {
  	Evalute takes a public room struct, scans the struct and builds any needed
 	actions based on the contents of the struct.
 */
-func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, error) {
+func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 
 	log.Printf("Evaluating for Mute command.")
 
 	var actions []base.ActionStructure
 
-	destination := statusevaluators.DestinationDevice{
+	destination := base.DestinationDevice{
 		AudioDevice: true,
 	}
 
@@ -44,7 +43,7 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 
 		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "AudioOut")
 		if err != nil {
-			return []base.ActionStructure{}, err
+			return []base.ActionStructure{}, 0, err
 		}
 
 		log.Printf("Muting all devices in room.")
@@ -82,7 +81,7 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 			//get the device
 			device, err := dbo.GetDeviceByName(room.Building, room.Room, audioDevice.Name)
 			if err != nil {
-				return []base.ActionStructure{}, err
+				return []base.ActionStructure{}, 0, err
 			}
 
 			eventInfo.Device = device.Name
@@ -101,7 +100,7 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 
 	}
 
-	return actions, nil
+	return actions, len(actions), nil
 
 }
 

@@ -7,7 +7,6 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
-	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 	"github.com/fatih/color"
@@ -18,7 +17,8 @@ type PowerOnDefault struct {
 }
 
 // Evaluate fulfills the CommmandEvaluation evaluate requirement.
-func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actions []base.ActionStructure, err error) {
+func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actions []base.ActionStructure, count int, err error) {
+	count = 0
 
 	log.Printf("Evaluating for PowerOn command.")
 	color.Set(color.FgYellow, color.Bold)
@@ -49,7 +49,7 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 
 			if device.Output {
 
-				destination := se.DestinationDevice{
+				destination := base.DestinationDevice{
 					Device: device,
 				}
 
@@ -99,6 +99,7 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 	log.Printf("%v actions generated.", len(actions))
 	log.Printf("Evaluation complete.")
 
+	count = len(actions)
 	return
 }
 
@@ -146,7 +147,7 @@ func (p *PowerOnDefault) evaluateDevice(device base.Device,
 				return actions, err
 			}
 
-			destination := se.DestinationDevice{
+			destination := base.DestinationDevice{
 				Device: dev,
 			}
 
