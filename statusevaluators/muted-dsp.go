@@ -102,7 +102,9 @@ func generateMicStatusCommands(mics []structs.Device, evaluator string, command 
 
 	if len(mics) == 0 {
 		errorMessage := "No mics"
-		return []StatusCommand{}, 0, errors.New(errorMessage)
+
+		log.Printf(errorMessage)
+		return []StatusCommand{}, 0, nil
 	}
 
 	dsp, err := dbo.GetDevicesByBuildingAndRoomAndRole(mics[0].Building.Shortname, mics[0].Room.Name, "DSP")
