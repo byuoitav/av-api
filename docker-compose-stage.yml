@@ -1,20 +1,20 @@
-version: '3'
+version: '2'
 services:
     av-api:
-        image: byuoitav/av-api:${DOCKER_HUB_TAG}
+        image: byuoitav/av-api:stage
         ports:
             - "8000:8000"
         environment:
             - PI_HOSTNAME=$PI_HOSTNAME
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
-            - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
+            - ELASTIC_API_EVENTS=$ELASTIC_API_EVENTS
             - EVENT_ROUTER_ADDRESS=$EVENT_ROUTER_ADDRESS
         network_mode: "host"
         restart: always
         tty: true
     pjlink-microservice:
-        image: byuoitav/pjlink-microservice:${DOCKER_HUB_TAG}
+        image: byuoitav/pjlink-microservice:stage
         ports:
             - "8005:8005"
         environment:
@@ -25,7 +25,7 @@ services:
         restart: always
         tty: true
     configuration-database-microservice:
-        image: byuoitav/configuration-database-microservice:${DOCKER_HUB_TAG}
+        image: byuoitav/configuration-database-microservice:stage
         ports:
             - "8006:8006"
         environment:
@@ -39,7 +39,7 @@ services:
         restart: always
         tty: true
     sony-control-microservice:
-        image: byuoitav/sony-control-microservice:${DOCKER_HUB_TAG}
+        image: byuoitav/sony-control-microservice:stage
         ports:
             - "8007:8007"
         environment:
@@ -49,7 +49,7 @@ services:
         restart: always
         tty: true
     london-audio-microservice:
-        image: byuoitav/london-audio-microservice:${DOCKER_HUB_TAG}
+        image: byuoitav/london-audio-microservice:stage
         ports:
             - "8009:8009"
         environment:
@@ -58,7 +58,7 @@ services:
         restart: always
         tty: true
     pulse-eight-neo-microservice:
-        image: byuoitav/pulse-eight-neo-microservice:${DOCKER_HUB_TAG}
+        image: byuoitav/pulse-eight-neo-microservice:stage
         ports:
             - "8011:8011"
         environment:
@@ -67,7 +67,7 @@ services:
         restart: always
         tty: true
     kramer-microservice:
-        image: byuoitav/kramer-microservice:${DOCKER_HUB_TAG}
+        image: byuoitav/kramer-microservice:stage
         ports:
             - "8014:8014"
         environment:
@@ -76,7 +76,7 @@ services:
         restart: always
         tty: true
     adcp-control-microservice:
-        image: byuoitav/adcp-control-microservice:${DOCKER_HUB_TAG}
+        image: byuoitav/adcp-control-microservice:stage
         ports:
             - "8012:8012"
         environment:
@@ -85,72 +85,64 @@ services:
         restart: always
         tty: true
     touchpanel-ui-microservice:
-        image: byuoitav/touchpanel-ui-microservice:${DOCKER_HUB_TAG}
+        image: byuoitav/touchpanel-ui-microservice:stage
         ports:
             - "8888:8888"
         environment:
             - PI_HOSTNAME=$PI_HOSTNAME
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - HELP_SLACKBOT_WEBHOOK=$HELP_SLACKBOT_WEBHOOK
-            - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
             - UI_CONFIGURATION_ADDRESS=$UI_CONFIGURATION_ADDRESS
             - EVENT_ROUTER_ADDRESS=$EVENT_ROUTER_ADDRESS
         network_mode: "host"
         restart: always
         tty: true
-    configuration-database-tool:
-        image: byuoitav/configuration-database-tool:${DOCKER_HUB_TAG}
-        ports:
-            - "9999:9999"
-        environment:
-            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
-            - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
-        network_mode: "host"
-        restart: always
-        tty: true
     event-router-microservice:
-        image: byuoitav/event-router-microservice:${DOCKER_HUB_TAG}
+        image: byuoitav/event-router-microservice:stage
         ports:
             - "7000:7000"
         environment:
             - PI_HOSTNAME=$PI_HOSTNAME
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
-            - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
             - EVENT_NODE_ADDRESSES=$EVENT_NODE_ADDRESSES
         network_mode: "host"
+        restart: "always"
         tty: true
     event-translator-microservice:
-        image: byuoitav/event-translator-microservice:${DOCKER_HUB_TAG}
+        image: byuoitav/event-translator-microservice:stage
         ports:
             - "7002:7002"
         environment:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - ELASTIC_API_EVENTS=$ELASTIC_API_EVENTS
-            - ELASTIC_API_EVENTS_DEV=$ELASTIC_API_EVENTS_DEV
-            - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
             - EVENT_ROUTER_ADDRESS=$EVENT_ROUTER_ADDRESS
         network_mode: "host"
+        restart: "always"
+        tty: true
+    device-monitoring-microservice:
+        image: byuoitav/device-monitoring-microservice:stage
+        ports:
+            - "10000:10000"
+        environment:
+            - PI_HOSTNAME=$PI_HOSTNAME
+            - DEVICE_PING_INTERVAL=$DEVICE_PING_INTERVAL
+            - ELASTIC_API_EVENTS=$ELASTIC_API_EVENTS
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+            - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
+            - EVENT_ROUTER_ADDRESS=$EVENT_ROUTER_ADDRESS
+        network_mode: "host"
+        restart: "always"
         tty: true
     shure-audio-microservice:
-        image: byuoitav/shure-audio-microservice:${DOCKER_HUB_TAG}
+        image: byuoitav/shure-audio-microservice:stage
         ports:
             - "8013:8013"
         environment:
-            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - ELASTIC_API_EVENTS=$ELASTIC_API_EVENTS
-            - ELASTIC_API_EVENTS_DEV=$ELASTIC_API_EVENTS_DEV
-            - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
-            - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - PI_HOSTNAME=$PI_HOSTNAME
+            - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
             - EVENT_ROUTER_ADDRESS=$EVENT_ROUTER_ADDRESS
         network_mode: "host"
-    atlona-microservice:
-        image: byuoitav/atlona-microservice:${DOCKER_HUB_TAG}
-        ports:
-            - "8015:8015"
-        environment:
-            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
-        network_mode: "host"
-        restart: always
-        tty: true
+        restart: "always"

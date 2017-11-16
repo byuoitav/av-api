@@ -8,15 +8,6 @@ import (
 	"github.com/byuoitav/configuration-database-microservice/structs"
 )
 
-//CommandExecutionReporting is a struct we use to keep track of command execution
-//for reporting to the user.
-type CommandExecutionReporting struct {
-	Success bool   `json:"success"`
-	Action  string `json:"action"`
-	Device  string `json:"device"`
-	Err     string `json:"error,omitempty"`
-}
-
 /*
 CommandEvaluator is an interface that must be implemented for each command to be
 evaluated.
@@ -24,9 +15,10 @@ evaluated.
 type CommandEvaluator interface {
 	/*
 		 	Evalute takes a public room struct, scans the struct and builds any needed
-			actions based on the contents of the struct.
+			actions based on the contents of the struct. It also returns the number of status
+			that will be needed
 	*/
-	Evaluate(base.PublicRoom, string) ([]base.ActionStructure, error)
+	Evaluate(base.PublicRoom, string) ([]base.ActionStructure, int, error)
 	/*
 		  Validate takes an action structure (for the command) and validates
 			that the device and parameter are valid for the command.
@@ -86,18 +78,19 @@ func getKeyValueFromCommmand(action base.ActionStructure) []string {
 
 //soft singleton command map
 var EVALUATORS = map[string]CommandEvaluator{
-	"PowerOnDefault":                &PowerOnDefault{},
-	"StandbyDefault":                &StandbyDefault{},
-	"ChangeVideoInputDefault":       &ChangeVideoInputDefault{},
-	"ChangeAudioInputDefault":       &ChangeAudioInputDefault{},
-	"ChangeVideoInputVideoSwitcher": &ChangeVideoInputVideoSwitcher{},
-	"BlankDisplayDefault":           &BlankDisplayDefault{},
-	"UnBlankDisplayDefault":         &UnBlankDisplayDefault{},
-	"MuteDefault":                   &MuteDefault{},
-	"UnMuteDefault":                 &UnMuteDefault{},
-	"SetVolumeDefault":              &SetVolumeDefault{},
-	"SetVolumeTecLite":              &SetVolumeTecLite{},
-	"MuteDSP":                       &MuteDSP{},
-	"UnmuteDSP":                     &UnMuteDSP{},
-	"SetVolumeDSP":                  &SetVolumeDSP{},
+	"PowerOnDefault":                 &PowerOnDefault{},
+	"StandbyDefault":                 &StandbyDefault{},
+	"ChangeVideoInputDefault":        &ChangeVideoInputDefault{},
+	"ChangeAudioInputDefault":        &ChangeAudioInputDefault{},
+	"ChangeVideoInputVideoSwitcher":  &ChangeVideoInputVideoSwitcher{},
+	"BlankDisplayDefault":            &BlankDisplayDefault{},
+	"UnBlankDisplayDefault":          &UnBlankDisplayDefault{},
+	"MuteDefault":                    &MuteDefault{},
+	"UnMuteDefault":                  &UnMuteDefault{},
+	"SetVolumeDefault":               &SetVolumeDefault{},
+	"SetVolumeTecLite":               &SetVolumeTecLite{},
+	"MuteDSP":                        &MuteDSP{},
+	"UnmuteDSP":                      &UnMuteDSP{},
+	"SetVolumeDSP":                   &SetVolumeDSP{},
+	"ChangeVideoInputTieredSwitcher": &ChangeVideoInputTieredSwitchers{},
 }

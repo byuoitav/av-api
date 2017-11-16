@@ -7,7 +7,6 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
@@ -26,19 +25,19 @@ type ChangeVideoInputVideoSwitcher struct {
 }
 
 //Evaluate fulfills the CommmandEvaluation evaluate requirement
-func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, error) {
+func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 	actionList := []base.ActionStructure{}
 
 	if len(room.CurrentVideoInput) != 0 {
 		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "VideoOut")
 		if err != nil {
-			return []base.ActionStructure{}, err
+			return []base.ActionStructure{}, 0, err
 		}
 
 		for _, device := range devices {
 			action, err := GetSwitcherAndCreateAction(room, device, room.CurrentVideoInput, "ChangeVideoInputVideoSwitcher", requestor)
 			if err != nil {
-				return []base.ActionStructure{}, err
+				return []base.ActionStructure{}, 0, err
 			}
 			actionList = append(actionList, action)
 		}
@@ -54,12 +53,12 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor
 			if len(display.Input) != 0 {
 				device, err := dbo.GetDeviceByName(room.Building, room.Room, display.Name)
 				if err != nil {
-					return []base.ActionStructure{}, err
+					return []base.ActionStructure{}, 0, err
 				}
 
 				action, err := GetSwitcherAndCreateAction(room, device, display.Input, "ChangeVideoInputVideoSwitcher", requestor)
 				if err != nil {
-					return []base.ActionStructure{}, err
+					return []base.ActionStructure{}, 0, err
 				}
 				//Undecode the format into the
 				actionList = append(actionList, action)
@@ -74,7 +73,7 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor
 			if len(audioDevice.Input) != 0 {
 				device, err := dbo.GetDeviceByName(room.Building, room.Room, audioDevice.Name)
 				if err != nil {
-					return []base.ActionStructure{}, err
+					return []base.ActionStructure{}, 0, err
 				}
 
 				action, err := GetSwitcherAndCreateAction(room, device, audioDevice.Input, "ChangeVideoInputVideoSwitcher", requestor)
@@ -94,13 +93,13 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor
 		splitP := strings.Split(p, ":")
 
 		if len(splitP) != 2 {
-			return actionList, errors.New("Invalid port for a video switcher")
+			return actionList, 0, errors.New("Invalid port for a video switcher")
 		}
 
 		action.Parameters["input"] = splitP[0]
 		action.Parameters["output"] = splitP[1]
 	}
-	return actionList, nil
+	return actionList, len(actionList), nil
 }
 
 //GetSwitcherAndCreateAction gets the videoswitcher in a room, matches the destination port to the new port
@@ -133,7 +132,7 @@ func GetSwitcherAndCreateAction(room base.PublicRoom, device structs.Device, sel
 				Requestor:      requestor,
 			}
 
-			destination := statusevaluators.DestinationDevice{
+			destination := base.DestinationDevice{
 				Device: device,
 			}
 
