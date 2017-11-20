@@ -1,9 +1,9 @@
 version: '3'
 services:
-   av-api:
-       image: byuoitav/av-api:${DOCKER_HUB_TAG}
-       ports:
-           - "8000:8000"
+    av-api:
+        image: byuoitav/av-api:${DOCKER_HUB_TAG}
+        ports:
+            - "8000:8000"
         environment:
             - PI_HOSTNAME=$PI_HOSTNAME
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
