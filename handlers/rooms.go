@@ -50,9 +50,6 @@ func SetRoomState(context echo.Context) error {
 
 	roomInQuestion.Room = room
 	roomInQuestion.Building = building
-
-	log.Println("Beginning edit of room state")
-
 	var report base.PublicRoom
 
 	hn, err := net.LookupAddr(context.RealIP())
