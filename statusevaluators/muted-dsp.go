@@ -8,6 +8,7 @@ import (
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/configuration-database-microservice/structs"
+	"github.com/fatih/color"
 )
 
 /* ASSUMPTIONS
@@ -76,15 +77,17 @@ func (p *MutedDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand, 
 
 	count += c
 	commands = append(commands, dspCommands...)
+	/*
+		for _, command := range commands {
 
-	for _, command := range commands {
+			log.Printf("action: %v", command.Action)
+			log.Printf("Device: %v", command.Device)
+			log.Printf("Destination device: %v", command.DestinationDevice)
+			log.Printf("Parameters: %v", command.Parameters)
 
-		log.Printf("action: %v", command.Action)
-		log.Printf("Device: %v", command.Device)
-		log.Printf("Destination device: %v", command.DestinationDevice)
-		log.Printf("Parameters: %v", command.Parameters)
-
-	}
+		}
+	*/
+	log.Printf(color.HiYellowString("[STATUS-Muted-DSP] Generated %v commands", len(commands)))
 	return commands, count, nil
 
 }
@@ -134,7 +137,7 @@ func generateMicStatusCommands(mics []structs.Device, evaluator string, command 
 					AudioDevice: true,
 				}
 
-				statusCommand := mic.GetCommandByName(command)
+				statusCommand := dsp[0].GetCommandByName(command)
 
 				parameters := make(map[string]string)
 				parameters["input"] = port.Name
