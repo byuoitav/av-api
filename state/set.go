@@ -10,6 +10,7 @@ import (
 	"github.com/byuoitav/av-api/actionreconcilers"
 	"github.com/byuoitav/av-api/base"
 	ce "github.com/byuoitav/av-api/commandevaluators"
+	"github.com/byuoitav/av-api/gateway"
 	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/fatih/color"
@@ -123,18 +124,14 @@ func ExecuteActions(DAG []base.ActionStructure, requestor string) ([]se.StatusRe
 	close(responses)
 
 	if len(responses) < len(DAG)-1 {
-		color.Set(color.FgHiRed, color.Bold)
-		log.Printf("[error] expecting %v responses, found %v", len(DAG), len(responses))
-		color.Unset()
+		log.Printf("%s", color.HiRedString("[error] expecting %v responses, found %v", len(DAG), len(responses)))
 	}
 
 	for response := range responses {
 		output = append(output, response)
 	}
 
-	color.Set(color.FgHiCyan)
-	log.Printf("[state] done executing actions")
-	color.Unset()
+	log.Printf("%s", color.HiBlueString("[state] done executing actions"))
 
 	return output, nil
 }
@@ -156,6 +153,15 @@ func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusRespon
 		errorStr := fmt.Sprintf("[state] Error retrieving the command %s for device %s.", action.Action, action.Device.GetFullName())
 		log.Printf(errorStr)
 		PublishError(errorStr, action, requestor)
+		control.Done()
+		return
+	}
+
+	//set action gateway
+	if err := gateway.SetGateway(&action); err != nil {
+		msg := fmt.Sprintf("invalid gateway for %s microservie (check database microservice mappings?) %s", cmd.Microservice, err.Error())
+		log.Printf("%s", color.HiRedString("[error] %s", msg))
+		PublishError(msg, action, requestor)
 		control.Done()
 		return
 	}

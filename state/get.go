@@ -62,7 +62,7 @@ func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse
 	//map device names to commands
 	commandMap := make(map[string][]se.StatusCommand)
 
-	log.Printf("[state] building device map\n\n")
+	log.Printf("%s", color.HiBlueString("[state] building device map\n\n"))
 	for _, command := range commands {
 
 		log.Printf("[state] command: %s against device %s, destination device: %s, parameters: %v", command.Action.Name, command.Device.Name, command.DestinationDevice.Device.Name, command.Parameters)

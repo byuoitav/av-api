@@ -293,16 +293,6 @@ func (c *ChangeVideoInputTieredSwitchers) GenerateActionsFromPath(path []inputgr
 				return toReturn, err
 			}
 
-			if structs.HasRole(tempAction.Device, "GatedDevice") { //we need to add a gateway parameter to the action
-				gateway, err := getDeviceGateway(tempAction.Device)
-				if err != nil {
-					msg := fmt.Sprintf("gateway for %s not found: %s", tempAction.Device.Name, err.Error())
-					log.Printf("%s", color.HiRedString("[error] %s", msg))
-				}
-
-				tempAction.Parameters["gateway"] = gateway
-			}
-
 			toReturn = append(toReturn, tempAction)
 		} else {
 
@@ -310,16 +300,6 @@ func (c *ChangeVideoInputTieredSwitchers) GenerateActionsFromPath(path []inputgr
 			tempAction, err := generateActionForNonSwitch(last, cur, path[len(path)-1].Device, path[0].Device.Name, callbackEngine, requestor)
 			if err != nil {
 				return toReturn, err
-			}
-
-			if structs.HasRole(tempAction.Device, "GatedDevice") { //we need to add a gateway parameter to the action
-				gateway, err := getDeviceGateway(tempAction.Device)
-				if err != nil {
-					msg := fmt.Sprintf("gateway for %s not found: %s", tempAction.Device.Name, err.Error())
-					log.Printf("%s", color.HiRedString("[error] %s", msg))
-				}
-
-				tempAction.Parameters["gateway"] = gateway
 			}
 
 			toReturn = append(toReturn, tempAction)
@@ -456,22 +436,4 @@ func generateActionForSwitch(prev, cur, next inputgraph.Node, destination struct
 	}
 
 	return tempAction, nil
-}
-
-//finds the IP of the device that controls the given device
-func getDeviceGateway(d structs.Device) (string, error) {
-
-	for _, port := range d.Ports { //range over all ports
-
-		device, err := dbo.GetDeviceByName(d.Building.Name, d.Room.Name, port.Source)
-		if err != nil {
-			return "", errors.New(fmt.Sprintf("unable to get source device from port: %s", err.Error()))
-		}
-
-		if structs.HasRole(device, "Gateway") {
-			return device.Address, nil
-		}
-	}
-
-	return "", errors.New("no gateway found")
 }

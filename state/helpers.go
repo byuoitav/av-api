@@ -14,6 +14,7 @@ import (
 
 	"github.com/byuoitav/authmiddleware/bearertoken"
 	"github.com/byuoitav/av-api/base"
+	"github.com/byuoitav/av-api/gateway"
 	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
@@ -45,24 +46,20 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 		}
 		statusResponseMap := make(map[string]interface{})
 
-		//build url
-		url := command.Action.Microservice + command.Action.Endpoint.Path
-		for formal, actual := range command.Parameters {
-
-			log.Printf("Formal: %s, actual: %s", formal, actual)
-
-			toReplace := ":" + formal
-			if !strings.Contains(url, toReplace) {
-				errorMessage := "Could not find parameter " + toReplace + " issuing the command " + command.Action.Name
-				output.ErrorMessage = &errorMessage
-				outputs = append(outputs, output)
-				log.Printf(errorMessage)
-			} else {
-				url = strings.Replace(url, toReplace, actual, -1)
-			}
+		if err := gateway.SetStatusGateway(&command); err != nil {
+			msg := fmt.Sprintf("unable to set gateway for %s: %s", command.Action.Microservice, err.Error())
+			log.Printf("%s", color.HiRedString("[error] %s", msg))
 		}
 
-		log.Printf("Sending requqest to %s", url)
+		//build url
+		endpoint := ReplaceIPAddressEndpoint(command.Action.Endpoint.Path, command.Device.Address)
+		url, err := ReplaceParameters(command.Action.Microservice+endpoint, command.Parameters)
+		if err != nil {
+			msg := fmt.Sprintf("unable to replace paramaters for %s: %s", command.Action.Name, err.Error())
+			log.Printf("%s", color.HiRedString("[error] %s", msg))
+		}
+
+		log.Printf("[state] sending requqest to %s", url)
 		timeout := time.Duration(TIMEOUT * time.Second)
 		client := http.Client{
 			Timeout: timeout,
