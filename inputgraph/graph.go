@@ -5,15 +5,14 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/byuoitav/av-api/debug"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/fatih/color"
 )
 
-var debug = true
-
 type InputGraph struct {
 	Nodes        []*Node
-	AdjecencyMap map[string][]string
+	AdjacencyMap map[string][]string
 	DeviceMap    map[string]*Node
 }
 
@@ -25,30 +24,28 @@ type Node struct {
 func BuildGraph(devs []structs.Device) (InputGraph, error) {
 
 	ig := InputGraph{
-		AdjecencyMap: make(map[string][]string),
+		AdjacencyMap: make(map[string][]string),
 		DeviceMap:    make(map[string]*Node),
 		Nodes:        []*Node{},
 	}
 
-	//we go through and build our graph
-	for d := range devs {
+	for _, device := range devs { //build graph
 
-		if _, ok := ig.DeviceMap[devs[d].Name]; !ok {
-			newNode := Node{ID: devs[d].Name, Device: devs[d]}
+		if _, ok := ig.DeviceMap[device.Name]; !ok {
+			newNode := Node{ID: device.Name, Device: device}
 			ig.Nodes = append(ig.Nodes, &newNode)
-
-			ig.DeviceMap[devs[d].Name] = &newNode
+			ig.DeviceMap[device.Name] = &newNode
 		}
 
-		for _, port := range devs[d].Ports {
-			if debug {
-				log.Printf("Addding %v to the adjecency for %v based on port %v", port.Source, port.Destination, port.Name)
+		for _, port := range device.Ports { // add entry in adjacency map
+			if debug.DEBUG {
+				log.Printf("[tiered-switcher-eval] addding %v to the adjecency for %v based on port %v", port.Source, port.Destination, port.Name)
 			}
-			//we add the entry in the adjacency map
-			if _, ok := ig.AdjecencyMap[port.Destination]; ok {
-				ig.AdjecencyMap[port.Destination] = append(ig.AdjecencyMap[port.Destination], port.Source)
+
+			if _, ok := ig.AdjacencyMap[port.Destination]; ok {
+				ig.AdjacencyMap[port.Destination] = append(ig.AdjacencyMap[port.Destination], port.Source)
 			} else {
-				ig.AdjecencyMap[port.Destination] = []string{port.Source}
+				ig.AdjacencyMap[port.Destination] = []string{port.Source}
 			}
 		}
 	}
@@ -60,7 +57,7 @@ func BuildGraph(devs []structs.Device) (InputGraph, error) {
 
 //where deviceA is the sink and deviceB is the source
 func CheckReachability(deviceA, deviceB string, ig InputGraph) (bool, []Node, error) {
-	if debug {
+	if debug.DEBUG {
 		log.Printf("looking for a path from %v to %v", deviceA, deviceB)
 
 	}
@@ -95,18 +92,18 @@ func CheckReachability(deviceA, deviceB string, ig InputGraph) (bool, []Node, er
 	for {
 		select {
 		case cur := <-frontier:
-			if debug {
+			if debug.DEBUG {
 				log.Printf("Evaluating %v", cur)
 			}
 			if cur == deviceB {
-				if debug {
+				if debug.DEBUG {
 					log.Printf("Destination reached.", cur)
 				}
 				dev := cur
 
 				toReturn := []Node{}
 				toReturn = append(toReturn, *ig.DeviceMap[dev])
-				if debug {
+				if debug.DEBUG {
 					log.Printf("First Hop: %v -> %v", dev, path[dev])
 				}
 
@@ -120,7 +117,7 @@ func CheckReachability(deviceA, deviceB string, ig InputGraph) (bool, []Node, er
 
 						return false, []Node{}, errors.New(msg)
 					}
-					if debug {
+					if debug.DEBUG {
 						log.Printf("Next hop: %v -> %v", dev, path[dev])
 					}
 
@@ -134,13 +131,13 @@ func CheckReachability(deviceA, deviceB string, ig InputGraph) (bool, []Node, er
 				return true, toReturn, nil
 			}
 
-			for _, next := range ig.AdjecencyMap[cur] {
+			for _, next := range ig.AdjacencyMap[cur] {
 				if _, ok := path[next]; ok || next == deviceA {
 					continue
 				}
 
 				path[next] = cur
-				if debug {
+				if debug.DEBUG {
 
 					log.Printf("Path from %v to %v, adding %v to frontier", cur, next, next)
 					log.Printf("Path as it stands is: ")
@@ -156,7 +153,7 @@ func CheckReachability(deviceA, deviceB string, ig InputGraph) (bool, []Node, er
 				frontier <- next
 			}
 		default:
-			if debug {
+			if debug.DEBUG {
 				log.Printf("No path found")
 			}
 			return false, []Node{}, nil

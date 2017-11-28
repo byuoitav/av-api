@@ -21,6 +21,7 @@ import (
 )
 
 const TIMEOUT = 5
+const CHECK_INDEX = 5
 
 //builds a Status object corresponding to a device and writes it to the channel
 func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse, control *sync.WaitGroup) {
@@ -329,7 +330,7 @@ func ReplaceIPAddressEndpoint(path string, address string) string {
 //@post the endpoint does not contain ':'
 func ReplaceParameters(endpoint string, parameters map[string]string) (string, error) {
 
-	log.Printf("[state] Replacing formal parameters with actual parameters...")
+	log.Printf("[state] replacing formal parameters with actual parameters...")
 
 	for k, v := range parameters {
 		toReplace := ":" + k
@@ -342,7 +343,7 @@ func ReplaceParameters(endpoint string, parameters map[string]string) (string, e
 		endpoint = strings.Replace(endpoint, toReplace, v, -1)
 	}
 
-	if strings.Contains(endpoint, ":") {
+	if strings.Contains(endpoint[CHECK_INDEX:], ":") {
 		errorString := "not enough parameters provided for command"
 		log.Printf(errorString)
 		return "", errors.New(errorString)

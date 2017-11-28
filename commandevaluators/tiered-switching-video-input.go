@@ -8,6 +8,7 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
+	"github.com/byuoitav/av-api/debug"
 	"github.com/byuoitav/av-api/inputgraph"
 	"github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
@@ -51,21 +52,19 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 		return []base.ActionStructure{}, 0, nil
 	}
 
-	log.Printf(color.HiBlueString("[tiered-switcher-eval] Evaluating the body for inputs. Building graph..."))
+	log.Printf(color.HiBlueString("[tiered-switcher-eval] evaluating the body for inputs. Building graph..."))
 
 	callbackEngine := &statusevaluators.TieredSwitcherCallback{}
 
 	//build the graph
-
 	if (len(room.CurrentVideoInput) > 0) && (len(room.CurrentVideoInput) > 0) && (room.CurrentVideoInput != room.CurrentAudioInput) {
-		return []base.ActionStructure{}, 0, errors.New("Cannot change room wide video and audio input with the same request")
+		return []base.ActionStructure{}, 0, errors.New("cannot change room wide video and audio input with the same request")
 	}
 
 	//get all the devices from the room
 	devices, err := dbo.GetDevicesByRoom(room.Building, room.Room)
 	if err != nil {
-
-		log.Printf(color.HiRedString("There was an issue getting the devices from the room: %v", err.Error()))
+		log.Printf(color.HiRedString("[error] there was an issue getting the devices from the room: %v", err.Error()))
 		return []base.ActionStructure{}, 0, err
 	}
 
@@ -73,11 +72,14 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 	if err != nil {
 		return []base.ActionStructure{}, 0, err
 	}
-	for k, v := range graph.AdjecencyMap {
-		log.Printf("%v: %v", k, v)
+
+	if debug.DEBUG {
+		for k, v := range graph.AdjacencyMap {
+			log.Printf("%v: %v", k, v)
+		}
 	}
 
-	log.Printf(color.HiBlueString("[tiered-switcher-eval] Graph Built."))
+	log.Printf(color.HiBlueString("[tiered-switcher-eval] graph built."))
 	actions := []base.ActionStructure{}
 
 	//if we have a room wide input we need to validate that we can reach all of the outputs with the indicated input.
@@ -88,9 +90,12 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 		}
 	}
 
-	log.Printf(color.HiBlueString("[tiered-switcher-eval] DEBUG %v", len(room.Displays)))
+	if debug.DEBUG {
+		log.Printf(color.HiBlueString("[tiered-switcher-eval] found %v displays in room", len(room.Displays)))
+	}
+
 	if len(room.Displays) > 0 {
-		log.Printf(color.HiBlueString("[tiered-switcher-eval] Evaluating individual device input."))
+		log.Printf(color.HiBlueString("[tiered-switcher-eval] evaluating individual device input."))
 		//go through each display and set the input
 		for d := range room.Displays {
 			if len(room.Displays[d].Input) > 0 {
@@ -109,7 +114,7 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 	}
 
 	if len(room.AudioDevices) > 0 {
-		log.Printf(color.HiBlueString("[tiered-switcher-eval] Evaluating individual device input."))
+		log.Printf(color.HiBlueString("[tiered-switcher-eval] evaluating individual device input."))
 		//go through each display and set the input
 		for d := range room.AudioDevices {
 			if len(room.AudioDevices[d].Input) > 0 {
@@ -164,41 +169,44 @@ func (c *ChangeVideoInputTieredSwitchers) RoutePath(input, output string, graph 
 	var ok bool
 	var inDev, outDev *inputgraph.Node
 
+	//validate input
 	if inDev, ok = graph.DeviceMap[input]; !ok {
-		msg := fmt.Sprintf("Device %v is not included in the connection graph for this room.", input)
-		log.Printf(color.HiRedString(msg))
+		msg := fmt.Sprintf("device %s is not included in the connection graph for this room.", input)
+		log.Printf("%s", color.HiRedString("[error] %s", msg))
 		return []base.ActionStructure{}, errors.New(msg)
 	}
 
 	if !inDev.Device.Input {
 		msg := fmt.Sprintf("Device %v is not an input device in this room", input)
-		log.Printf(color.HiRedString(msg))
+		log.Printf("%s", color.HiRedString("[error] %s", msg))
 		return []base.ActionStructure{}, errors.New(msg)
 	}
 
+	//validate output
 	if outDev, ok = graph.DeviceMap[output]; !ok {
 		msg := fmt.Sprintf("Device %v is not included in the connection graph for this room.", output)
-		log.Printf(color.HiRedString(msg))
+		log.Printf("%s", color.HiRedString("[error] %s", msg))
 		return []base.ActionStructure{}, errors.New(msg)
 	}
 
 	if !outDev.Device.Output {
 		msg := fmt.Sprintf("Device %v is not an input device in this room", output)
-		log.Printf(color.HiRedString(msg))
+		log.Printf("%s", color.HiRedString("[error] %s", msg))
 		return []base.ActionStructure{}, errors.New(msg)
 	}
 
+	//find path
 	ok, p, err := inputgraph.CheckReachability(output, input, graph)
 	if err != nil {
-		log.Printf(color.HiRedString("Error: %v", err.Error()))
+		log.Printf(color.HiRedString("[error] %v", err.Error()))
 		return []base.ActionStructure{}, err
 	}
 
-	log.Printf(color.HiBlueString("[tiered-switcher-eval] Found path for %v to %v.", inDev.ID, outDev.ID))
+	log.Printf(color.HiBlueString("[tiered-switcher-eval] found path for %v to %v.", inDev.ID, outDev.ID))
 
 	if !ok {
-		msg := fmt.Sprintf("Cannot set input %v. There does not exist a signal path from %v to %v", input, input, output)
-		log.Printf(color.HiRedString(msg))
+		msg := fmt.Sprintf("cannot set input %v; no signal path from %v to %v", input, input, output)
+		log.Printf("%s", color.HiRedString("[error] %s", msg))
 		return []base.ActionStructure{}, errors.New(msg)
 	}
 	as, err := c.GenerateActionsFromPath(p, callbackEngine, requestor)
@@ -220,14 +228,14 @@ func (c *ChangeVideoInputTieredSwitchers) ChangeAll(input string, devices []stru
 	var dev *inputgraph.Node
 
 	if dev, ok = graph.DeviceMap[input]; !ok {
-		msg := fmt.Sprintf("Device %v is not included in the connection graph for this room.")
-		log.Printf(color.HiRedString(msg))
+		msg := fmt.Sprintf("device %v is not included in the connection graph for this room.")
+		log.Printf("%s", color.HiRedString("[error] %s", msg))
 		return []base.ActionStructure{}, 0, errors.New(msg)
 	}
 
 	if !dev.Device.Input {
-		msg := fmt.Sprintf("Device %v is not an input device in this room")
-		log.Printf(color.HiRedString(msg))
+		msg := fmt.Sprintf("device %v is not an input device in this room")
+		log.Printf("%s", color.HiRedString("[error] %s", msg))
 		return []base.ActionStructure{}, 0, errors.New(msg)
 	}
 
@@ -268,6 +276,7 @@ func (c *ChangeVideoInputTieredSwitchers) ChangeAll(input string, devices []stru
 }
 
 func (c *ChangeVideoInputTieredSwitchers) GenerateActionsFromPath(path []inputgraph.Node, callbackEngine *statusevaluators.TieredSwitcherCallback, requestor string) ([]base.ActionStructure, error) {
+
 	log.Printf("Generating actions for a path from %v to %v", path[0].ID, path[len(path)-1].ID)
 	toReturn := []base.ActionStructure{}
 
@@ -284,13 +293,35 @@ func (c *ChangeVideoInputTieredSwitchers) GenerateActionsFromPath(path []inputgr
 				return toReturn, err
 			}
 
+			if structs.HasRole(tempAction.Device, "GatedDevice") { //we need to add a gateway parameter to the action
+				gateway, err := getDeviceGateway(tempAction.Device)
+				if err != nil {
+					msg := fmt.Sprintf("gateway for %s not found: %s", tempAction.Device.Name, err.Error())
+					log.Printf("%s", color.HiRedString("[error] %s", msg))
+				}
+
+				tempAction.Parameters["gateway"] = gateway
+			}
+
 			toReturn = append(toReturn, tempAction)
 		} else {
+
 			log.Printf("Generating action for non-vs %v", cur.ID)
 			tempAction, err := generateActionForNonSwitch(last, cur, path[len(path)-1].Device, path[0].Device.Name, callbackEngine, requestor)
 			if err != nil {
 				return toReturn, err
 			}
+
+			if structs.HasRole(tempAction.Device, "GatedDevice") { //we need to add a gateway parameter to the action
+				gateway, err := getDeviceGateway(tempAction.Device)
+				if err != nil {
+					msg := fmt.Sprintf("gateway for %s not found: %s", tempAction.Device.Name, err.Error())
+					log.Printf("%s", color.HiRedString("[error] %s", msg))
+				}
+
+				tempAction.Parameters["gateway"] = gateway
+			}
+
 			toReturn = append(toReturn, tempAction)
 		}
 
@@ -376,7 +407,7 @@ func generateActionForSwitch(prev, cur, next inputgraph.Node, destination struct
 		}
 	}
 	if len(in) == 0 || len(out) == 0 {
-		msg := fmt.Sprintf("There is no path through %v from %v to %v. Check the port configuration", cur.ID, prev.ID, next.ID)
+		msg := fmt.Sprintf("no path through %v from %v to %v. Check the port configuration", cur.ID, prev.ID, next.ID)
 		color.HiRedString(msg)
 		return base.ActionStructure{}, errors.New(msg)
 	}
@@ -386,7 +417,10 @@ func generateActionForSwitch(prev, cur, next inputgraph.Node, destination struct
 	m := make(map[string]string)
 	m["input"] = strings.Replace(in, "IN", "", 1)
 	m["output"] = strings.Replace(out, "OUT", "", 1)
-	log.Printf("params: %v", m)
+
+	if debug.DEBUG {
+		log.Printf("params: %v", m)
+	}
 
 	eventInfo := eventinfrastructure.EventInfo{
 		Type:           eventinfrastructure.CORESTATE,
@@ -422,4 +456,22 @@ func generateActionForSwitch(prev, cur, next inputgraph.Node, destination struct
 	}
 
 	return tempAction, nil
+}
+
+//finds the IP of the device that controls the given device
+func getDeviceGateway(d structs.Device) (string, error) {
+
+	for _, port := range d.Ports { //range over all ports
+
+		device, err := dbo.GetDeviceByName(d.Building.Name, d.Room.Name, port.Source)
+		if err != nil {
+			return "", errors.New(fmt.Sprintf("unable to get source device from port: %s", err.Error()))
+		}
+
+		if structs.HasRole(device, "Gateway") {
+			return device.Address, nil
+		}
+	}
+
+	return "", errors.New("no gateway found")
 }

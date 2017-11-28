@@ -103,9 +103,7 @@ func ReconcileActions(room structs.Room, actions []base.ActionStructure, inCount
 //ExecuteActions carries out the actions defined in the struct
 func ExecuteActions(DAG []base.ActionStructure, requestor string) ([]se.StatusResponse, error) {
 
-	color.Set(color.FgHiCyan)
-	log.Printf("[state] Executing actions...")
-	color.Unset()
+	log.Printf("%s", color.HiBlueString("[state] Executing actions..."))
 
 	var output []se.StatusResponse
 
@@ -165,7 +163,7 @@ func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusRespon
 	//replace the address
 	endpoint := ReplaceIPAddressEndpoint(cmd.Endpoint.Path, action.Device.Address)
 
-	endpoint, err := ReplaceParameters(endpoint, action.Parameters)
+	endpoint, err := ReplaceParameters(cmd.Microservice+endpoint, action.Parameters)
 	if err != nil {
 		errorString := fmt.Sprintf("[state] Error building endpoint for command %s against device %s: %s", action.Action, action.Device.GetFullName(), err.Error())
 		log.Printf(errorString)
