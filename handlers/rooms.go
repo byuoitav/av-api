@@ -40,7 +40,7 @@ func GetRoomByNameAndBuilding(context echo.Context) error {
 
 func SetRoomState(context echo.Context) error {
 	building, room := context.Param("building"), context.Param("room")
-	log.Printf("Putting room changes.\n")
+	log.Printf("%s", color.HiGreenString("[handlers] putting room changes..."))
 
 	var roomInQuestion base.PublicRoom
 	err := context.Bind(&roomInQuestion)
@@ -50,9 +50,6 @@ func SetRoomState(context echo.Context) error {
 
 	roomInQuestion.Room = room
 	roomInQuestion.Building = building
-
-	log.Println("Beginning edit of room state")
-
 	var report base.PublicRoom
 
 	hn, err := net.LookupAddr(context.RealIP())
