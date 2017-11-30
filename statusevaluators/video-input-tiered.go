@@ -73,8 +73,7 @@ func (p *InputTieredSwitcher) GenerateCommands(devs []structs.Device) ([]StatusC
 			}
 			//we've finished with the switch
 			continue
-		}
-		//now we deal with the output devices, which is pretty basic
+		} //now we deal with the output devices, which is pretty basic
 		params := make(map[string]string)
 		params["address"] = d.Address
 
@@ -162,6 +161,38 @@ func (p *TieredSwitcherCallback) StartAggregator() {
 		case <-t.C:
 			//we're timed out
 			log.Printf(color.HiYellowString("[callback] Timeout"))
+
+			//we need to get the status that we can - odds are good we're in a room where the displays are off.
+
+			//how to traverse the graph for some of the output devices - we check to see if the output device is connected somehow - and we report where it got to.
+
+			inputMap, err := pathfinder.GetInputs()
+			if err != nil {
+				log.Printf("Error getting the inputs")
+				return
+			}
+
+			for k, v := range inputMap {
+				outDev := p.getDeviceByName(k)
+				if len(outDev.Name) == 0 {
+					log.Printf("No device by name %v in the device list for the callback", k)
+				}
+
+				destDev := base.DestinationDevice{
+					Device:      outDev,
+					AudioDevice: outDev.HasRole("AudioOut"),
+					Display:     outDev.HasRole("VideoOut"),
+				}
+				log.Printf(color.HiYellowString("[callback] Sending input %v -> %v", v.Name, k))
+
+				p.OutChan <- base.StatusPackage{
+					Dest:  destDev,
+					Key:   "input",
+					Value: v.Name,
+				}
+			}
+			log.Printf(color.HiYellowString("[callback] Done with evaluation. Closing."))
+			return
 			return
 
 		case val := <-p.InChan:
