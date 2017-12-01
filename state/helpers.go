@@ -23,7 +23,8 @@ import (
 )
 
 const TIMEOUT = 5
-const CHECK_INDEX = 5
+const LOCAL_CHECK_INDEX = 21
+const GATEWAY_CHECK_INDEX = 5
 
 //builds a Status object corresponding to a device and writes it to the channel
 func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse, control *sync.WaitGroup) {
@@ -51,12 +52,13 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 			msg := fmt.Sprintf("unable to set gateway for %s: %s", command.Action.Microservice, err.Error())
 			log.Printf("%s", color.HiRedString("[error] %s", msg))
 			base.PublishError(msg, ei.INTERNAL)
+			continue
 		}
 
 		//build url
 		url, err := ReplaceParameters(command.Action.Microservice+command.Action.Endpoint.Path, command.Parameters)
 		if err != nil {
-			msg := fmt.Sprintf("unable to replace paramaters for %s: %s, aborting command...", command.Action.Name, err.Error())
+			msg := fmt.Sprintf("unable to replace paramaters for %s: %s", command.Action.Name, err.Error())
 			log.Printf("%s", color.HiRedString("[error] %s", msg))
 			base.PublishError(msg, ei.INTERNAL)
 			continue
@@ -344,9 +346,15 @@ func ReplaceParameters(endpoint string, parameters map[string]string) (string, e
 		endpoint = strings.Replace(endpoint, toReplace, v, -1)
 	}
 
-	if strings.Contains(endpoint[CHECK_INDEX:], ":") {
-		errorString := "not enough parameters provided for command"
-		log.Printf(errorString)
+	var checkIndex int
+	if strings.Contains(endpoint, "localhost") { //command is for service running locally
+		checkIndex = LOCAL_CHECK_INDEX
+	} else { //command is for gated service
+		checkIndex = GATEWAY_CHECK_INDEX
+	}
+
+	if strings.Contains(endpoint[checkIndex:], ":") {
+		errorString := fmt.Sprintf("not enough parameters provided for command: %s", endpoint)
 		return "", errors.New(errorString)
 	}
 
