@@ -30,16 +30,18 @@ func SetGateway(action *base.ActionStructure) error {
 func SetStatusGateway(action *statusevaluators.StatusCommand) error {
 
 	if structs.HasRole(action.Device, "GatedDevice") { //we need to add a gateway parameter to the action
+
+		log.Printf("%s", color.HiYellowString("[gateway] identified gated device %s", action.Device.Name))
+
 		gateway, err := getDeviceGateway(action.Device)
 		if err != nil {
-			msg := fmt.Sprintf("gateway for %s not found: %s", action.Device.Name, err.Error())
-			log.Printf("%s", color.HiRedString("[error] %s", msg))
+			return err
 		}
 
 		action.Parameters["gateway"] = gateway
 	}
-	return nil
 
+	return nil
 }
 
 //finds the IP of the device that controls the given device
@@ -57,5 +59,5 @@ func getDeviceGateway(d structs.Device) (string, error) {
 		}
 	}
 
-	return "", errors.New("no gateway found")
+	return "", errors.New("gateway not found")
 }

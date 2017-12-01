@@ -54,12 +54,12 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 		}
 
 		//build url
-		endpoint := ReplaceIPAddressEndpoint(command.Action.Endpoint.Path, command.Device.Address)
-		url, err := ReplaceParameters(command.Action.Microservice+endpoint, command.Parameters)
+		url, err := ReplaceParameters(command.Action.Microservice+command.Action.Endpoint.Path, command.Parameters)
 		if err != nil {
-			msg := fmt.Sprintf("unable to replace paramaters for %s: %s", command.Action.Name, err.Error())
+			msg := fmt.Sprintf("unable to replace paramaters for %s: %s, aborting command...", command.Action.Name, err.Error())
 			log.Printf("%s", color.HiRedString("[error] %s", msg))
 			base.PublishError(msg, ei.INTERNAL)
+			continue
 		}
 
 		log.Printf("[state] sending requqest to %s", url)
@@ -69,7 +69,7 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 		if err != nil {
 			msg := fmt.Sprintf("unable to complete request to %s for device %s: %s", url, command.Device.Name, err.Error())
 			log.Printf("%s", color.HiRedString("[error] %s", msg))
-			output.ErrorMessage = &msg
+			output.ErrorMessage = &msg //do we want to do this? why not just publish the error here?
 			outputs = append(outputs, output)
 			continue
 		}
@@ -109,12 +109,11 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 		log.Printf("[state] copying data into output")
 		for device, object := range status {
 			statusResponseMap[device] = object
-			log.Printf("%s maps to %v", device, object)
+			//		log.Printf("%s maps to %v", device, object) TODO make this visible with debugging mode
 		}
 
 		output.Status = statusResponseMap
-		//add the full status response
-		outputs = append(outputs, output)
+		outputs = append(outputs, output) //add the full status response
 	}
 
 	//write output to channel
@@ -332,14 +331,14 @@ func ReplaceIPAddressEndpoint(path string, address string) string {
 //@post the endpoint does not contain ':'
 func ReplaceParameters(endpoint string, parameters map[string]string) (string, error) {
 
-	log.Printf("[state] replacing formal parameters with actual parameters...")
+	log.Printf("[state] replacing formal parameters with actual parameters in %s...", endpoint)
 
 	for k, v := range parameters {
 		toReplace := ":" + k
 		if !strings.Contains(endpoint, toReplace) {
-			errorString := "parameter not found"
-			log.Printf(errorString)
-			return "", errors.New(errorString)
+			msg := fmt.Sprintf("%s not found", toReplace)
+			log.Printf("%s", color.HiRedString("[error] %s", msg))
+			return "", errors.New(msg)
 		}
 
 		endpoint = strings.Replace(endpoint, toReplace, v, -1)
