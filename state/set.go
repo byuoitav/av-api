@@ -19,9 +19,7 @@ import (
 //for each command in the configuration, evaluate and validate.
 func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 
-	color.Set(color.FgHiCyan)
-	log.Printf("[state] generating actions...")
-	color.Unset()
+	log.Printf("%s", color.HiBlueString("[state] generating actions..."))
 
 	var count int
 
@@ -32,12 +30,13 @@ func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom, requestor st
 			continue
 		}
 
-		log.Printf("Considering evaluator %s", evaluator.EvaluatorKey)
+		log.Printf("[state] considering evaluator %s", evaluator.EvaluatorKey)
 
 		curEvaluator := ce.EVALUATORS[evaluator.EvaluatorKey]
 		if curEvaluator == nil {
-			err := errors.New("No evaluator corresponding to key " + evaluator.EvaluatorKey)
-			return []base.ActionStructure{}, 0, err
+			msg := fmt.Sprintf("no evaluator corresponding to key: %s", evaluator.EvaluatorKey)
+			log.Printf("%s", color.HiRedString("[error] %s", msg))
+			return []base.ActionStructure{}, 0, errors.New(msg)
 		}
 
 		actions, c, err := curEvaluator.Evaluate(bodyRoom, requestor)
@@ -48,10 +47,9 @@ func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom, requestor st
 		for _, action := range actions {
 			err := curEvaluator.Validate(action)
 			if err != nil {
-				color.Set(color.FgHiRed, color.Bold)
-				log.Printf("[error] error validating %s on evaluator %s", action.Action, evaluator.EvaluatorKey)
-				color.Unset()
-				return []base.ActionStructure{}, 0, err
+				msg := fmt.Sprintf("action %s not valid with evaluator %s: %s", action.Action, evaluator.EvaluatorKey, err.Error())
+				log.Printf("%s", color.HiRedString("[error] %s", msg))
+				return []base.ActionStructure{}, 0, errors.New(msg)
 			}
 
 			// Provide a map from the generating evaluator to the generated action in
@@ -63,9 +61,7 @@ func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom, requestor st
 		count += c
 	}
 
-	color.Set(color.FgHiCyan)
-	log.Printf("[state] generated %v total actions.", len(output))
-	color.Unset()
+	log.Printf("%s", color.HiBlueString("[state] generated %v total actions.", len(output)))
 
 	batches, count, err := ReconcileActions(dbRoom, output, count)
 
@@ -75,16 +71,14 @@ func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom, requestor st
 //produces a DAG
 func ReconcileActions(room structs.Room, actions []base.ActionStructure, inCount int) (batches []base.ActionStructure, count int, err error) {
 
-	color.Set(color.FgHiCyan)
-	log.Printf("[state] reconciling actions...")
-	color.Unset()
+	log.Printf("%s", color.HiBlueString("[state] reconciling actions..."))
 
 	//Initialize map of strings to commandevaluators
 	reconcilers := actionreconcilers.Init()
 
 	curReconciler := reconcilers[room.Configuration.RoomKey]
 	if curReconciler == nil {
-		err = errors.New("No reconciler corresponding to key " + room.Configuration.RoomKey)
+		err = errors.New(fmt.Sprintf("no reconciler corresponding to key: %s ", room.Configuration.RoomKey))
 		return
 	}
 
@@ -93,9 +87,7 @@ func ReconcileActions(room structs.Room, actions []base.ActionStructure, inCount
 		return
 	}
 
-	color.Set(color.FgHiCyan)
-	log.Printf("[state] Done reconciling actions.")
-	color.Unset()
+	log.Printf("%s", color.HiBlueString("[state] done reconciling actions."))
 
 	return
 }
@@ -104,7 +96,7 @@ func ReconcileActions(room structs.Room, actions []base.ActionStructure, inCount
 //ExecuteActions carries out the actions defined in the struct
 func ExecuteActions(DAG []base.ActionStructure, requestor string) ([]se.StatusResponse, error) {
 
-	log.Printf("%s", color.HiBlueString("[state] Executing actions..."))
+	log.Printf("%s", color.HiBlueString("[state] executing actions..."))
 
 	var output []se.StatusResponse
 
