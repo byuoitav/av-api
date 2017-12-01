@@ -49,12 +49,18 @@ func getDeviceGateway(d structs.Device) (string, error) {
 
 	for _, port := range d.Ports { //range over all ports
 
+		log.Printf("%s", color.HiYellowString("[gateway] considering device: %s", port.Source))
+
 		device, err := dbo.GetDeviceByName(d.Building.Name, d.Room.Name, port.Source)
 		if err != nil {
 			return "", errors.New(fmt.Sprintf("unable to get source device from port: %s", err.Error()))
 		}
 
-		if structs.HasRole(device, "Gateway") {
+		if len(device.Roles) == 0 {
+			log.Printf("%s", color.HiRedString("I HATE YOU!!!"))
+		}
+
+		if device.HasRole("Gateway") || structs.HasRole(device, "Gateway") {
 			return device.Address, nil
 		}
 	}
