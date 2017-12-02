@@ -192,9 +192,6 @@ func GetGeneralVolumeRequestActionsDSP(room base.PublicRoom, eventInfo ei.EventI
 //commands regarding microphones are only issued to DSP
 func GetMicVolumeAction(mic structs.Device, room base.PublicRoom, eventInfo ei.EventInfo, volume int) (base.ActionStructure, error) {
 
-	const SCALE_FACTOR = 3
-	const MINIMUM = 45
-
 	log.Printf("Identified microphone volume request")
 
 	destination := base.DestinationDevice{
@@ -226,15 +223,13 @@ func GetMicVolumeAction(mic structs.Device, room base.PublicRoom, eventInfo ei.E
 		return base.ActionStructure{}, errors.New(errorMessage)
 	}
 
-	scaledVolume := (volume / SCALE_FACTOR) + MINIMUM
-
 	for _, port := range dsp.Ports {
 
 		if port.Source == mic.Name {
 
-			eventInfo.EventInfoValue = strconv.Itoa(scaledVolume)
+			eventInfo.EventInfoValue = strconv.Itoa(volume)
 			eventInfo.Device = mic.Name
-			parameters["level"] = strconv.Itoa(scaledVolume)
+			parameters["level"] = strconv.Itoa(volume)
 			parameters["input"] = port.Name
 
 			return base.ActionStructure{
