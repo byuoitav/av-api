@@ -98,6 +98,10 @@ func ExecuteActions(DAG []base.ActionStructure, requestor string) ([]se.StatusRe
 
 	log.Printf("%s", color.HiBlueString("[state] executing actions..."))
 
+	if len(DAG) == 0 {
+		return []se.StatusResponse{}, errors.New("no actions generated")
+	}
+
 	var output []se.StatusResponse
 
 	responses := make(chan se.StatusResponse, len(DAG))
@@ -159,13 +163,18 @@ func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusRespon
 	}
 
 	//replace the address
-	endpoint := ReplaceIPAddressEndpoint(cmd.Endpoint.Path, action.Device.Address)
 
-	endpoint, err := ReplaceParameters(cmd.Microservice+endpoint, action.Parameters)
+	if action.Parameters == nil {
+		action.Parameters = make(map[string]string)
+	}
+
+	action.Parameters["address"] = action.Device.Address //TODO FIX THIS!!!
+
+	endpoint, err := ReplaceParameters(cmd.Endpoint.Path, action.Parameters)
 	if err != nil {
-		errorString := fmt.Sprintf("[state] Error building endpoint for command %s against device %s: %s", action.Action, action.Device.GetFullName(), err.Error())
-		log.Printf(errorString)
-		PublishError(errorString, action, requestor)
+		msg := fmt.Sprintf("Error building endpoint for command %s against device %s: %s", action.Action, action.Device.GetFullName(), err.Error())
+		log.Printf("%s", color.HiRedString("[state] %s", msg))
+		PublishError(msg, action, requestor)
 		control.Done()
 		return
 	}

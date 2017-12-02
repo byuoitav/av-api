@@ -137,10 +137,8 @@ func EvaluateResponses(responses []se.StatusResponse, count int) (base.PublicRoo
 				k, v, err := se.STATUS_EVALUATORS[resp.Generator].EvaluateResponse(key, value, resp.SourceDevice, resp.DestinationDevice)
 				if err != nil {
 
-					color.Set(color.FgHiRed, color.Bold)
-					log.Printf("[state] problem procesing the response %v - %v with evaluator %v: %s",
-						key, value, resp.Generator, err.Error())
-					color.Unset()
+					log.Printf("%s", color.HiRedString("[state] problem procesing the response %v - %v with evaluator %v: %s",
+						key, value, resp.Generator, err.Error()))
 					continue
 				}
 
@@ -155,7 +153,7 @@ func EvaluateResponses(responses []se.StatusResponse, count int) (base.PublicRoo
 						DestinationDevice: resp.DestinationDevice,
 					}
 					responsesByDestinationDevice[resp.DestinationDevice.GetFullName()] = statusForDevice
-					log.Printf("[state] Adding Device %v to the map", resp.DestinationDevice.GetFullName())
+					log.Printf("[state] adding device %v to the map", resp.DestinationDevice.GetFullName())
 					doneCount++
 				}
 			}
@@ -192,7 +190,7 @@ func EvaluateResponses(responses []se.StatusResponse, count int) (base.PublicRoo
 					DestinationDevice: val.Dest,
 				}
 				responsesByDestinationDevice[val.Dest.GetFullName()] = statusForDevice
-				log.Printf("[state] Adding Device %v to the map", val.Dest.GetFullName())
+				log.Printf("[state] adding device %v to the map", val.Dest.GetFullName())
 				doneCount++
 			}
 		}

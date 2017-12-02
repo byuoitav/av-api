@@ -335,6 +335,14 @@ func ReplaceParameters(endpoint string, parameters map[string]string) (string, e
 
 	log.Printf("[state] replacing formal parameters with actual parameters in %s...", endpoint)
 
+	if parameters == nil {
+		return "", errors.New("nil parameter map")
+	}
+
+	if len(endpoint) <= LOCAL_CHECK_INDEX {
+		return "", errors.New("invalid endpoint")
+	}
+
 	for k, v := range parameters {
 		toReplace := ":" + k
 		if !strings.Contains(endpoint, toReplace) {
