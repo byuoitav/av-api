@@ -10,7 +10,6 @@ import (
 	"github.com/byuoitav/av-api/actionreconcilers"
 	"github.com/byuoitav/av-api/base"
 	ce "github.com/byuoitav/av-api/commandevaluators"
-	"github.com/byuoitav/av-api/gateway"
 	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/fatih/color"
@@ -153,24 +152,13 @@ func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusRespon
 		return
 	}
 
-	//set action gateway
-	if err := gateway.SetGateway(&action); err != nil {
-		msg := fmt.Sprintf("invalid gateway for %s microservice (check database microservice mappings?) %s", cmd.Microservice, err.Error())
-		log.Printf("%s", color.HiRedString("[error] %s", msg))
-		PublishError(msg, action, requestor)
-		control.Done()
-		return
-	}
+	log.Printf("%s", color.HiMagentaString("[state] raw endpoint: %s", cmd.Endpoint.Path))
 
-	//replace the address
+	endpoint := ReplaceIPAddressEndpoint(cmd.Endpoint.Path, action.Device.Address)
+	log.Printf("%s", color.HiMagentaString("[state] endpoint with IP address: %s", endpoint))
 
-	if action.Parameters == nil {
-		action.Parameters = make(map[string]string)
-	}
-
-	action.Parameters["address"] = action.Device.Address //TODO FIX THIS!!!
-
-	endpoint, err := ReplaceParameters(cmd.Endpoint.Path, action.Parameters)
+	log.Printf("%s", color.HiMagentaString("[state] endpoint with gateway: %s", endpoint))
+	endpoint, err := ReplaceParameters(endpoint, action.Parameters)
 	if err != nil {
 		msg := fmt.Sprintf("Error building endpoint for command %s against device %s: %s", action.Action, action.Device.GetFullName(), err.Error())
 		log.Printf("%s", color.HiRedString("[state] %s", msg))
@@ -178,6 +166,8 @@ func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusRespon
 		control.Done()
 		return
 	}
+
+	log.Printf("%s", color.HiMagentaString("[state] endpoint with parameters: %s", endpoint))
 
 	//Execute the command.
 	status := ExecuteCommand(action, cmd, endpoint, requestor)

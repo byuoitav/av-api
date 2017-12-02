@@ -4,26 +4,28 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 
-	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/fatih/color"
 )
 
-func SetGateway(action *base.ActionStructure) error {
+func SetGateway(path string, device structs.Device) (string, error) {
 
-	if structs.HasRole(action.Device, "GatedDevice") { //we need to add a gateway parameter to the action
-		gateway, err := getDeviceGateway(action.Device)
+	parameter := ":gateway"
+
+	if structs.HasRole(device, "GatedDevice") && strings.Contains(path, parameter) { //we need to add a gateway parameter to the action
+		gateway, err := getDeviceGateway(device)
 		if err != nil {
-			msg := fmt.Sprintf("gateway for %s not found: %s", action.Device.Name, err.Error())
-			log.Printf("%s", color.HiRedString("[error] %s", msg))
+			return "", err
 		}
 
-		action.Parameters["gateway"] = gateway
+		return strings.Replace(path, parameter, gateway, -1), nil
 	}
-	return nil
+
+	return path, nil //if the condition failed, just pass through
 
 }
 
@@ -54,14 +56,10 @@ func getDeviceGateway(d structs.Device) (string, error) {
 	}
 
 	if len(devices) == 0 {
-		msg := "no gateway devices found"
-		log.Printf("%s", color.HiRedString("[error] %s", msg))
-		return "", errors.New(msg)
+		return "", errors.New(fmt.Sprintf("no gateway devices found in room %s-%s", d.Building.Name, d.Room.Name))
 	}
 
 	for _, device := range devices {
-
-		log.Printf("%s", color.HiYellowString("[gateway] found device %s", device.Name))
 
 		for _, port := range device.Ports {
 

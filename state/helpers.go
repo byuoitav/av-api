@@ -221,9 +221,17 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 	client := &http.Client{
 		Timeout: TIMEOUT * time.Second,
 	}
-	req, err := http.NewRequest("GET", command.Microservice+endpoint, nil)
+
+	url, err := gateway.SetGateway(command.Microservice+endpoint, action.Device)
 	if err != nil {
-		return se.StatusResponse{}
+		msg := fmt.Sprintf("unable to reach gated device: %s: %s", action.Device.Name, err.Error())
+		return se.StatusResponse{ErrorMessage: &msg}
+	}
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		msg := err.Error()
+		return se.StatusResponse{ErrorMessage: &msg}
 	}
 
 	if len(os.Getenv("LOCAL_ENVIRONMENT")) == 0 {
@@ -235,15 +243,11 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 	}
 
 	resp, err := client.Do(req)
-
-	//if error, record it
-	if err != nil {
-
-		errorMessage := fmt.Sprintf("Problem sending request: %s", err.Error())
-		log.Printf(errorMessage)
-		PublishError(errorMessage, action, requestor)
-		return se.StatusResponse{}
-
+	if err != nil { //record any errors
+		msg := fmt.Sprintf("error sending request: %s", err.Error())
+		log.Printf("%s", color.HiRedString("[error] %s", msg))
+		PublishError(msg, action, requestor)
+		return se.StatusResponse{ErrorMessage: &msg}
 	}
 
 	defer resp.Body.Close()
@@ -333,14 +337,10 @@ func ReplaceIPAddressEndpoint(path string, address string) string {
 //@post the endpoint does not contain ':'
 func ReplaceParameters(endpoint string, parameters map[string]string) (string, error) {
 
-	log.Printf("[state] replacing formal parameters with actual parameters in %s...", endpoint)
+	log.Printf("%s", color.HiMagentaString("[state] replacing formal parameters with actual parameters in %s...", endpoint))
 
-	if parameters == nil {
-		return "", errors.New("nil parameter map")
-	}
-
-	if len(endpoint) <= LOCAL_CHECK_INDEX {
-		return "", errors.New("invalid endpoint")
+	if parameters == nil { //should I keep this check?
+		return endpoint, nil
 	}
 
 	for k, v := range parameters {
@@ -354,10 +354,15 @@ func ReplaceParameters(endpoint string, parameters map[string]string) (string, e
 		endpoint = strings.Replace(endpoint, toReplace, v, -1)
 	}
 
-	log.Printf("%s", color.HiYellowString("[parameters] checking parameters of %s", endpoint[LOCAL_CHECK_INDEX:]))
-	if strings.Contains(endpoint[LOCAL_CHECK_INDEX:], ":") {
-		errorString := fmt.Sprintf("not enough parameters provided for command: %s", endpoint)
-		return "", errors.New(errorString)
+	log.Printf("%s", color.HiMagentaString("[state] endpoint length: %s", len(endpoint)))
+	index := strings.IndexRune(endpoint, ':')
+
+	if index >= 0 {
+
+		if strings.Contains(endpoint[index+1:], ":") {
+			errorString := fmt.Sprintf("not enough parameters provided for command: %s", endpoint)
+			return "", errors.New(errorString)
+		}
 	}
 
 	return endpoint, nil
