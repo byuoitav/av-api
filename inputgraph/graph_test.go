@@ -7,6 +7,8 @@ import (
 	"github.com/byuoitav/configuration-database-microservice/structs"
 )
 
+const debug = true
+
 var i1 = structs.Device{
 	Name: "i1",
 }
@@ -231,7 +233,7 @@ func TestGraphBuilding(t *testing.T) {
 	}
 
 	if debug {
-		log.Printf("%+v", graph.AdjecencyMap)
+		log.Printf("%+v", graph.AdjacencyMap)
 	}
 }
 
