@@ -346,14 +346,8 @@ func ReplaceParameters(endpoint string, parameters map[string]string) (string, e
 		endpoint = strings.Replace(endpoint, toReplace, v, -1)
 	}
 
-	var checkIndex int
-	if strings.Contains(endpoint, "localhost") { //command is for service running locally
-		checkIndex = LOCAL_CHECK_INDEX
-	} else { //command is for gated service
-		checkIndex = GATEWAY_CHECK_INDEX
-	}
-
-	if strings.Contains(endpoint[checkIndex:], ":") {
+	log.Printf("%s", color.HiYellowString("[parameters] checking parameters of %s", endpoint[LOCAL_CHECK_INDEX:]))
+	if strings.Contains(endpoint[LOCAL_CHECK_INDEX:], ":") {
 		errorString := fmt.Sprintf("not enough parameters provided for command: %s", endpoint)
 		return "", errors.New(errorString)
 	}

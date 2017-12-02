@@ -151,7 +151,7 @@ func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusRespon
 
 	//set action gateway
 	if err := gateway.SetGateway(&action); err != nil {
-		msg := fmt.Sprintf("invalid gateway for %s microservie (check database microservice mappings?) %s", cmd.Microservice, err.Error())
+		msg := fmt.Sprintf("invalid gateway for %s microservice (check database microservice mappings?) %s", cmd.Microservice, err.Error())
 		log.Printf("%s", color.HiRedString("[error] %s", msg))
 		PublishError(msg, action, requestor)
 		control.Done()

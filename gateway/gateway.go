@@ -47,21 +47,28 @@ func SetStatusGateway(action *statusevaluators.StatusCommand) error {
 //finds the IP of the device that controls the given device
 func getDeviceGateway(d structs.Device) (string, error) {
 
-	for _, port := range d.Ports { //range over all ports
+	//get devices by building and room and role
+	devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(d.Building.Shortname, d.Room.Name, "Gateway")
+	if err != nil {
+		return "", err
+	}
 
-		log.Printf("%s", color.HiYellowString("[gateway] considering device: %s", port.Source))
+	if len(devices) == 0 {
+		msg := "no gateway devices found"
+		log.Printf("%s", color.HiRedString("[error] %s", msg))
+		return "", errors.New(msg)
+	}
 
-		device, err := dbo.GetDeviceByName(d.Building.Name, d.Room.Name, port.Source)
-		if err != nil {
-			return "", errors.New(fmt.Sprintf("unable to get source device from port: %s", err.Error()))
-		}
+	for _, device := range devices {
 
-		if len(device.Roles) == 0 {
-			log.Printf("%s", color.HiRedString("I HATE YOU!!!"))
-		}
+		log.Printf("%s", color.HiYellowString("[gateway] found device %s", device.Name))
 
-		if device.HasRole("Gateway") || structs.HasRole(device, "Gateway") {
-			return device.Address, nil
+		for _, port := range device.Ports {
+
+			if port.Destination == d.Name {
+
+				return device.Address, nil
+			}
 		}
 	}
 
