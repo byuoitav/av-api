@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/fatih/color"
 )
@@ -29,21 +28,23 @@ func SetGateway(path string, device structs.Device) (string, error) {
 
 }
 
-func SetStatusGateway(action *statusevaluators.StatusCommand) error {
+func SetStatusGateway(url string, device structs.Device) (string, error) {
 
-	if structs.HasRole(action.Device, "GatedDevice") { //we need to add a gateway parameter to the action
+	parameter := ":gateway"
 
-		log.Printf("%s", color.HiYellowString("[gateway] identified gated device %s", action.Device.Name))
+	if structs.HasRole(device, "GatedDevice") && strings.Contains(url, parameter) { //we need to add a gateway parameter to the action
 
-		gateway, err := getDeviceGateway(action.Device)
+		log.Printf("%s", color.HiYellowString("[gateway] identified gated device %s", device.Name))
+
+		gateway, err := getDeviceGateway(device)
 		if err != nil {
-			return err
+			return "", err
 		}
 
-		action.Parameters["gateway"] = gateway
+		return strings.Replace(url, parameter, gateway, -1), nil
 	}
 
-	return nil
+	return url, nil
 }
 
 //finds the IP of the device that controls the given device

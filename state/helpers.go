@@ -48,15 +48,8 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 		}
 		statusResponseMap := make(map[string]interface{})
 
-		if err := gateway.SetStatusGateway(&command); err != nil {
-			msg := fmt.Sprintf("unable to set gateway for %s: %s", command.Action.Microservice, err.Error())
-			log.Printf("%s", color.HiRedString("[error] %s", msg))
-			base.PublishError(msg, ei.INTERNAL)
-			continue
-		}
-
 		//build url
-		url, err := ReplaceParameters(command.Action.Microservice+command.Action.Endpoint.Path, command.Parameters)
+		url, err := ReplaceParameters(command.Action.Endpoint.Path, command.Parameters)
 		if err != nil {
 			msg := fmt.Sprintf("unable to replace paramaters for %s: %s", command.Action.Name, err.Error())
 			log.Printf("%s", color.HiRedString("[error] %s", msg))
@@ -64,7 +57,15 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 			continue
 		}
 
-		log.Printf("[state] sending requqest to %s", url)
+		url, err = gateway.SetStatusGateway(command.Action.Microservice+url, command.Device)
+		if err != nil {
+			msg := fmt.Sprintf("unable to set gateway for %s: %s", command.Action.Name, err.Error())
+			log.Printf("%s", color.HiRedString("[error] %s", msg))
+			base.PublishError(msg, ei.INTERNAL)
+			continue
+		}
+
+		log.Printf("%s", color.HiBlueString("[state] sending requqest to %s", url))
 		timeout := time.Duration(TIMEOUT * time.Second)
 		client := http.Client{Timeout: timeout}
 		response, err := client.Get(url)
