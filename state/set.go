@@ -152,12 +152,7 @@ func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusRespon
 		return
 	}
 
-	log.Printf("%s", color.HiMagentaString("[state] raw endpoint: %s", cmd.Endpoint.Path))
-
 	endpoint := ReplaceIPAddressEndpoint(cmd.Endpoint.Path, action.Device.Address)
-	log.Printf("%s", color.HiMagentaString("[state] endpoint with IP address: %s", endpoint))
-
-	log.Printf("%s", color.HiMagentaString("[state] endpoint with gateway: %s", endpoint))
 	endpoint, err := ReplaceParameters(endpoint, action.Parameters)
 	if err != nil {
 		msg := fmt.Sprintf("Error building endpoint for command %s against device %s: %s", action.Action, action.Device.GetFullName(), err.Error())
@@ -166,8 +161,6 @@ func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusRespon
 		control.Done()
 		return
 	}
-
-	log.Printf("%s", color.HiMagentaString("[state] endpoint with parameters: %s", endpoint))
 
 	//Execute the command.
 	status := ExecuteCommand(action, cmd, endpoint, requestor)

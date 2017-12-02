@@ -3,12 +3,10 @@ package gateway
 import (
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/configuration-database-microservice/structs"
-	"github.com/fatih/color"
 )
 
 func SetGateway(path string, device structs.Device) (string, error) {
@@ -33,8 +31,6 @@ func SetStatusGateway(url string, device structs.Device) (string, error) {
 	parameter := ":gateway"
 
 	if structs.HasRole(device, "GatedDevice") && strings.Contains(url, parameter) { //we need to add a gateway parameter to the action
-
-		log.Printf("%s", color.HiYellowString("[gateway] identified gated device %s", device.Name))
 
 		gateway, err := getDeviceGateway(device)
 		if err != nil {

@@ -29,8 +29,6 @@ const GATEWAY_CHECK_INDEX = 5
 //builds a Status object corresponding to a device and writes it to the channel
 func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse, control *sync.WaitGroup) {
 
-	log.Printf("Issuing commands...\n\n")
-
 	//final output
 	outputs := []se.StatusResponse{}
 
@@ -38,7 +36,7 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 	//TODO:make sure devices can handle rapid-fire API requests
 	for _, command := range commands {
 
-		log.Printf("Command: %s against device %s, destination device: %s, parameters: %v", command.Action.Name, command.Device.Name, command.DestinationDevice.Device.Name, command.Parameters)
+		log.Printf("[state] issuing command: %s against device %s, destination device: %s, parameters: %v", command.Action.Name, command.Device.Name, command.DestinationDevice.Device.Name, command.Parameters)
 
 		output := se.StatusResponse{
 			Callback:          command.Callback,
@@ -96,7 +94,7 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 			continue
 		}
 
-		log.Printf("[state] microservice returned: %s", string(body))
+		log.Printf("[state] microservice returned: %s for action %s against device %s", string(body), command.Action.Name, command.Device.Name, string(body))
 
 		var status map[string]interface{}
 		err = json.Unmarshal(body, &status)
@@ -162,7 +160,7 @@ func processAudioDevice(device se.Status) (base.AudioDevice, error) {
 		if ok {
 			audioDevice.Volume = &volumeInt
 		} else {
-			log.Printf("Volume type assertion failed for %v", volume)
+			log.Printf("%s", color.HiRedString("[error] volume type assertion failed for %v", volume))
 		}
 	}
 
@@ -217,8 +215,6 @@ func processDisplay(device se.Status) (base.Display, error) {
 //@pre the parameters have been filled, e.g. the endpoint does not contain ":"
 func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoint, requestor string) se.StatusResponse {
 
-	log.Printf("[state] Sending request to %s%s...", command.Microservice, endpoint)
-
 	client := &http.Client{
 		Timeout: TIMEOUT * time.Second,
 	}
@@ -228,6 +224,8 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 		msg := fmt.Sprintf("unable to reach gated device: %s: %s", action.Device.Name, err.Error())
 		return se.StatusResponse{ErrorMessage: &msg}
 	}
+
+	log.Printf("%s", color.HiBlueString("[state] sending request to %s...", url))
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -255,20 +253,14 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 
 	if resp.StatusCode != http.StatusOK { //check the response code, if non-200, we need to record and report
 
-		color.Set(color.FgHiRed, color.Bold)
-		log.Printf("[error] non-200 response code: %v", resp.StatusCode)
-		color.Unset()
+		log.Printf("%s", color.HiRedString("[error] non-200 response code: %v", resp.StatusCode))
 
 		b, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-
-			color.Set(color.FgHiRed, color.Bold)
-			log.Printf("[error] Problem reading the response: %s", err.Error())
-			PublishError(err.Error(), action, requestor)
-			color.Unset()
+			log.Printf("%s", color.HiRedString("[error] problem reading the response: %s", err.Error()))
 		}
 
-		log.Printf("microservice returned: %s", b)
+		log.Printf("%s", color.HiRedString("[error] microservice returned: %s for action %s against device %s.", b, action.Action, action.Device.Name))
 		PublishError(fmt.Sprintf("%s", b), action, requestor)
 
 		return se.StatusResponse{}
@@ -292,22 +284,17 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 		)
 	}
 
-	color.Set(color.FgHiGreen, color.Bold)
-	log.Printf("[state] Successfully sent command %s to device %s.", action.Action, action.Device.Name)
-	color.Unset()
-
-	log.Printf("[state] Unmarshalling status...")
-
+	log.Printf("%s", color.HiGreenString("[state] sent command %s to device %s.", action.Action, action.Device.Name))
 	status := make(map[string]interface{})
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		errorString := fmt.Sprintf("Could not read response body: %s", err.Error())
+		errorString := fmt.Sprintf("could not read response body: %s", err.Error())
 		PublishError(errorString, action, requestor)
 	}
 
 	err = json.Unmarshal(body, &status)
 	if err != nil {
-		message := fmt.Sprint("Could not unmarshal response struct: %s", err.Error())
+		message := fmt.Sprint("could not unmarshal response struct: %s", err.Error())
 		PublishError(message, action, requestor)
 	}
 	response := se.StatusResponse{
@@ -338,8 +325,6 @@ func ReplaceIPAddressEndpoint(path string, address string) string {
 //@post the endpoint does not contain ':'
 func ReplaceParameters(endpoint string, parameters map[string]string) (string, error) {
 
-	log.Printf("%s", color.HiMagentaString("[state] replacing formal parameters with actual parameters in %s...", endpoint))
-
 	if parameters == nil { //should I keep this check?
 		return endpoint, nil
 	}
@@ -355,13 +340,12 @@ func ReplaceParameters(endpoint string, parameters map[string]string) (string, e
 		endpoint = strings.Replace(endpoint, toReplace, v, -1)
 	}
 
-	log.Printf("%s", color.HiMagentaString("[state] endpoint length: %s", len(endpoint)))
 	index := strings.IndexRune(endpoint, ':')
 
 	if index >= 0 {
 
 		if strings.Contains(endpoint[index+1:], ":") {
-			errorString := fmt.Sprintf("not enough parameters provided for command: %s", endpoint)
+			errorString := fmt.Sprintf("not enough parameters provided for command: %s", endpoint) //TODO change this setup?
 			return "", errors.New(errorString)
 		}
 	}
@@ -371,7 +355,7 @@ func ReplaceParameters(endpoint string, parameters map[string]string) (string, e
 
 func PublishError(message string, action base.ActionStructure, requestor string) {
 
-	log.Printf("[error] Publishing error: %s...", message)
+	log.Printf("[error] publishing error: %s...", message)
 	base.SendEvent(
 		ei.ERROR,
 		ei.USERINPUT,
