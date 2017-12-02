@@ -14,7 +14,6 @@ import (
 
 	"github.com/byuoitav/authmiddleware/bearertoken"
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/debug"
 	"github.com/byuoitav/av-api/gateway"
 	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
@@ -119,12 +118,10 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 
 	//write output to channel
 	log.Printf("[state] writing output to channel...")
-	if debug.DEBUG {
-		for _, output := range outputs {
-			log.Printf("outputs from device %v", output.SourceDevice.GetFullName())
-			for key, value := range output.Status {
-				log.Printf("%s maps to %v", key, value)
-			}
+	for _, output := range outputs {
+		log.Printf("outputs from device %v", output.SourceDevice.GetFullName())
+		for key, value := range output.Status {
+			log.Printf("%s maps to %v", key, value)
 		}
 	}
 

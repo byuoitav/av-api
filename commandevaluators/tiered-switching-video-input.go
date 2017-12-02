@@ -8,7 +8,6 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/av-api/debug"
 	"github.com/byuoitav/av-api/inputgraph"
 	"github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/configuration-database-microservice/structs"
@@ -73,10 +72,8 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 		return []base.ActionStructure{}, 0, err
 	}
 
-	if debug.DEBUG {
-		for k, v := range graph.AdjacencyMap {
-			log.Printf("%v: %v", k, v)
-		}
+	for k, v := range graph.AdjacencyMap {
+		log.Printf("%v: %v", k, v)
 	}
 
 	log.Printf(color.HiBlueString("[tiered-switcher-eval] graph built."))
@@ -90,9 +87,7 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 		}
 	}
 
-	if debug.DEBUG {
-		log.Printf(color.HiBlueString("[tiered-switcher-eval] found %v displays in room", len(room.Displays)))
-	}
+	log.Printf(color.HiBlueString("[tiered-switcher-eval] found %v displays in room", len(room.Displays)))
 
 	if len(room.Displays) > 0 {
 		log.Printf(color.HiBlueString("[tiered-switcher-eval] evaluating individual device input."))
@@ -398,9 +393,7 @@ func generateActionForSwitch(prev, cur, next inputgraph.Node, destination struct
 	m["input"] = strings.Replace(in, "IN", "", 1)
 	m["output"] = strings.Replace(out, "OUT", "", 1)
 
-	if debug.DEBUG {
-		log.Printf("params: %v", m)
-	}
+	log.Printf("params: %v", m)
 
 	eventInfo := eventinfrastructure.EventInfo{
 		Type:           eventinfrastructure.CORESTATE,
