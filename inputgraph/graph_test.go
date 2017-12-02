@@ -7,8 +7,6 @@ import (
 	"github.com/byuoitav/configuration-database-microservice/structs"
 )
 
-const debug = true
-
 var i1 = structs.Device{
 	Name: "i1",
 }
