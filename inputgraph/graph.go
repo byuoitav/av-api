@@ -20,7 +20,7 @@ type Node struct {
 	Device structs.Device
 }
 
-const debug = true
+var debug = true
 
 func BuildGraph(devs []structs.Device) (InputGraph, error) {
 
