@@ -31,23 +31,23 @@ func (p *InputTieredSwitcher) GenerateCommands(devs []structs.Device) ([]StatusC
 	var count int
 
 	for _, d := range devs {
-		isVS := d.HasRole("VideoSwitcher")
+		isVS := structs.HasRole(d, "VideoSwitcher")
 		cmd := d.GetCommandByName("STATUS_Input")
 		if len(cmd.Name) == 0 {
 			continue
 		}
-		if (!d.Output && !isVS) || d.HasRole("Microphone") || d.HasRole("DSP") {
-			//we don't care about it
+		if (!d.Output && !isVS) || structs.HasRole(d, "Microphone") || structs.HasRole(d, "DSP") { //we don't care about it
 			continue
 		}
+
 		//validate it has the command
 		if len(cmd.Name) == 0 {
-			log.Printf(color.HiRedString("No input command for device %v...", d.Name))
+			log.Printf(color.HiRedString("[error] no input command for device %v...", d.Name))
 			continue
 		}
 
 		if isVS {
-			log.Printf("Is a video switcher, generating commands...")
+			log.Printf("[statusevaluators] identified video switcher, generating commands...")
 			//we need to generate commands for every output port
 
 			for _, p := range d.Ports {
@@ -82,8 +82,8 @@ func (p *InputTieredSwitcher) GenerateCommands(devs []structs.Device) ([]StatusC
 			Device: d,
 			DestinationDevice: base.DestinationDevice{
 				Device:      d,
-				AudioDevice: d.HasRole("AudioOut"),
-				Display:     d.HasRole("VideoOut"),
+				AudioDevice: structs.HasRole(d, "AudioOut"),
+				Display:     structs.HasRole(d, "VideoOut"),
 			},
 			Generator:  INPUT_STATUS_TIERED_SWITCHER,
 			Parameters: params,

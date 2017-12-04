@@ -231,7 +231,7 @@ func TestGraphBuilding(t *testing.T) {
 	}
 
 	if debug {
-		log.Printf("%+v", graph.AdjecencyMap)
+		log.Printf("%+v", graph.AdjacencyMap)
 	}
 }
 

@@ -183,11 +183,14 @@ func GetDevicesByRoom(buildingName string, roomName string) (toReturn []structs.
 
 // GetDevicesByBuildingAndRoomAndRole will get the devices with the given role from the DB
 func GetDevicesByBuildingAndRoomAndRole(building string, room string, roleName string) (toReturn []structs.Device, err error) {
+
+	if roleName == "Gateway" {
+		log.Printf("%s", color.HiYellowString("[gateway] making request to: %s", os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS")+"/buildings/"+building+"/rooms/"+room+"/devices/roles/"+roleName))
+	}
+
 	err = GetData(os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS")+"/buildings/"+building+"/rooms/"+room+"/devices/roles/"+roleName, &toReturn)
 	if err != nil {
-		color.Set(color.FgHiRed, color.Bold)
-		log.Printf("[error] problem getting device by role: %s", err.Error())
-		color.Unset()
+		log.Printf("%s", color.HiRedString("[error] problem getting device by role: %s", err.Error()))
 	}
 	return
 }
