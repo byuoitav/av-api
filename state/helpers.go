@@ -215,7 +215,7 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 	client := &http.Client{
 		Timeout: TIMEOUT * time.Second,
 	}
-
+	//set the gateway
 	url, err := gateway.SetGateway(command.Microservice+endpoint, action.Device)
 	if err != nil {
 		msg := fmt.Sprintf("unable to reach gated device: %s: %s", action.Device.Name, err.Error())
