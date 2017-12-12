@@ -9,11 +9,9 @@ import (
 	"github.com/fatih/color"
 )
 
-var debug = true
-
 type InputGraph struct {
 	Nodes        []*Node
-	AdjecencyMap map[string][]string
+	AdjacencyMap map[string][]string
 	DeviceMap    map[string]*Node
 }
 
@@ -22,33 +20,31 @@ type Node struct {
 	Device structs.Device
 }
 
+var debug = true
+
 func BuildGraph(devs []structs.Device) (InputGraph, error) {
 
 	ig := InputGraph{
-		AdjecencyMap: make(map[string][]string),
+		AdjacencyMap: make(map[string][]string),
 		DeviceMap:    make(map[string]*Node),
 		Nodes:        []*Node{},
 	}
 
-	//we go through and build our graph
-	for d := range devs {
+	for _, device := range devs { //build graph
 
-		if _, ok := ig.DeviceMap[devs[d].Name]; !ok {
-			newNode := Node{ID: devs[d].Name, Device: devs[d]}
+		if _, ok := ig.DeviceMap[device.Name]; !ok {
+			newNode := Node{ID: device.Name, Device: device}
 			ig.Nodes = append(ig.Nodes, &newNode)
-
-			ig.DeviceMap[devs[d].Name] = &newNode
+			ig.DeviceMap[device.Name] = &newNode
 		}
 
-		for _, port := range devs[d].Ports {
-			if debug {
-				log.Printf("Addding %v to the adjecency for %v based on port %v", port.Source, port.Destination, port.Name)
-			}
-			//we add the entry in the adjacency map
-			if _, ok := ig.AdjecencyMap[port.Destination]; ok {
-				ig.AdjecencyMap[port.Destination] = append(ig.AdjecencyMap[port.Destination], port.Source)
+		for _, port := range device.Ports { // add entry in adjacency map
+			log.Printf("[tiered-switcher-eval] addding %v to the adjecency for %v based on port %v", port.Source, port.Destination, port.Name)
+
+			if _, ok := ig.AdjacencyMap[port.Destination]; ok {
+				ig.AdjacencyMap[port.Destination] = append(ig.AdjacencyMap[port.Destination], port.Source)
 			} else {
-				ig.AdjecencyMap[port.Destination] = []string{port.Source}
+				ig.AdjacencyMap[port.Destination] = []string{port.Source}
 			}
 		}
 	}
@@ -60,10 +56,8 @@ func BuildGraph(devs []structs.Device) (InputGraph, error) {
 
 //where deviceA is the sink and deviceB is the source
 func CheckReachability(deviceA, deviceB string, ig InputGraph) (bool, []Node, error) {
-	if debug {
-		log.Printf("looking for a path from %v to %v", deviceA, deviceB)
+	log.Printf("looking for a path from %v to %v", deviceA, deviceB)
 
-	}
 	//check and make sure that both of the devices are actually a part of the graph
 
 	if _, ok := ig.DeviceMap[deviceA]; !ok {
@@ -95,20 +89,14 @@ func CheckReachability(deviceA, deviceB string, ig InputGraph) (bool, []Node, er
 	for {
 		select {
 		case cur := <-frontier:
-			if debug {
-				log.Printf("Evaluating %v", cur)
-			}
+			log.Printf("Evaluating %v", cur)
 			if cur == deviceB {
-				if debug {
-					log.Printf("Destination reached.", cur)
-				}
+				log.Printf("Destination reached.", cur)
 				dev := cur
 
 				toReturn := []Node{}
 				toReturn = append(toReturn, *ig.DeviceMap[dev])
-				if debug {
-					log.Printf("First Hop: %v -> %v", dev, path[dev])
-				}
+				log.Printf("First Hop: %v -> %v", dev, path[dev])
 
 				dev, ok := path[dev]
 
@@ -120,9 +108,7 @@ func CheckReachability(deviceA, deviceB string, ig InputGraph) (bool, []Node, er
 
 						return false, []Node{}, errors.New(msg)
 					}
-					if debug {
-						log.Printf("Next hop: %v -> %v", dev, path[dev])
-					}
+					log.Printf("Next hop: %v -> %v", dev, path[dev])
 
 					toReturn = append(toReturn, *ig.DeviceMap[dev])
 
@@ -134,31 +120,27 @@ func CheckReachability(deviceA, deviceB string, ig InputGraph) (bool, []Node, er
 				return true, toReturn, nil
 			}
 
-			for _, next := range ig.AdjecencyMap[cur] {
+			for _, next := range ig.AdjacencyMap[cur] {
 				if _, ok := path[next]; ok || next == deviceA {
 					continue
 				}
 
 				path[next] = cur
-				if debug {
 
-					log.Printf("Path from %v to %v, adding %v to frontier", cur, next, next)
-					log.Printf("Path as it stands is: ")
+				log.Printf("Path from %v to %v, adding %v to frontier", cur, next, next)
+				log.Printf("Path as it stands is: ")
 
-					curDev := next
-					dev, ok := path[curDev]
-					for ok {
-						log.Printf("%v -> %v", curDev, dev)
-						curDev = dev
-						dev, ok = path[curDev]
-					}
-				} //END DEBUG
+				curDev := next
+				dev, ok := path[curDev]
+				for ok {
+					log.Printf("%v -> %v", curDev, dev)
+					curDev = dev
+					dev, ok = path[curDev]
+				}
 				frontier <- next
 			}
 		default:
-			if debug {
-				log.Printf("No path found")
-			}
+			log.Printf("No path found")
 			return false, []Node{}, nil
 		}
 	}
