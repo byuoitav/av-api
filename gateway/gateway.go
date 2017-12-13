@@ -21,30 +21,36 @@ import (
 */
 func SetGateway(url string, device structs.Device) (string, error) {
 	if structs.HasRole(device, "GatedDevice") { //we need to add a gateway parameter to the action
+		log.Printf(color.BlueString("[gateway-processing]Device %v is a gated device, looking for gateway", device.GetFullName()))
 		parseString := `http:\/\/(.+?)\/(.*)`
 
 		gateway, port, err := getDeviceGateway(device)
 		if err != nil {
 			return "", err
 		}
+		log.Printf(color.BlueString("[gateway-processing]Found a gateway %v connectd via port %v", gateway.GetFullName(), port))
 
 		newpath, err := processPort(gateway, port)
 		if err != nil {
 			return "", err
 		}
+		log.Printf(color.BlueString("[gateway-processing] Generated a new path: %v", newpath))
+
 		//now we need to parse the url and plug the values into the new string
 		regex := regexp.MustCompile(parseString)
 		vals := regex.FindAllStringSubmatch(url, -1)
 		if len(vals) == 0 {
-			msg := fmt.Sprintf("Invalid path, could not parse path for gateway replacement %v", url)
+			msg := fmt.Sprintf("[gateway-processing]Invalid path, could not parse path for gateway replacement %v", url)
 			log.Printf(color.HiRedString(msg))
 			return "", errors.New(msg)
 		}
 
 		//now we go through and replace
-		newpath = strings.Replace(newpath, ":address", vals[0][0], -1)
-		newpath = strings.Replace(newpath, ":path", vals[0][1], -1)
+		newpath = strings.Replace(newpath, ":address", vals[0][1], -1)
+		newpath = strings.Replace(newpath, ":path", vals[0][2], -1)
 		newpath = strings.Replace(newpath, ":gateway", gateway.Address, -1)
+
+		log.Printf(color.BlueString("[gateway-processing] Processed path: %v", newpath))
 
 		return SetGateway(newpath, gateway)
 	}
@@ -107,14 +113,16 @@ func processPort(gateway structs.Device, port string) (string, error) {
 		log.Printf(color.HiRedString(msg))
 		return "", errors.New(msg)
 	}
-
-	//we have the command, so we can build the command,
-	path := command.Microservice + command.Microservice
+	//for now we assume that those numbered parameters are only valid for the endpoint, otherwise we run into port issues
+	path := command.Endpoint.Path
 
 	//replace params
 	for k, v := range params {
 		path = strings.Replace(path, k, v, -1)
 	}
+
+	//we have the command, so we can build the command,
+	path = command.Microservice + path
 
 	return path, nil
 }
