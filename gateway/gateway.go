@@ -57,7 +57,6 @@ func SetGateway(url string, device structs.Device) (string, error) {
 
 	return url, nil
 }
-
 func SetStatusGateway(url string, device structs.Device) (string, error) {
 	return SetGateway(url, device)
 }
