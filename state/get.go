@@ -64,7 +64,7 @@ func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse
 	log.Printf("%s", color.HiBlueString("[state] building device map..."))
 	for _, command := range commands {
 
-		log.Printf("[state] command: %s against device %s, destination device: %s, parameters: %v", command.Action.Name, command.Device.Name, command.DestinationDevice.Device.Name, command.Parameters)
+		//log.Printf("[state] command: %s against device %s, destination device: %s, parameters: %v", command.Action.Name, command.Device.Name, command.DestinationDevice.Device.Name, command.Parameters)
 		_, present := commandMap[command.Device.Name]
 		if !present {
 			commandMap[command.Device.Name] = []se.StatusCommand{command}
@@ -84,9 +84,12 @@ func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse
 		go issueCommands(deviceCommands, channel, &group)
 
 		log.Printf("%s", color.HiBlueString("[state] commands to issue:"))
-		for _, command := range deviceCommands {
-			log.Printf("[state] command: %s against device %s, destination device: %s, parameters: %v", command.Action.Name, command.Device.Name, command.DestinationDevice.Device.Name, command.Parameters)
-		}
+
+		/*
+			for _, command := range deviceCommands {
+				log.Printf("[state] command: %s against device %s, destination device: %s, parameters: %v", command.Action.Name, command.Device.Name, command.DestinationDevice.Device.Name, command.Parameters)
+			}
+		*/
 	}
 
 	log.Printf("[state] waiting for commands to issue...")
@@ -102,7 +105,7 @@ func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse
 				cause := eventinfrastructure.INTERNAL
 				base.PublishError(msg, cause)
 			}
-			log.Printf("[state] appending status: %v of %s to output", output.Status, output.DestinationDevice.Name)
+			//log.Printf("[state] appending status: %v of %s to output", output.Status, output.DestinationDevice.Name)
 			outputs = append(outputs, output)
 		}
 	}

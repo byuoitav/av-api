@@ -29,7 +29,7 @@ func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom, requestor st
 			continue
 		}
 
-		log.Printf("[state] considering evaluator %s", evaluator.EvaluatorKey)
+		//log.Printf("[state] considering evaluator %s", evaluator.EvaluatorKey)
 
 		curEvaluator := ce.EVALUATORS[evaluator.EvaluatorKey]
 		if curEvaluator == nil {
