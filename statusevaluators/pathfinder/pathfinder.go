@@ -77,7 +77,20 @@ func (sp *SignalPathfinder) AddEdge(Device structs.Device, port string) bool {
 	if _, ok := sp.Pending[Device.Name]; !ok {
 		sp.Pending[Device.Name] = []structs.Port{realPort}
 	} else {
-		sp.Pending[Device.Name] = append(sp.Pending[Device.Name], realPort)
+		//TODO: we should check for a duplicate edge
+		duplicate := false
+
+		for _, edge := range sp.Pending[Device.Name] {
+			if edge.Name == realPort.Name && edge.Host == realPort.Host && edge.Source == realPort.Source && edge.Destination == realPort.Destination {
+
+				//it's a duplicate port
+				duplicate = true
+				break
+			}
+		}
+		if !duplicate {
+			sp.Pending[Device.Name] = append(sp.Pending[Device.Name], realPort)
+		}
 	}
 
 	sp.Actual++

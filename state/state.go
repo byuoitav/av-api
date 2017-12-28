@@ -48,9 +48,7 @@ func GetRoomState(building string, roomName string) (base.PublicRoom, error) {
 
 func SetRoomState(target base.PublicRoom, requestor string) (base.PublicRoom, error) {
 
-	color.Set(color.FgHiCyan, color.Bold)
-	log.Printf("[state] setting room state...")
-	color.Unset()
+	log.Printf("%s", color.HiBlueString("[state] setting room state..."))
 
 	room, err := dbo.GetRoomByInfo(target.Building, target.Room)
 	if err != nil {

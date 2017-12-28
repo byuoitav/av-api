@@ -2,6 +2,7 @@ package state
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 	"sync"
@@ -50,9 +51,7 @@ func GenerateStatusCommands(room structs.Room, commandMap map[string]se.StatusEv
 
 func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse, err error) {
 
-	color.Set(color.FgHiCyan)
-	log.Printf("[state] running status commands...")
-	color.Unset()
+	log.Printf("%s", color.HiBlueString("[state] running status commands..."))
 
 	if len(commands) == 0 {
 		err = errors.New("no commands")
@@ -62,10 +61,10 @@ func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse
 	//map device names to commands
 	commandMap := make(map[string][]se.StatusCommand)
 
-	log.Printf("[state] building device map\n\n")
+	log.Printf("%s", color.HiBlueString("[state] building device map..."))
 	for _, command := range commands {
 
-		log.Printf("[state] command: %s against device %s, destination device: %s, parameters: %v", command.Action.Name, command.Device.Name, command.DestinationDevice.Device.Name, command.Parameters)
+		//log.Printf("[state] command: %s against device %s, destination device: %s, parameters: %v", command.Action.Name, command.Device.Name, command.DestinationDevice.Device.Name, command.Parameters)
 		_, present := commandMap[command.Device.Name]
 		if !present {
 			commandMap[command.Device.Name] = []se.StatusCommand{command}
@@ -84,14 +83,16 @@ func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse
 		group.Add(1)
 		go issueCommands(deviceCommands, channel, &group)
 
-		log.Printf("Commands getting issued: \n\n")
+		log.Printf("%s", color.HiBlueString("[state] commands to issue:"))
 
-		for _, command := range deviceCommands {
-			log.Printf("Command: %s against device %s, destination device: %s, parameters: %v", command.Action.Name, command.Device.Name, command.DestinationDevice.Device.Name, command.Parameters)
-		}
+		/*
+			for _, command := range deviceCommands {
+				log.Printf("[state] command: %s against device %s, destination device: %s, parameters: %v", command.Action.Name, command.Device.Name, command.DestinationDevice.Device.Name, command.Parameters)
+			}
+		*/
 	}
 
-	log.Printf("[state] Waiting for commands to issue...")
+	log.Printf("[state] waiting for commands to issue...")
 	group.Wait()
 	log.Printf("[state] Done. Closing channel...")
 	close(channel)
@@ -99,13 +100,12 @@ func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse
 	for outputList := range channel {
 		for _, output := range outputList {
 			if output.ErrorMessage != nil {
-				log.Printf("[error] problem querying status of device: %s: %s", output.SourceDevice.Name, *output.ErrorMessage)
+				msg := fmt.Sprintf("problem querying status of device: %s with destination %s: %s", output.SourceDevice.Name, output.DestinationDevice.Name, *output.ErrorMessage)
+				log.Printf("%s", color.HiRedString("[error] %s", msg))
 				cause := eventinfrastructure.INTERNAL
-				message := *output.ErrorMessage
-				message = "Error querying status for destination: " + output.DestinationDevice.Name + ": " + message
-				base.PublishError(message, cause)
+				base.PublishError(msg, cause)
 			}
-			log.Printf("[state] Appending status: %v of %s to output", output.Status, output.DestinationDevice.Name)
+			//log.Printf("[state] appending status: %v of %s to output", output.Status, output.DestinationDevice.Name)
 			outputs = append(outputs, output)
 		}
 	}
@@ -114,9 +114,13 @@ func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse
 
 func EvaluateResponses(responses []se.StatusResponse, count int) (base.PublicRoom, error) {
 
-	color.Set(color.FgHiCyan)
-	log.Printf("[state] Evaluating responses...")
-	color.Unset()
+	log.Printf("%s", color.HiBlueString("[state] Evaluating responses..."))
+
+	if len(responses) == 0 { //make sure things aren't broken
+		msg := "no status responses found"
+		return base.PublicRoom{}, errors.New(msg)
+		log.Printf("%s", color.HiRedString("[error] %s", msg))
+	}
 
 	var AudioDevices []base.AudioDevice
 	var Displays []base.Display
@@ -136,10 +140,8 @@ func EvaluateResponses(responses []se.StatusResponse, count int) (base.PublicRoo
 				k, v, err := se.STATUS_EVALUATORS[resp.Generator].EvaluateResponse(key, value, resp.SourceDevice, resp.DestinationDevice)
 				if err != nil {
 
-					color.Set(color.FgHiRed, color.Bold)
-					log.Printf("[state] problem procesing the response %v - %v with evaluator %v: %s",
-						key, value, resp.Generator, err.Error())
-					color.Unset()
+					log.Printf("%s", color.HiRedString("[state] problem procesing the response %v - %v with evaluator %v: %s",
+						key, value, resp.Generator, err.Error()))
 					continue
 				}
 
@@ -154,7 +156,7 @@ func EvaluateResponses(responses []se.StatusResponse, count int) (base.PublicRoo
 						DestinationDevice: resp.DestinationDevice,
 					}
 					responsesByDestinationDevice[resp.DestinationDevice.GetFullName()] = statusForDevice
-					log.Printf("[state] Adding Device %v to the map", resp.DestinationDevice.GetFullName())
+					log.Printf("[state] adding device %v to the map", resp.DestinationDevice.GetFullName())
 					doneCount++
 				}
 			}
@@ -191,7 +193,7 @@ func EvaluateResponses(responses []se.StatusResponse, count int) (base.PublicRoo
 					DestinationDevice: val.Dest,
 				}
 				responsesByDestinationDevice[val.Dest.GetFullName()] = statusForDevice
-				log.Printf("[state] Adding Device %v to the map", val.Dest.GetFullName())
+				log.Printf("[state] adding device %v to the map", val.Dest.GetFullName())
 				doneCount++
 			}
 		}

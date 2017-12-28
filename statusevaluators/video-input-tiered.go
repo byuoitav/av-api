@@ -31,23 +31,23 @@ func (p *InputTieredSwitcher) GenerateCommands(devs []structs.Device) ([]StatusC
 	var count int
 
 	for _, d := range devs {
-		isVS := d.HasRole("VideoSwitcher")
+		isVS := structs.HasRole(d, "VideoSwitcher")
 		cmd := d.GetCommandByName("STATUS_Input")
 		if len(cmd.Name) == 0 {
 			continue
 		}
-		if (!d.Output && !isVS) || d.HasRole("Microphone") || d.HasRole("DSP") {
-			//we don't care about it
+		if (!d.Output && !isVS) || structs.HasRole(d, "Microphone") || structs.HasRole(d, "DSP") { //we don't care about it
 			continue
 		}
+
 		//validate it has the command
 		if len(cmd.Name) == 0 {
-			log.Printf(color.HiRedString("No input command for device %v...", d.Name))
+			log.Printf(color.HiRedString("[error] no input command for device %v...", d.Name))
 			continue
 		}
 
 		if isVS {
-			log.Printf("Is a video switcher, generating commands...")
+			log.Printf("[statusevaluators] identified video switcher, generating commands...")
 			//we need to generate commands for every output port
 
 			for _, p := range d.Ports {
@@ -73,8 +73,7 @@ func (p *InputTieredSwitcher) GenerateCommands(devs []structs.Device) ([]StatusC
 			}
 			//we've finished with the switch
 			continue
-		}
-		//now we deal with the output devices, which is pretty basic
+		} //now we deal with the output devices, which is pretty basic
 		params := make(map[string]string)
 		params["address"] = d.Address
 
@@ -83,8 +82,8 @@ func (p *InputTieredSwitcher) GenerateCommands(devs []structs.Device) ([]StatusC
 			Device: d,
 			DestinationDevice: base.DestinationDevice{
 				Device:      d,
-				AudioDevice: d.HasRole("AudioOut"),
-				Display:     d.HasRole("VideoOut"),
+				AudioDevice: structs.HasRole(d, "AudioOut"),
+				Display:     structs.HasRole(d, "VideoOut"),
 			},
 			Generator:  INPUT_STATUS_TIERED_SWITCHER,
 			Parameters: params,
@@ -149,6 +148,40 @@ func (p *TieredSwitcherCallback) getDeviceByName(dev string) structs.Device {
 	return structs.Device{}
 }
 
+func (p *TieredSwitcherCallback) GetInputPaths(pathfinder pathfinder.SignalPathfinder) {
+	//we need to get the status that we can - odds are good we're in a room where the displays are off.
+
+	//how to traverse the graph for some of the output devices - we check to see if the output device is connected somehow - and we report where it got to.
+
+	inputMap, err := pathfinder.GetInputs()
+	if err != nil {
+		log.Printf("Error getting the inputs")
+		return
+	}
+
+	for k, v := range inputMap {
+		outDev := p.getDeviceByName(k)
+		if len(outDev.Name) == 0 {
+			log.Printf("No device by name %v in the device list for the callback", k)
+		}
+
+		destDev := base.DestinationDevice{
+			Device:      outDev,
+			AudioDevice: outDev.HasRole("AudioOut"),
+			Display:     outDev.HasRole("VideoOut"),
+		}
+		log.Printf(color.HiYellowString("[callback] Sending input %v -> %v", v.Name, k))
+
+		p.OutChan <- base.StatusPackage{
+			Dest:  destDev,
+			Key:   "input",
+			Value: v.Name,
+		}
+	}
+	log.Printf(color.HiYellowString("[callback] Done with evaluation. Closing."))
+	return
+}
+
 func (p *TieredSwitcherCallback) StartAggregator() {
 	log.Printf(color.HiYellowString("[callback] Starting aggregator."))
 	started := false
@@ -161,7 +194,8 @@ func (p *TieredSwitcherCallback) StartAggregator() {
 		select {
 		case <-t.C:
 			//we're timed out
-			log.Printf(color.HiYellowString("[callback] Timeout"))
+			log.Printf(color.HiYellowString("[callback] Timeout."))
+			p.GetInputPaths(pathfinder)
 			return
 
 		case val := <-p.InChan:
@@ -175,33 +209,8 @@ func (p *TieredSwitcherCallback) StartAggregator() {
 			//we need to start our graph, then check if we have any completed paths
 			ready := pathfinder.AddEdge(val.Device, val.Value.(string))
 			if ready {
-				log.Printf(color.HiYellowString("[callback] Expected count receieved - evaluating"))
-				inputMap, err := pathfinder.GetInputs()
-				if err != nil {
-					log.Printf("Error getting the inputs")
-					return
-				}
-
-				for k, v := range inputMap {
-					outDev := p.getDeviceByName(k)
-					if len(outDev.Name) == 0 {
-						log.Printf("No device by name %v in the device list for the callback", k)
-					}
-
-					destDev := base.DestinationDevice{
-						Device:      outDev,
-						AudioDevice: outDev.HasRole("AudioOut"),
-						Display:     outDev.HasRole("VideoOut"),
-					}
-					log.Printf(color.HiYellowString("[callback] Sending input %v -> %v", v.Name, k))
-
-					p.OutChan <- base.StatusPackage{
-						Dest:  destDev,
-						Key:   "input",
-						Value: v.Name,
-					}
-				}
-				log.Printf(color.HiYellowString("[callback] Done with evaluation. Closing."))
+				log.Printf(color.HiYellowString("[callback] All Information received."))
+				p.GetInputPaths(pathfinder)
 				return
 			}
 		}
