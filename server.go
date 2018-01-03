@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/byuoitav/authmiddleware"
 	"github.com/byuoitav/av-api/base"
@@ -19,11 +20,7 @@ import (
 )
 
 func main() {
-	base.EventNode = ei.NewEventNode("AV-API", "7001", []string{})
-
-	var req ei.ConnectionRequest
-	req.PublisherAddr = "localhost:7001"
-	go ei.SendConnectionRequest("http://localhost:6999/subscribe", req, true)
+	base.EventNode = ei.NewEventNode("AV-API", []string{}, os.Getenv("EVENT_ROUTER_ADDRESS"))
 
 	go func() {
 		err := avapi.CheckRoomInitialization()
@@ -49,7 +46,7 @@ func main() {
 	secure.PUT("/buildings/:building/rooms/:room", handlers.SetRoomState)
 
 	// room status
-	secure.GET("/buildings/:building/rooms/:room", handlers.GetRoomStatus)
+	secure.GET("/buildings/:building/rooms/:room", handlers.GetRoomState)
 	secure.GET("/buildings/:building/rooms/:room/configuration", handlers.GetRoomByNameAndBuilding)
 
 	server := http.Server{

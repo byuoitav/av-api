@@ -26,7 +26,7 @@ import (
 
 type SetVolumeDSP struct{}
 
-func (p *SetVolumeDSP) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
+func (p *SetVolumeDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 
 	log.Printf("Evaluating SetVolume command in DSP context...")
 
@@ -34,6 +34,7 @@ func (p *SetVolumeDSP) Evaluate(room base.PublicRoom) ([]base.ActionStructure, e
 		Type:         ei.CORESTATE,
 		EventCause:   ei.USERINPUT,
 		EventInfoKey: "volume",
+		Requestor:    requestor,
 	}
 
 	var actions []base.ActionStructure
@@ -48,7 +49,7 @@ func (p *SetVolumeDSP) Evaluate(room base.PublicRoom) ([]base.ActionStructure, e
 		if err != nil {
 			errorMessage := "Could not generate actions for room-wide \"SetVolume\" request: " + err.Error()
 			log.Printf(errorMessage)
-			return []base.ActionStructure{}, errors.New(errorMessage)
+			return []base.ActionStructure{}, 0, errors.New(errorMessage)
 		}
 
 		actions = append(actions, actions...)
@@ -71,7 +72,7 @@ func (p *SetVolumeDSP) Evaluate(room base.PublicRoom) ([]base.ActionStructure, e
 
 					action, err := GetMicVolumeAction(device, room, eventInfo, *audioDevice.Volume)
 					if err != nil {
-						return []base.ActionStructure{}, err
+						return []base.ActionStructure{}, 0, err
 					}
 
 					actions = append(actions, action)
@@ -80,7 +81,7 @@ func (p *SetVolumeDSP) Evaluate(room base.PublicRoom) ([]base.ActionStructure, e
 
 					dspActions, err := GetDSPMediaVolumeAction(device, room, eventInfo, *audioDevice.Volume)
 					if err != nil {
-						return []base.ActionStructure{}, err
+						return []base.ActionStructure{}, 0, err
 					}
 
 					actions = append(actions, dspActions...)
@@ -89,7 +90,7 @@ func (p *SetVolumeDSP) Evaluate(room base.PublicRoom) ([]base.ActionStructure, e
 
 					action, err := GetDisplayVolumeAction(device, room, eventInfo, *audioDevice.Volume)
 					if err != nil {
-						return []base.ActionStructure{}, err
+						return []base.ActionStructure{}, 0, err
 					}
 
 					actions = append(actions, action)
@@ -97,7 +98,7 @@ func (p *SetVolumeDSP) Evaluate(room base.PublicRoom) ([]base.ActionStructure, e
 				} else { //bad device
 					errorMessage := "Cannot set volume of device: " + device.Name + " in given context"
 					log.Printf(errorMessage)
-					return []base.ActionStructure{}, errors.New(errorMessage)
+					return []base.ActionStructure{}, 0, errors.New(errorMessage)
 				}
 			}
 		}
@@ -111,7 +112,7 @@ func (p *SetVolumeDSP) Evaluate(room base.PublicRoom) ([]base.ActionStructure, e
 	}
 
 	log.Printf("Evaluation complete.")
-	return actions, nil
+	return actions, len(actions), nil
 }
 
 func (p *SetVolumeDSP) Validate(action base.ActionStructure) (err error) {
@@ -191,10 +192,12 @@ func GetGeneralVolumeRequestActionsDSP(room base.PublicRoom, eventInfo ei.EventI
 //commands regarding microphones are only issued to DSP
 func GetMicVolumeAction(mic structs.Device, room base.PublicRoom, eventInfo ei.EventInfo, volume int) (base.ActionStructure, error) {
 
-	const SCALE_FACTOR = 3
-	const MINIMUM = 45
-
 	log.Printf("Identified microphone volume request")
+
+	destination := base.DestinationDevice{
+		Device:      mic,
+		AudioDevice: true,
+	}
 
 	//get DSP
 	dsps, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "DSP")
@@ -220,21 +223,20 @@ func GetMicVolumeAction(mic structs.Device, room base.PublicRoom, eventInfo ei.E
 		return base.ActionStructure{}, errors.New(errorMessage)
 	}
 
-	scaledVolume := (volume / SCALE_FACTOR) + MINIMUM
-
 	for _, port := range dsp.Ports {
 
 		if port.Source == mic.Name {
 
-			eventInfo.EventInfoValue = strconv.Itoa(scaledVolume)
+			eventInfo.EventInfoValue = strconv.Itoa(volume)
 			eventInfo.Device = mic.Name
-			parameters["level"] = strconv.Itoa(scaledVolume)
+			parameters["level"] = strconv.Itoa(volume)
 			parameters["input"] = port.Name
 
 			return base.ActionStructure{
 				Action:              "SetVolume",
 				GeneratingEvaluator: "SetVolumeDSP",
 				Device:              dsp,
+				DestinationDevice:   destination,
 				DeviceSpecific:      true,
 				EventLog:            []ei.EventInfo{eventInfo},
 				Parameters:          parameters,
@@ -267,11 +269,17 @@ func GetDSPMediaVolumeAction(dsp structs.Device, room base.PublicRoom, eventInfo
 
 		if !(sourceDevice.HasRole("Microphone")) {
 
+			destination := base.DestinationDevice{
+				Device:      dsp,
+				AudioDevice: true,
+			}
+
 			parameters["input"] = port.Name
 			action := base.ActionStructure{
 				Action:              "SetVolume",
 				GeneratingEvaluator: "SetVolumeDSP",
 				Device:              dsp,
+				DestinationDevice:   destination,
 				DeviceSpecific:      true,
 				EventLog:            []ei.EventInfo{eventInfo},
 				Parameters:          parameters,
@@ -291,6 +299,15 @@ func GetDisplayVolumeAction(device structs.Device, room base.PublicRoom, eventIn
 
 	parameters := make(map[string]string)
 
+	destination := base.DestinationDevice{
+		Device:      device,
+		AudioDevice: true,
+	}
+
+	if device.HasRole("VideoOut") {
+		destination.Display = true
+	}
+
 	eventInfo.EventInfoValue = strconv.Itoa(volume)
 	eventInfo.Device = device.Name
 	parameters["level"] = strconv.Itoa(volume)
@@ -299,6 +316,7 @@ func GetDisplayVolumeAction(device structs.Device, room base.PublicRoom, eventIn
 		Action:              "SetVolume",
 		GeneratingEvaluator: "SetVolumeDSP",
 		Device:              device,
+		DestinationDevice:   destination,
 		DeviceSpecific:      true,
 		EventLog:            []ei.EventInfo{eventInfo},
 		Parameters:          parameters,

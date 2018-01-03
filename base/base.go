@@ -2,13 +2,13 @@ package base
 
 import (
 	"github.com/byuoitav/configuration-database-microservice/structs"
-	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	ei "github.com/byuoitav/event-router-microservice/eventinfrastructure"
 )
 
 //PublicRoom is the struct that is returned (or put) as part of the public API
 type PublicRoom struct {
-	Building          string        `json:"building,omitempty"`
-	Room              string        `json:"room,omitempty"`
+	Building          string        `json:"-"`
+	Room              string        `json:"-"`
 	CurrentVideoInput string        `json:"currentVideoInput,omitempty"`
 	CurrentAudioInput string        `json:"currentAudioInput,omitempty"`
 	Power             string        `json:"power,omitempty"`
@@ -43,13 +43,29 @@ type Display struct {
 //they've been evaluated.
 //also contains a list of Events to be published
 type ActionStructure struct {
-	Action              string                          `json:"action"`
-	GeneratingEvaluator string                          `json:"generatingEvaluator"`
-	Device              structs.Device                  `json:"device"`
-	Parameters          map[string]string               `json:"parameters"`
-	DeviceSpecific      bool                            `json:"deviceSpecific,omitempty"`
-	Overridden          bool                            `json:"overridden"`
-	EventLog            []eventinfrastructure.EventInfo `json:"events"`
+	Action              string             `json:"action"`
+	GeneratingEvaluator string             `json:"generatingEvaluator"`
+	Device              structs.Device     `json:"device"`
+	DestinationDevice   DestinationDevice  `json:"destination_device"`
+	Parameters          map[string]string  `json:"parameters"`
+	DeviceSpecific      bool               `json:"deviceSpecific,omitempty"`
+	Overridden          bool               `json:"overridden"`
+	EventLog            []ei.EventInfo     `json:"events"`
+	Children            []*ActionStructure `json:"children"`
+	Callback            func(StatusPackage, chan<- StatusPackage) error
+}
+
+type DestinationDevice struct {
+	structs.Device
+	AudioDevice bool `json:"audio"`
+	Display     bool `json:"video"`
+}
+
+type StatusPackage struct {
+	Key    string
+	Value  interface{}
+	Device structs.Device
+	Dest   DestinationDevice
 }
 
 //Equals checks if the action structures are equal

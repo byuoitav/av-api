@@ -16,7 +16,7 @@ type StandbyDefault struct {
 }
 
 // Evaluate fulfills the CommmandEvaluation evaluate requirement.
-func (s *StandbyDefault) Evaluate(room base.PublicRoom) (actions []base.ActionStructure, err error) {
+func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actions []base.ActionStructure, count int, err error) {
 
 	log.Printf("Evaluating for Standby Command.")
 
@@ -26,6 +26,7 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom) (actions []base.ActionSt
 		EventCause:     eventinfrastructure.USERINPUT,
 		EventInfoKey:   "power",
 		EventInfoValue: "standby",
+		Requestor:      requestor,
 	}
 
 	if strings.EqualFold(room.Power, "standby") {
@@ -38,6 +39,7 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom) (actions []base.ActionSt
 
 		log.Printf("Setting power to 'standby' state for all devices with a 'standby' power state, that are also output devices.")
 		for _, device := range devices {
+
 			containsStandby := false
 			for _, ps := range device.PowerStates {
 				if strings.EqualFold(ps, "Standby") {
@@ -47,11 +49,26 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom) (actions []base.ActionSt
 			}
 
 			if containsStandby && device.Output {
+
 				log.Printf("Adding device %+v", device.Name)
+
+				dest := base.DestinationDevice{
+					Device: device,
+				}
+
+				if device.HasRole("AudioOut") {
+					dest.AudioDevice = true
+				}
+
+				if device.HasRole("VideoOut") {
+					dest.AudioDevice = true
+				}
+
 				eventInfo.Device = device.Name
 				actions = append(actions, base.ActionStructure{
 					Action:              "Standby",
 					Device:              device,
+					DestinationDevice:   dest,
 					GeneratingEvaluator: "StandbyDefault",
 					DeviceSpecific:      false,
 					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
@@ -63,7 +80,8 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom) (actions []base.ActionSt
 	// now we go through and check if power 'standby' was set for any other device.
 	for _, device := range room.Displays {
 		log.Printf("Evaluating displays for command power standby. ")
-		actions, err = s.evaluateDevice(device.Device, actions, devices, room.Room, room.Building, eventInfo)
+		destination := base.DestinationDevice{AudioDevice: true}
+		actions, err = s.evaluateDevice(device.Device, destination, actions, devices, room.Room, room.Building, eventInfo)
 		if err != nil {
 			return
 		}
@@ -71,7 +89,8 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom) (actions []base.ActionSt
 
 	for _, device := range room.AudioDevices {
 		log.Printf("Evaluating audio devices for command power on. ")
-		actions, err = s.evaluateDevice(device.Device, actions, devices, room.Room, room.Building, eventInfo)
+		destination := base.DestinationDevice{AudioDevice: true}
+		actions, err = s.evaluateDevice(device.Device, destination, actions, devices, room.Room, room.Building, eventInfo)
 		if err != nil {
 			return
 		}
@@ -79,6 +98,7 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom) (actions []base.ActionSt
 	log.Printf("%v actions generated.", len(actions))
 	log.Printf("Evaluation complete.")
 
+	count = len(actions)
 	return
 }
 
@@ -106,7 +126,7 @@ func (s *StandbyDefault) GetIncompatibleCommands() (incompatableActions []string
 }
 
 // Evaluate devices just pulls out the process we do with the audio-devices and displays into one function.
-func (s *StandbyDefault) evaluateDevice(device base.Device, actions []base.ActionStructure, devices []structs.Device, room string, building string, eventInfo eventinfrastructure.EventInfo) ([]base.ActionStructure, error) {
+func (s *StandbyDefault) evaluateDevice(device base.Device, destination base.DestinationDevice, actions []base.ActionStructure, devices []structs.Device, room string, building string, eventInfo eventinfrastructure.EventInfo) ([]base.ActionStructure, error) {
 	// Check if we even need to start anything
 	if strings.EqualFold(device.Power, "standby") {
 		// check if we already added it
@@ -121,6 +141,8 @@ func (s *StandbyDefault) evaluateDevice(device base.Device, actions []base.Actio
 			}
 
 			eventInfo.Device = device.Name
+			destination.Device = dev
+
 			actions = append(actions, base.ActionStructure{
 				Action:              "Standby",
 				Device:              dev,

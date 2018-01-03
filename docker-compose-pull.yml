@@ -9,6 +9,7 @@ services:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
             - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
+            - EVENT_ROUTER_ADDRESS=$EVENT_ROUTER_ADDRESS
         network_mode: "host"
         restart: always
         tty: true
@@ -93,6 +94,7 @@ services:
             - HELP_SLACKBOT_WEBHOOK=$HELP_SLACKBOT_WEBHOOK
             - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
             - UI_CONFIGURATION_ADDRESS=$UI_CONFIGURATION_ADDRESS
+            - EVENT_ROUTER_ADDRESS=$EVENT_ROUTER_ADDRESS
         network_mode: "host"
         restart: always
         tty: true
@@ -115,6 +117,7 @@ services:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
             - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
+            - EVENT_NODE_ADDRESSES=$EVENT_NODE_ADDRESSES
         network_mode: "host"
         tty: true
     event-translator-microservice:
@@ -126,6 +129,7 @@ services:
             - ELASTIC_API_EVENTS=$ELASTIC_API_EVENTS
             - ELASTIC_API_EVENTS_DEV=$ELASTIC_API_EVENTS_DEV
             - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
+            - EVENT_ROUTER_ADDRESS=$EVENT_ROUTER_ADDRESS
         network_mode: "host"
         tty: true
     shure-audio-microservice:
@@ -139,4 +143,14 @@ services:
             - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
             - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
             - PI_HOSTNAME=$PI_HOSTNAME
+            - EVENT_ROUTER_ADDRESS=$EVENT_ROUTER_ADDRESS
         network_mode: "host"
+    atlona-microservice:
+        image: byuoitav/atlona-microservice:${DOCKER_HUB_TAG}
+        ports:
+            - "8015:8015"
+        environment:
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+        network_mode: "host"
+        restart: always
+        tty: true

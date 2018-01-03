@@ -46,7 +46,6 @@ deployment:
             - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
             - docker push byuoitav/${CIRCLE_PROJECT_REPONAME}:development
             - docker push byuoitav/rpi-${CIRCLE_PROJECT_REPONAME}:development
-            - ./deploy-pi.sh development
     testing:
         branch: testing
         commands:
@@ -58,7 +57,6 @@ deployment:
             - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
             - docker push byuoitav/${CIRCLE_PROJECT_REPONAME}:testing
             - docker push byuoitav/rpi-${CIRCLE_PROJECT_REPONAME}:testing
-            - ./deploy-pi.sh testing
     stage:
         branch: stage
         commands:
@@ -70,7 +68,6 @@ deployment:
             - docker login -e $DOCKER_EMAIL -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
             - docker push byuoitav/${CIRCLE_PROJECT_REPONAME}:stage
             - docker push byuoitav/rpi-${CIRCLE_PROJECT_REPONAME}:stage
-            - ./deploy-pi.sh stage
     production:
         branch: production
         commands:
@@ -83,4 +80,3 @@ deployment:
             - docker push byuoitav/${CIRCLE_PROJECT_REPONAME}:latest
             - docker push byuoitav/rpi-${CIRCLE_PROJECT_REPONAME}:latest
             - ./deploy.sh $CIRCLE_PROJECT_REPONAME $CIRCLE_SHA1
-            - ./deploy-pi.sh production

@@ -25,19 +25,19 @@ type ChangeVideoInputVideoSwitcher struct {
 }
 
 //Evaluate fulfills the CommmandEvaluation evaluate requirement
-func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
+func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 	actionList := []base.ActionStructure{}
 
 	if len(room.CurrentVideoInput) != 0 {
 		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "VideoOut")
 		if err != nil {
-			return []base.ActionStructure{}, err
+			return []base.ActionStructure{}, 0, err
 		}
 
 		for _, device := range devices {
-			action, err := GetSwitcherAndCreateAction(room, device, room.CurrentVideoInput, "ChangeVideoInputVideoSwitcher")
+			action, err := GetSwitcherAndCreateAction(room, device, room.CurrentVideoInput, "ChangeVideoInputVideoSwitcher", requestor)
 			if err != nil {
-				return []base.ActionStructure{}, err
+				return []base.ActionStructure{}, 0, err
 			}
 			actionList = append(actionList, action)
 		}
@@ -53,12 +53,12 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom) ([]base.A
 			if len(display.Input) != 0 {
 				device, err := dbo.GetDeviceByName(room.Building, room.Room, display.Name)
 				if err != nil {
-					return []base.ActionStructure{}, err
+					return []base.ActionStructure{}, 0, err
 				}
 
-				action, err := GetSwitcherAndCreateAction(room, device, display.Input, "ChangeVideoInputVideoSwitcher")
+				action, err := GetSwitcherAndCreateAction(room, device, display.Input, "ChangeVideoInputVideoSwitcher", requestor)
 				if err != nil {
-					return []base.ActionStructure{}, err
+					return []base.ActionStructure{}, 0, err
 				}
 				//Undecode the format into the
 				actionList = append(actionList, action)
@@ -73,10 +73,10 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom) ([]base.A
 			if len(audioDevice.Input) != 0 {
 				device, err := dbo.GetDeviceByName(room.Building, room.Room, audioDevice.Name)
 				if err != nil {
-					return []base.ActionStructure{}, err
+					return []base.ActionStructure{}, 0, err
 				}
 
-				action, err := GetSwitcherAndCreateAction(room, device, audioDevice.Input, "ChangeVideoInputVideoSwitcher")
+				action, err := GetSwitcherAndCreateAction(room, device, audioDevice.Input, "ChangeVideoInputVideoSwitcher", requestor)
 				if err != nil {
 					continue
 				}
@@ -93,18 +93,18 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom) ([]base.A
 		splitP := strings.Split(p, ":")
 
 		if len(splitP) != 2 {
-			return actionList, errors.New("Invalid port for a video switcher")
+			return actionList, 0, errors.New("Invalid port for a video switcher")
 		}
 
 		action.Parameters["input"] = splitP[0]
 		action.Parameters["output"] = splitP[1]
 	}
-	return actionList, nil
+	return actionList, len(actionList), nil
 }
 
 //GetSwitcherAndCreateAction gets the videoswitcher in a room, matches the destination port to the new port
 // and creates an action
-func GetSwitcherAndCreateAction(room base.PublicRoom, device structs.Device, selectedInput string, generatingEvaluator string) (base.ActionStructure, error) {
+func GetSwitcherAndCreateAction(room base.PublicRoom, device structs.Device, selectedInput, generatingEvaluator, requestor string) (base.ActionStructure, error) {
 
 	switcher, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "VideoSwitcher")
 	if err != nil {
@@ -129,12 +129,26 @@ func GetSwitcherAndCreateAction(room base.PublicRoom, device structs.Device, sel
 				Device:         device.Name,
 				EventInfoKey:   "input",
 				EventInfoValue: selectedInput,
+				Requestor:      requestor,
+			}
+
+			destination := base.DestinationDevice{
+				Device: device,
+			}
+
+			if device.HasRole("AudioOut") {
+				destination.AudioDevice = true
+			}
+
+			if device.HasRole("VideoOut") {
+				destination.Display = true
 			}
 
 			tempAction := base.ActionStructure{
 				Action:              "ChangeInput",
 				GeneratingEvaluator: generatingEvaluator,
 				Device:              switcher[0],
+				DestinationDevice:   destination,
 				Parameters:          m,
 				DeviceSpecific:      false,
 				Overridden:          false,

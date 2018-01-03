@@ -15,7 +15,7 @@ type SetVolumeDefault struct {
 }
 
 //Validate checks for a volume for the entire room or the volume of a specific device
-func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
+func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 
 	var actions []base.ActionStructure
 
@@ -23,6 +23,11 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure,
 		Type:         eventinfrastructure.CORESTATE,
 		EventCause:   eventinfrastructure.USERINPUT,
 		EventInfoKey: "volume",
+		Requestor:    requestor,
+	}
+
+	destination := base.DestinationDevice{
+		AudioDevice: true,
 	}
 
 	// general room volume
@@ -32,7 +37,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure,
 
 		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "AudioOut")
 		if err != nil {
-			return []base.ActionStructure{}, err
+			return []base.ActionStructure{}, 0, err
 		}
 
 		for _, device := range devices {
@@ -44,11 +49,18 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure,
 
 				eventInfo.EventInfoValue = fmt.Sprintf("%v", *room.Volume)
 				eventInfo.Device = device.Name
+				destination.Device = device
+
+				if device.HasRole("VideoOut") {
+					destination.Display = true
+				}
+
 				actions = append(actions, base.ActionStructure{
 					Action:              "SetVolume",
 					Parameters:          parameters,
 					GeneratingEvaluator: "SetVolumeDefault",
 					Device:              device,
+					DestinationDevice:   destination,
 					DeviceSpecific:      false,
 					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 				})
@@ -72,7 +84,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure,
 
 				device, err := dbo.GetDeviceByName(room.Building, room.Room, audioDevice.Name)
 				if err != nil {
-					return []base.ActionStructure{}, err
+					return []base.ActionStructure{}, 0, err
 				}
 
 				parameters := make(map[string]string)
@@ -81,10 +93,17 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure,
 
 				eventInfo.EventInfoValue = fmt.Sprintf("%v", *audioDevice.Volume)
 				eventInfo.Device = device.Name
+				destination.Device = device
+
+				if device.HasRole("VideoOut") {
+					destination.Display = true
+				}
+
 				actions = append(actions, base.ActionStructure{
 					Action:              "SetVolume",
 					GeneratingEvaluator: "SetVolumeDefault",
 					Device:              device,
+					DestinationDevice:   destination,
 					DeviceSpecific:      true,
 					Parameters:          parameters,
 					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
@@ -99,7 +118,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure,
 	log.Printf("%v actions generated.", len(actions))
 	log.Printf("Evaluation complete.")
 
-	return actions, nil
+	return actions, len(actions), nil
 }
 
 func validateSetVolumeMaxMin(action base.ActionStructure, maximum int, minimum int) error {

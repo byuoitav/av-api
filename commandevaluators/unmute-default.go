@@ -13,7 +13,7 @@ import (
 type UnMuteDefault struct {
 }
 
-func (p *UnMuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
+func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 	log.Printf("Evaluating UnMute command.")
 
 	var actions []base.ActionStructure
@@ -22,7 +22,10 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, 
 		EventCause:     eventinfrastructure.USERINPUT,
 		EventInfoKey:   "muted",
 		EventInfoValue: "false",
+		Requestor:      requestor,
 	}
+
+	destination := base.DestinationDevice{AudioDevice: true}
 
 	//check if request is a roomwide unmute
 	if room.Muted != nil && !*room.Muted {
@@ -31,10 +34,10 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, 
 
 		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "AudioOut")
 		if err != nil {
-			return []base.ActionStructure{}, err
+			return []base.ActionStructure{}, 0, err
 		}
 
-		log.Printf("UnMuting alll devices in room.")
+		log.Printf("UnMuting all devices in room.")
 
 		for _, device := range devices {
 
@@ -43,10 +46,17 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, 
 				log.Printf("Adding device %+v", device.Name)
 
 				eventInfo.Device = device.Name
+				destination.Device = device
+
+				if device.HasRole("VideoOut") {
+					destination.Display = true
+				}
+
 				actions = append(actions, base.ActionStructure{
 					Action:              "UnMute",
 					GeneratingEvaluator: "UnMuteDefault",
 					Device:              device,
+					DestinationDevice:   destination,
 					DeviceSpecific:      false,
 					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 				})
@@ -68,14 +78,21 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, 
 
 			device, err := dbo.GetDeviceByName(room.Building, room.Room, audioDevice.Name)
 			if err != nil {
-				return []base.ActionStructure{}, err
+				return []base.ActionStructure{}, 0, err
 			}
 
 			eventInfo.Device = device.Name
+			destination.Device = device
+
+			if device.HasRole("VideoOut") {
+				destination.Display = true
+			}
+
 			actions = append(actions, base.ActionStructure{
 				Action:              "UnMute",
 				GeneratingEvaluator: "UnMuteDefault",
 				Device:              device,
+				DestinationDevice:   destination,
 				DeviceSpecific:      true,
 				EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 			})
@@ -87,7 +104,7 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, 
 	log.Printf("%v actions generated.", len(actions))
 	log.Printf("Evalutation complete.")
 
-	return actions, nil
+	return actions, len(actions), nil
 
 }
 

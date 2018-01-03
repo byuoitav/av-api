@@ -9,6 +9,7 @@ import (
 	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	"github.com/fatih/color"
 )
 
 // PowerOn is struct that implements the CommandEvaluation struct
@@ -16,15 +17,20 @@ type PowerOnDefault struct {
 }
 
 // Evaluate fulfills the CommmandEvaluation evaluate requirement.
-func (p *PowerOnDefault) Evaluate(room base.PublicRoom) (actions []base.ActionStructure, err error) {
+func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actions []base.ActionStructure, count int, err error) {
+	count = 0
 
 	log.Printf("Evaluating for PowerOn command.")
+	color.Set(color.FgYellow, color.Bold)
+	log.Printf("requestor: %s", requestor)
+	color.Unset()
 
 	eventInfo := eventinfrastructure.EventInfo{
 		Type:           eventinfrastructure.CORESTATE,
 		EventCause:     eventinfrastructure.USERINPUT,
 		EventInfoKey:   "power",
 		EventInfoValue: "on",
+		Requestor:      requestor,
 	}
 
 	var devices []structs.Device
@@ -43,12 +49,25 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom) (actions []base.ActionSt
 
 			if device.Output {
 
+				destination := base.DestinationDevice{
+					Device: device,
+				}
+
+				if device.HasRole("AudioOut") {
+					destination.AudioDevice = true
+				}
+
+				if device.HasRole("VideoOut") {
+					destination.Display = true
+				}
+
 				log.Printf("Adding device %+v", device.Name)
 
 				eventInfo.Device = device.Name
 				actions = append(actions, base.ActionStructure{
 					Action:              "PowerOn",
 					Device:              device,
+					DestinationDevice:   destination,
 					GeneratingEvaluator: "PowerOnDefault",
 					DeviceSpecific:      false,
 					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
@@ -60,6 +79,7 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom) (actions []base.ActionSt
 	// Now we go through and check if power 'on' was set for any other device.
 	log.Printf("Evaluating displays for power on command.")
 	for _, device := range room.Displays {
+
 		actions, err = p.evaluateDevice(device.Device, actions, devices, room.Room, room.Building, eventInfo)
 		if err != nil {
 			return
@@ -67,7 +87,9 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom) (actions []base.ActionSt
 	}
 
 	for _, device := range room.AudioDevices {
+
 		log.Printf("Evaluating audio devices for command power on. ")
+
 		actions, err = p.evaluateDevice(device.Device, actions, devices, room.Room, room.Building, eventInfo)
 		if err != nil {
 			return
@@ -77,6 +99,7 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom) (actions []base.ActionSt
 	log.Printf("%v actions generated.", len(actions))
 	log.Printf("Evaluation complete.")
 
+	count = len(actions)
 	return
 }
 
@@ -124,10 +147,25 @@ func (p *PowerOnDefault) evaluateDevice(device base.Device,
 				return actions, err
 			}
 
+			destination := base.DestinationDevice{
+				Device: dev,
+			}
+
+			if dev.HasRole("AudioOut") {
+				destination.AudioDevice = true
+			}
+
+			if dev.HasRole("VideoOut") {
+				destination.Display = true
+			}
+
 			eventInfo.Device = dev.Name
+			destination.Device = dev
+
 			actions = append(actions, base.ActionStructure{
 				Action:              "PowerOn",
 				Device:              dev,
+				DestinationDevice:   destination,
 				GeneratingEvaluator: "PowerOnDefault",
 				DeviceSpecific:      true,
 				EventLog:            []eventinfrastructure.EventInfo{eventInfo},

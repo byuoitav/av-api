@@ -14,15 +14,19 @@ type UnBlankDisplayDefault struct {
 }
 
 //Evaluate creates UnBlank actions for the entire room and for individual devices
-func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStructure, error) {
+func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 
 	var actions []base.ActionStructure
+
 	eventInfo := eventinfrastructure.EventInfo{
 		Type:           eventinfrastructure.CORESTATE,
 		EventCause:     eventinfrastructure.USERINPUT,
 		EventInfoKey:   "blanked",
 		EventInfoValue: "false",
+		Requestor:      requestor,
 	}
+
+	destination := base.DestinationDevice{Display: true}
 
 	if room.Blanked != nil && !*room.Blanked {
 
@@ -30,7 +34,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStr
 
 		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "VideoOut")
 		if err != nil {
-			return []base.ActionStructure{}, err
+			return []base.ActionStructure{}, 0, err
 		}
 
 		log.Printf("Un-Blanking all displays in room.")
@@ -42,10 +46,17 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStr
 				log.Printf("Adding Device %+v", device.Name)
 
 				eventInfo.Device = device.Name
+				destination.Device = device
+
+				if device.HasRole("AudioOut") {
+					destination.AudioDevice = true
+				}
+
 				actions = append(actions, base.ActionStructure{
 					Action:              "UnblankDisplay",
 					GeneratingEvaluator: "UnBlankDisplayDefault",
 					Device:              device,
+					DestinationDevice:   destination,
 					DeviceSpecific:      false,
 					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 				})
@@ -65,14 +76,21 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStr
 
 			device, err := dbo.GetDeviceByName(room.Building, room.Room, display.Name)
 			if err != nil {
-				return []base.ActionStructure{}, err
+				return []base.ActionStructure{}, 0, err
 			}
 
 			eventInfo.Device = device.Name
+			destination.Device = device
+
+			if device.HasRole("AudioOut") {
+				destination.AudioDevice = true
+			}
+
 			actions = append(actions, base.ActionStructure{
 				Action:              "UnblankDisplay",
 				GeneratingEvaluator: "UnBlankDisplayDefault",
 				Device:              device,
+				DestinationDevice:   destination,
 				DeviceSpecific:      true,
 				EventLog:            []eventinfrastructure.EventInfo{eventInfo},
 			})
@@ -82,7 +100,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom) ([]base.ActionStr
 
 	log.Printf("Evaluation complete; %v actions generated.", len(actions))
 
-	return actions, nil
+	return actions, len(actions), nil
 }
 
 //Validate returns an error if a command is invalid for a device

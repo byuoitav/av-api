@@ -2,20 +2,24 @@ package handlers
 
 import (
 	"log"
+	"net"
 	"net/http"
+	"os"
+	"strings"
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/av-api/helpers"
-	"github.com/byuoitav/av-api/status"
+	"github.com/byuoitav/av-api/state"
+	"github.com/fatih/color"
 	"github.com/labstack/echo"
 )
 
-func GetRoomStatus(context echo.Context) error {
+func GetRoomState(context echo.Context) error {
 
 	building, room := context.Param("building"), context.Param("room")
 
-	status, err := status.GetRoomStatus(building, room)
+	status, err := state.GetRoomState(building, room)
 	if err != nil {
 		return context.JSON(http.StatusBadRequest, err.Error())
 	}
@@ -34,32 +38,9 @@ func GetRoomByNameAndBuilding(context echo.Context) error {
 	return context.JSON(http.StatusOK, room)
 }
 
-/*
-SetRoomState is the handler to accept puts to /buildlings/:buildling/rooms/:room with the json payload with one or more of the fields:
-	{
-    "currentVideoInput": "computer",
-		"currentAudioInput": "comptuer",
-		"power": "on",
-    "displays": [{
-      "name": "dp1",
-      "power": "on",
-			"input": "roku",
-      "blanked": false
-    }],
-		"audioDevices": [{
-			"name": "audio1",
-			"power": "standby",
-			"input": "roku",
-			"muted": false,
-			"volume": 50
-		}]
-	}
-	Or the 'helpers.PublicRoom' struct.
-}
-*/
 func SetRoomState(context echo.Context) error {
 	building, room := context.Param("building"), context.Param("room")
-	log.Printf("Putting room changes.\n")
+	log.Printf("%s", color.HiGreenString("[handlers] putting room changes..."))
 
 	var roomInQuestion base.PublicRoom
 	err := context.Bind(&roomInQuestion)
@@ -69,22 +50,36 @@ func SetRoomState(context echo.Context) error {
 
 	roomInQuestion.Room = room
 	roomInQuestion.Building = building
+	var report base.PublicRoom
 
-	log.Println("Beginning edit of room state")
-
-	report, err := helpers.EditRoomState(roomInQuestion)
+	hn, err := net.LookupAddr(context.RealIP())
+	color.Set(color.FgYellow, color.Bold)
+	if err != nil {
+		log.Printf("err %s", err)
+		log.Printf("REQUESTOR: %s", context.RealIP())
+		color.Unset()
+		report, err = state.SetRoomState(roomInQuestion, context.RealIP())
+	} else if strings.Contains(hn[0], "localhost") {
+		log.Printf("REQUESTOR: %s", os.Getenv("PI_HOSTNAME"))
+		color.Unset()
+		report, err = state.SetRoomState(roomInQuestion, os.Getenv("PI_HOSTNAME"))
+	} else {
+		log.Printf("REQUESTOR: %s", hn[0])
+		color.Unset()
+		report, err = state.SetRoomState(roomInQuestion, hn[0])
+	}
 	if err != nil {
 		log.Printf("Error: %s", err.Error())
 		return context.JSON(http.StatusInternalServerError, helpers.ReturnError(err))
 	}
 
-	hasError := helpers.CheckReport(report)
+	//hasError := helpers.CheckReport(report)
 
 	log.Printf("Done.\n")
 
-	if hasError {
-		return context.JSON(http.StatusInternalServerError, report)
-	}
+	//if hasError {
+	//	return context.JSON(http.StatusInternalServerError, report)
+	//}
 
 	return context.JSON(http.StatusOK, report)
 }
