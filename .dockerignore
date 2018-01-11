@@ -1,0 +1,11 @@
+*/node_modules
+vendor
+.git
+
+.dockerignore
+.gitignore
+
+dockerfile
+dockerfile-arm
+
+README.md
