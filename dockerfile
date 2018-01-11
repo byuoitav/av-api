@@ -10,4 +10,4 @@ COPY version.txt version.txt
 # add any required files/folders here
 
 ENTRYPOINT ./${name}-bin
-EXPOSE 8888
+EXPOSE 8000
