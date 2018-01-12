@@ -9,4 +9,4 @@ COPY version.txt version.txt
 
 # add any required files/folders here
 
-ENTRYPOINT ["exec" "${name}-arm"]
+ENTRYPOINT ./${name}-arm
