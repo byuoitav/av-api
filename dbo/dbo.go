@@ -191,6 +191,19 @@ func GetDevicesByBuildingAndRoomAndRole(building string, room string, roleName s
 	return
 }
 
+func GetDevicesByRoomIdAndRoleId(roomId, roleId int) ([]structs.Device, error) {
+
+	url := fmt.Sprintf("%s/rooms/%s/roles/%s", os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS"), roomId, roleId)
+
+	var devices []structs.Device
+	err := GetData(url, &devices)
+	if err != nil {
+		return []structs.Device{}, err
+	}
+
+	return devices, nil
+}
+
 // GetBuildings will return all buildings
 func GetBuildings() ([]structs.Building, error) {
 	log.Printf("[dbo] getting all buildings...")
