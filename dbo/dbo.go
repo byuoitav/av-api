@@ -192,6 +192,19 @@ func GetDevicesByRoom(buildingName string, roomName string) (toReturn []structs.
 	return
 }
 
+func GetDevicesByRoomId(roomId int) ([]structs.Device, error) {
+
+	url := fmt.Sprintf("%s/rooms/%d/devices", os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS"), roomId)
+
+	var devices []structs.Device
+	err := GetData(url, &devices)
+	if err != nil {
+		return []structs.Device{}, err
+	}
+
+	return devices, nil
+}
+
 // GetDevicesByBuildingAndRoomAndRole will get the devices with the given role from the DB
 func GetDevicesByBuildingAndRoomAndRole(building string, room string, roleName string) (toReturn []structs.Device, err error) {
 
@@ -204,7 +217,7 @@ func GetDevicesByBuildingAndRoomAndRole(building string, room string, roleName s
 
 func GetDevicesByRoomIdAndRoleId(roomId, roleId int) ([]structs.Device, error) {
 
-	url := fmt.Sprintf("%s/rooms/%s/roles/%s", os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS"), roomId, roleId)
+	url := fmt.Sprintf("%s/rooms/%d/roles/%d", os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS"), roomId, roleId)
 
 	var devices []structs.Device
 	err := GetData(url, &devices)
