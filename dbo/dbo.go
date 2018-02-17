@@ -239,6 +239,15 @@ func GetBuildings() ([]structs.Building, error) {
 	return buildings, err
 }
 
+func GetRooms() ([]structs.Room, error) {
+
+	url := fmt.Sprintf("%s/rooms", os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS"))
+	var rooms []structs.Room
+	err := GetData(url, &rooms)
+
+	return rooms, err
+}
+
 // GetRooms returns all the rooms in a given building
 func GetRoomsByBuilding(building string) ([]structs.Room, error) {
 
@@ -436,6 +445,19 @@ func GetDeviceRoleDefinitions() ([]structs.DeviceRoleDef, error) {
 	}
 
 	return definitions, nil
+}
+
+func GetDeviceRoleDefinitionById(roleId int) (structs.DeviceRoleDef, error) {
+
+	url := fmt.Sprintf("%s/devices/roledefinitions/%d", os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS"), roleId)
+
+	var toFill structs.DeviceRoleDef
+	err := GetData(url, &toFill)
+	if err != nil {
+		return structs.DeviceRoleDef{}, err
+	}
+
+	return toFill, nil
 }
 
 func AddRoleDefinition(toAdd structs.DeviceRoleDef) (structs.DeviceRoleDef, error) {
