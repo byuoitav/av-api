@@ -2,6 +2,7 @@ package commandevaluators
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 
@@ -29,7 +30,7 @@ type ChangeAudioInputDSP struct{}
 
 func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 
-	log.Printf("Evaluating PUT body for \"ChangeInput\" command in an audio DSP context...")
+	log.Printf("[commandevaluators] evaluating PUT body for \"ChangeInput\" command in an audio DSP context...")
 
 	var actions []base.ActionStructure
 
@@ -112,9 +113,9 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) (
 
 					mediaAction, err := generateChangeInputByDevice(audioDevice.Device, room.Room, room.Building, "ChangeAudioInputDefault", requestor)
 					if err != nil {
-						errorMessage := "Could not generate actions for specific \"ChangeInput\" request for deivce: " + device.Name + ": " + err.Error()
-						log.Printf(errorMessage)
-						return []base.ActionStructure{}, 0, errors.New(errorMessage)
+						msg := fmt.Sprintf("unable to generate actions corresponding to \"ChangeInput\" request against device: %s: %s", device.Name, err.Error())
+						log.Printf(msg)
+						return []base.ActionStructure{}, 0, errors.New(msg)
 					}
 					actions = append(actions, mediaAction)
 				}
@@ -122,8 +123,7 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) (
 		}
 	}
 
-	log.Printf("%s actions generated.", len(actions))
-	log.Printf("Evalutation complete")
+	log.Printf("[commandevaluators] evaluation complete: %s actions generated.", len(actions))
 
 	return actions, len(actions), nil
 }
