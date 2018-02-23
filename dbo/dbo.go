@@ -164,8 +164,10 @@ func AddRawCommand(toAdd structs.RawCommand) (structs.RawCommand, error) {
 }
 
 func GetRoomByInfo(buildingName string, roomName string) (toReturn structs.Room, err error) {
+
 	log.Printf("[dbo] getting room %s in building %s...", roomName, buildingName)
-	err = GetData(os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS")+"/buildings/"+buildingName+"/rooms/"+roomName, &toReturn)
+	url := fmt.Sprintf("%s/buildings/%s/rooms/%s", os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS"), buildingName, roomName)
+	err = GetData(url, &toReturn)
 	return
 }
 
