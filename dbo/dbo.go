@@ -188,6 +188,15 @@ func GetDeviceByName(buildingName string, roomName string, deviceName string) (t
 	return
 }
 
+func GetDeviceById(id int) (toReturn structs.Device, err error) {
+
+	url := fmt.Sprintf("%s/devices/%d", os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS"), id)
+
+	err = GetData(url, &toReturn)
+
+	return
+}
+
 // GetDevicesByRoom will jut get the devices based on the room.
 func GetDevicesByRoom(buildingName string, roomName string) (toReturn []structs.Device, err error) {
 	err = GetData(os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS")+"/buildings/"+buildingName+"/rooms/"+roomName+"/devices", &toReturn)
