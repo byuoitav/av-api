@@ -164,8 +164,10 @@ func AddRawCommand(toAdd structs.RawCommand) (structs.RawCommand, error) {
 }
 
 func GetRoomByInfo(buildingName string, roomName string) (toReturn structs.Room, err error) {
+
 	log.Printf("[dbo] getting room %s in building %s...", roomName, buildingName)
-	err = GetData(os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS")+"/buildings/"+buildingName+"/rooms/"+roomName, &toReturn)
+	url := fmt.Sprintf("%s/buildings/%s/rooms/%s", os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS"), buildingName, roomName)
+	err = GetData(url, &toReturn)
 	return
 }
 
@@ -183,6 +185,15 @@ func GetRoomById(roomId int) (*structs.Room, error) {
 // GetDeviceByName simply retrieves a device's information from the databse.
 func GetDeviceByName(buildingName string, roomName string, deviceName string) (toReturn structs.Device, err error) {
 	err = GetData(os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS")+"/buildings/"+buildingName+"/rooms/"+roomName+"/devices/"+deviceName, &toReturn)
+	return
+}
+
+func GetDeviceById(id int) (toReturn structs.Device, err error) {
+
+	url := fmt.Sprintf("%s/devices/%d", os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS"), id)
+
+	err = GetData(url, &toReturn)
+
 	return
 }
 

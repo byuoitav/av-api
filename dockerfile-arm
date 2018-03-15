@@ -1,5 +1,7 @@
-FROM byuoitav/arm32v6-alpine
+FROM arm32v7/debian:stable-slim
 MAINTAINER Daniel Randall <danny_randall@byu.edu>
+
+#RUN apt-get update && apt-get -y install PACKAGES && apt-clean --aggressive
 
 ARG NAME
 ENV name=${NAME}
