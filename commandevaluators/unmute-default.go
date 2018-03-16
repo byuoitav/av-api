@@ -2,7 +2,6 @@ package commandevaluators
 
 import (
 	"errors"
-	"log"
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
@@ -14,7 +13,7 @@ type UnMuteDefault struct {
 }
 
 func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
-	log.Printf("Evaluating UnMute command.")
+	base.Log("Evaluating UnMute command.")
 
 	var actions []base.ActionStructure
 	eventInfo := eventinfrastructure.EventInfo{
@@ -30,20 +29,20 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 	//check if request is a roomwide unmute
 	if room.Muted != nil && !*room.Muted {
 
-		log.Printf("Room-wide UnMute request recieved. Retrieving all devices")
+		base.Log("Room-wide UnMute request recieved. Retrieving all devices")
 
 		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "AudioOut")
 		if err != nil {
 			return []base.ActionStructure{}, 0, err
 		}
 
-		log.Printf("UnMuting all devices in room.")
+		base.Log("UnMuting all devices in room.")
 
 		for _, device := range devices {
 
 			if device.Output {
 
-				log.Printf("Adding device %+v", device.Name)
+				base.Log("Adding device %+v", device.Name)
 
 				eventInfo.Device = device.Name
 				destination.Device = device
@@ -68,11 +67,11 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 	}
 
 	//check specific devices
-	log.Printf("Evaluating individual audio devices for unmuting.")
+	base.Log("Evaluating individual audio devices for unmuting.")
 
 	for _, audioDevice := range room.AudioDevices {
 
-		log.Printf("Adding device %+v", audioDevice.Name)
+		base.Log("Adding device %+v", audioDevice.Name)
 
 		if audioDevice.Muted != nil && !*audioDevice.Muted {
 
@@ -101,8 +100,8 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 
 	}
 
-	log.Printf("%v actions generated.", len(actions))
-	log.Printf("Evalutation complete.")
+	base.Log("%v actions generated.", len(actions))
+	base.Log("Evalutation complete.")
 
 	return actions, len(actions), nil
 
@@ -110,16 +109,16 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 
 func (p *UnMuteDefault) Validate(action base.ActionStructure) error {
 
-	log.Printf("Validating action for command \"UnMute\"")
+	base.Log("Validating action for command \"UnMute\"")
 
 	ok, _ := CheckCommands(action.Device.Commands, "UnMute")
 
 	if !ok || !strings.EqualFold(action.Action, "UnMute") {
-		log.Printf("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
+		base.Log("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
 		return errors.New(action.Action + " is an invalid command for" + action.Device.Name)
 	}
 
-	log.Printf("Done.")
+	base.Log("Done.")
 	return nil
 }
 

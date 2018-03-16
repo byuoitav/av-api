@@ -3,7 +3,6 @@ package commandevaluators
 import (
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
@@ -21,7 +20,7 @@ type MuteDefault struct {
 */
 func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 
-	log.Printf("Evaluating for Mute command.")
+	base.Log("Evaluating for Mute command.")
 
 	var actions []base.ActionStructure
 
@@ -39,18 +38,18 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 
 	if room.Muted != nil && *room.Muted {
 
-		log.Printf("Room-wide Mute request recieved. Retrieving all devices.")
+		base.Log("Room-wide Mute request recieved. Retrieving all devices.")
 
 		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "AudioOut")
 		if err != nil {
 			return []base.ActionStructure{}, 0, err
 		}
 
-		log.Printf("Muting all devices in room.")
+		base.Log("Muting all devices in room.")
 
 		for _, device := range devices {
 			if device.Output {
-				log.Printf("Adding device %+v", device.Name)
+				base.Log("Adding device %+v", device.Name)
 
 				eventInfo.Device = device.Name
 				destination.Device = device
@@ -72,7 +71,7 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 	}
 
 	//scan the room struct
-	log.Printf("Evaluating audio devices for Mute command.")
+	base.Log("Evaluating audio devices for Mute command.")
 
 	//generate commands
 	for _, audioDevice := range room.AudioDevices {
@@ -107,7 +106,7 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 // Validate takes an ActionStructure and determines if the command and parameter are valid for the device specified
 func (p *MuteDefault) Validate(action base.ActionStructure) error {
 
-	log.Printf("Validating for command \"Mute\".")
+	base.Log("Validating for command \"Mute\".")
 
 	ok, _ := CheckCommands(action.Device.Commands, "Mute")
 
@@ -116,11 +115,11 @@ func (p *MuteDefault) Validate(action base.ActionStructure) error {
 	fmt.Printf("checkCommands returns: %v\n", ok)
 
 	if !ok || !strings.EqualFold(action.Action, "Mute") {
-		log.Printf("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
+		base.Log("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
 		return errors.New(action.Action + " is an invalid command for " + action.Device.Name)
 	}
 
-	log.Printf("Done.")
+	base.Log("Done.")
 
 	return nil
 }

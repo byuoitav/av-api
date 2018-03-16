@@ -2,11 +2,11 @@ package init
 
 import (
 	"errors"
-	"log"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 )
@@ -18,16 +18,16 @@ init code.
 */
 func CheckRoomInitialization() error {
 
-	log.Printf("Initializing.")
+	base.Log("Initializing.")
 
 	//Check if local
 	if len(os.Getenv("LOCAL_ENVIRONMENT")) < 1 {
-		log.Printf("Not a local instance of the API.")
-		log.Printf("Done.")
+		base.Log("Not a local instance of the API.")
+		base.Log("Done.")
 		return nil
 	}
 
-	log.Printf("Getting room information.")
+	base.Log("Getting room information.")
 
 	/*
 	  It's not local, parse the hostname for the building room
@@ -38,7 +38,7 @@ func CheckRoomInitialization() error {
 	hostname := os.Getenv("PI_HOSTNAME")
 
 	splitValues := strings.Split(hostname, "-")
-	log.Printf("Room %v-%v", splitValues[0], splitValues[1])
+	base.Log("Room %v-%v", splitValues[0], splitValues[1])
 
 	attempts := 0
 
@@ -48,10 +48,10 @@ func CheckRoomInitialization() error {
 		//If there was an error we want to attempt to connect multiple times - as the
 		//configuration service may not be up.
 		for attempts < 40 {
-			log.Printf("Attempting to connect to DB...")
+			base.Log("Attempting to connect to DB...")
 			room, err = dbo.GetRoomByInfo(splitValues[0], splitValues[1])
 			if err != nil {
-				log.Printf("Error: %s", err.Error())
+				base.Log("Error: %s", err.Error())
 				attempts++
 				time.Sleep(2 * time.Second)
 			} else {
@@ -59,7 +59,7 @@ func CheckRoomInitialization() error {
 			}
 		}
 		if attempts > 30 && err != nil {
-			log.Printf("Error Retrieving room information.")
+			base.Log("Error Retrieving room information.")
 			return err
 		}
 	}

@@ -1,8 +1,7 @@
 package init
 
 import (
-	"fmt"
-
+	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 )
 
@@ -12,6 +11,6 @@ type DefaultInitializer struct {
 
 //Initialize fulfills the initializers for the Initializer interface
 func (i *DefaultInitializer) Initialize(room structs.Room) error {
-	fmt.Printf("Yay! I work.\n")
+	base.Log("Yay! I work.\n")
 	return nil
 }

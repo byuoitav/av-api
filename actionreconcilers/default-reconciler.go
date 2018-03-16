@@ -2,7 +2,6 @@ package actionreconcilers
 
 import (
 	"bytes"
-	"log"
 	"sort"
 
 	"github.com/byuoitav/av-api/base"
@@ -17,7 +16,7 @@ type DefaultReconciler struct{}
 //Reconcile fulfills the requirement to be a Reconciler.
 func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure, inCount int) ([]base.ActionStructure, int, error) {
 
-	log.Printf("[reconciler] Removing incompatible actions...")
+	base.Log("[reconciler] Removing incompatible actions...")
 	var buffer bytes.Buffer
 
 	actionMap := make(map[int][]base.ActionStructure)
@@ -58,7 +57,7 @@ func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure, inCount in
 
 			if i != len(actionList)-1 {
 
-				log.Printf("[reconciler] creating relationship %s, %s -> %s, %s", actionList[i].Action, actionList[i].Device.Name, actionList[i+1].Action, actionList[i+1].Device.Name)
+				base.Log("[reconciler] creating relationship %s, %s -> %s, %s", actionList[i].Action, actionList[i].Device.Name, actionList[i+1].Action, actionList[i+1].Device.Name)
 
 				actionList[i].Children = append(actionList[i].Children, &actionList[i+1])
 			}
@@ -75,7 +74,7 @@ func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure, inCount in
 func SortActionsByPriority(actions []base.ActionStructure) (output []base.ActionStructure, err error) {
 
 	color.Set(color.FgHiMagenta)
-	log.Printf("[reconciler] sorting actions by priority...")
+	base.Log("[reconciler] sorting actions by priority...")
 	color.Unset()
 
 	actionMap := make(map[int][]base.ActionStructure)
@@ -126,15 +125,15 @@ func SortActionsByPriority(actions []base.ActionStructure) (output []base.Action
 func CreateChildRelationships(actions []base.ActionStructure) ([]base.ActionStructure, error) {
 
 	color.Set(color.FgHiMagenta)
-	log.Printf("[reconciler] creating child relationships...")
+	base.Log("[reconciler] creating child relationships...")
 
 	for i, action := range actions {
 
-		log.Printf("[reconciler] considering action %s against device %s...", action.Action, action.Device.Name)
+		base.Log("[reconciler] considering action %s against device %s...", action.Action, action.Device.Name)
 
 		if i != len(actions)-1 {
 
-			log.Printf("[reconciler] creating relationship %s, %s -> %s, %s", action.Action, action.Device.Name, actions[i+1].Action, actions[i+1].Device.Name)
+			base.Log("[reconciler] creating relationship %s, %s -> %s, %s", action.Action, action.Device.Name, actions[i+1].Action, actions[i+1].Device.Name)
 
 			action.Children = append(action.Children, &actions[i+1])
 		}

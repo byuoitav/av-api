@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -35,7 +34,7 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 	//TODO:make sure devices can handle rapid-fire API requests
 	for _, command := range commands {
 
-		log.Printf("[state] issuing command: %s against device %s, destination device: %s, parameters: %v", command.Action.Name, command.Device.Name, command.DestinationDevice.Device.Name, command.Parameters)
+		base.Log("[state] issuing command: %s against device %s, destination device: %s, parameters: %v", command.Action.Name, command.Device.Name, command.DestinationDevice.Device.Name, command.Parameters)
 
 		output := se.StatusResponse{
 			Callback:          command.Callback,
@@ -49,7 +48,7 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 		url, err := ReplaceParameters(command.Action.Endpoint.Path, command.Parameters)
 		if err != nil {
 			msg := fmt.Sprintf("unable to replace paramaters for %s: %s", command.Action.Name, err.Error())
-			log.Printf("%s", color.HiRedString("[error] %s", msg))
+			base.Log("%s", color.HiRedString("[error] %s", msg))
 			base.PublishError(msg, ei.INTERNAL)
 			continue
 		}
@@ -57,18 +56,18 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 		url, err = gateway.SetStatusGateway(command.Action.Microservice+url, command.Device)
 		if err != nil {
 			msg := fmt.Sprintf("unable to set gateway for %s: %s", command.Action.Name, err.Error())
-			log.Printf("%s", color.HiRedString("[error] %s", msg))
+			base.Log("%s", color.HiRedString("[error] %s", msg))
 			base.PublishError(msg, ei.INTERNAL)
 			continue
 		}
 
-		log.Printf("%s", color.HiBlueString("[state] sending requqest to %s", url))
+		base.Log("%s", color.HiBlueString("[state] sending requqest to %s", url))
 		timeout := time.Duration(TIMEOUT * time.Second)
 		client := http.Client{Timeout: timeout}
 		response, err := client.Get(url)
 		if err != nil {
 			msg := fmt.Sprintf("unable to complete request to %s for device %s: %s", url, command.Device.Name, err.Error())
-			log.Printf("%s", color.HiRedString("[error] %s", msg))
+			base.Log("%s", color.HiRedString("[error] %s", msg))
 			output.ErrorMessage = &msg //do we want to do this? why not just publish the error here?
 			outputs = append(outputs, output)
 			continue
@@ -79,7 +78,7 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 		body, err := ioutil.ReadAll(response.Body)
 		if err != nil {
 			msg := fmt.Sprintf("unable to read response from %s for device %s: %s", url, command.Device.Name, err.Error())
-			log.Printf("%s", color.HiRedString("[error] %s", msg))
+			base.Log("%s", color.HiRedString("[error] %s", msg))
 			output.ErrorMessage = &msg
 			outputs = append(outputs, output)
 			continue
@@ -88,12 +87,12 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 		//check to see if it returned a non 200 response, if so, we need to build the error.
 		if response.StatusCode != 200 {
 			msg := fmt.Sprintf("non-200 response code: %d, message: %s", response.StatusCode, string(body))
-			log.Printf("%s", color.HiRedString("[error] %s", msg))
+			base.Log("%s", color.HiRedString("[error] %s", msg))
 			base.PublishError(msg, ei.INTERNAL)
 			continue
 		}
 
-		log.Printf("[state] microservice returned: %s for action %s against device %s", string(body), command.Action.Name, command.Device.Name, string(body))
+		base.Log("[state] microservice returned: %s for action %s against device %s", string(body), command.Action.Name, command.Device.Name, string(body))
 
 		var status map[string]interface{}
 		err = json.Unmarshal(body, &status)
@@ -101,15 +100,15 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 			msg := fmt.Sprintf("failed to unmarshal response: %s, microservice returned: %s", command.Device.Name, string(body))
 			output.ErrorMessage = &msg
 			outputs = append(outputs, output)
-			log.Printf("%s", color.HiRedString("[error] %s", msg))
+			base.Log("%s", color.HiRedString("[error] %s", msg))
 			base.PublishError(msg, ei.INTERNAL)
 			continue
 		}
 
-		log.Printf("[state] copying data into output")
+		base.Log("[state] copying data into output")
 		for device, object := range status {
 			statusResponseMap[device] = object
-			//		log.Printf("%s maps to %v", device, object) TODO make this visible with debugging mode
+			//		base.Log("%s maps to %v", device, object) TODO make this visible with debugging mode
 		}
 
 		output.Status = statusResponseMap
@@ -117,23 +116,23 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 	}
 
 	//write output to channel
-	log.Printf("[state] writing output to channel...")
+	base.Log("[state] writing output to channel...")
 	for _, output := range outputs {
-		log.Printf("outputs from device %v", output.SourceDevice.GetFullName())
+		base.Log("outputs from device %v", output.SourceDevice.GetFullName())
 		for key, value := range output.Status {
-			log.Printf("%s maps to %v", key, value)
+			base.Log("%s maps to %v", key, value)
 		}
 	}
 
 	channel <- outputs
-	log.Printf("%s", color.HiBlueString("[state] done acquiring statuses from  %s", commands[0].Device.GetFullName()))
+	base.Log("%s", color.HiBlueString("[state] done acquiring statuses from  %s", commands[0].Device.GetFullName()))
 	control.Done()
 }
 
 func processAudioDevice(device se.Status) (base.AudioDevice, error) {
 
-	log.Printf("Adding audio device: %s", device.DestinationDevice.Name)
-	log.Printf("Status map: %v", device.Status)
+	base.Log("Adding audio device: %s", device.DestinationDevice.Name)
+	base.Log("Status map: %v", device.Status)
 
 	var audioDevice base.AudioDevice
 
@@ -157,7 +156,7 @@ func processAudioDevice(device se.Status) (base.AudioDevice, error) {
 		if ok {
 			audioDevice.Volume = &volumeInt
 		} else {
-			log.Printf("%s", color.HiRedString("[error] volume type assertion failed for %v", volume))
+			base.Log("%s", color.HiRedString("[error] volume type assertion failed for %v", volume))
 		}
 	}
 
@@ -179,7 +178,7 @@ func processAudioDevice(device se.Status) (base.AudioDevice, error) {
 
 func processDisplay(device se.Status) (base.Display, error) {
 
-	log.Printf("Adding display: %s", device.DestinationDevice.Name)
+	base.Log("Adding display: %s", device.DestinationDevice.Name)
 
 	var display base.Display
 
@@ -222,7 +221,7 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 		return se.StatusResponse{ErrorMessage: &msg}
 	}
 
-	log.Printf("%s", color.HiBlueString("[state] sending request to %s...", url))
+	base.Log("%s", color.HiBlueString("[state] sending request to %s...", url))
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -241,7 +240,7 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 	resp, err := client.Do(req)
 	if err != nil { //record any errors
 		msg := fmt.Sprintf("error sending request: %s", err.Error())
-		log.Printf("%s", color.HiRedString("[error] %s", msg))
+		base.Log("%s", color.HiRedString("[error] %s", msg))
 		PublishError(msg, action, requestor)
 		return se.StatusResponse{ErrorMessage: &msg}
 	}
@@ -250,14 +249,14 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 
 	if resp.StatusCode != http.StatusOK { //check the response code, if non-200, we need to record and report
 
-		log.Printf("%s", color.HiRedString("[error] non-200 response code: %v", resp.StatusCode))
+		base.Log("%s", color.HiRedString("[error] non-200 response code: %v", resp.StatusCode))
 
 		b, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			log.Printf("%s", color.HiRedString("[error] problem reading the response: %s", err.Error()))
+			base.Log("%s", color.HiRedString("[error] problem reading the response: %s", err.Error()))
 		}
 
-		log.Printf("%s", color.HiRedString("[error] microservice returned: %s for action %s against device %s.", b, action.Action, action.Device.Name))
+		base.Log("%s", color.HiRedString("[error] microservice returned: %s for action %s against device %s.", b, action.Action, action.Device.Name))
 		PublishError(fmt.Sprintf("%s", b), action, requestor)
 
 		return se.StatusResponse{}
@@ -281,7 +280,7 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 		)
 	}
 
-	log.Printf("%s", color.HiGreenString("[state] sent command %s to device %s.", action.Action, action.Device.Name))
+	base.Log("%s", color.HiGreenString("[state] sent command %s to device %s.", action.Action, action.Device.Name))
 	status := make(map[string]interface{})
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -330,7 +329,7 @@ func ReplaceParameters(endpoint string, parameters map[string]string) (string, e
 		toReplace := ":" + k
 		if !strings.Contains(endpoint, toReplace) {
 			msg := fmt.Sprintf("%s not found", toReplace)
-			log.Printf("%s", color.HiRedString("[error] %s", msg))
+			base.Log("%s", color.HiRedString("[error] %s", msg))
 			return "", errors.New(msg)
 		}
 
@@ -352,7 +351,7 @@ func ReplaceParameters(endpoint string, parameters map[string]string) (string, e
 
 func PublishError(message string, action base.ActionStructure, requestor string) {
 
-	log.Printf("[error] publishing error: %s...", message)
+	base.Log("[error] publishing error: %s...", message)
 	base.SendEvent(
 		ei.ERROR,
 		ei.USERINPUT,

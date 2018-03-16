@@ -2,7 +2,6 @@ package statusevaluators
 
 import (
 	"errors"
-	"log"
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
@@ -40,7 +39,7 @@ func (p *InputDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand, 
 	commands, count, err := generateStandardStatusCommand(audioDevices, INPUT_DSP, STATUS_INPUT_DSP)
 	if err != nil {
 		errorMessage := "Could not generate audio device status commands: " + err.Error()
-		log.Printf(errorMessage)
+		base.Log(errorMessage)
 		return []StatusCommand{}, 0, errors.New(errorMessage)
 	}
 
@@ -56,7 +55,7 @@ func (p *InputDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand, 
 	switchers, err := dbo.GetDevicesByBuildingAndRoomAndRole(dsp.Building.Shortname, dsp.Room.Name, "VideoSwitcher")
 	if err != nil {
 		errorMessage := "Could not get video switcher in building: " + dsp.Building.Shortname + ", room: " + dsp.Room.Name + "" + err.Error()
-		log.Printf(errorMessage)
+		base.Log(errorMessage)
 		return []StatusCommand{}, 0, errors.New(errorMessage)
 	}
 

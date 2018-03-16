@@ -3,7 +3,6 @@ package commandevaluators
 import (
 	"errors"
 	"fmt"
-	"log"
 	"strconv"
 
 	"github.com/byuoitav/av-api/base"
@@ -33,7 +32,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 	// general room volume
 	if room.Volume != nil {
 
-		log.Printf("General volume request detected.")
+		base.Log("General volume request detected.")
 
 		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "AudioOut")
 		if err != nil {
@@ -74,13 +73,13 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 	//identify devices in request body
 	if len(room.AudioDevices) != 0 {
 
-		log.Printf("Device specific request detected. Scanning devices")
+		base.Log("Device specific request detected. Scanning devices")
 
 		for _, audioDevice := range room.AudioDevices {
 			// create actions based on request
 
 			if audioDevice.Volume != nil {
-				log.Printf("Adding device %+v", audioDevice.Name)
+				base.Log("Adding device %+v", audioDevice.Name)
 
 				device, err := dbo.GetDeviceByName(room.Building, room.Room, audioDevice.Name)
 				if err != nil {
@@ -89,7 +88,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 
 				parameters := make(map[string]string)
 				parameters["level"] = fmt.Sprintf("%v", *audioDevice.Volume)
-				log.Printf("%+v", parameters)
+				base.Log("%+v", parameters)
 
 				eventInfo.EventInfoValue = fmt.Sprintf("%v", *audioDevice.Volume)
 				eventInfo.Device = device.Name
@@ -115,8 +114,8 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 
 	}
 
-	log.Printf("%v actions generated.", len(actions))
-	log.Printf("Evaluation complete.")
+	base.Log("%v actions generated.", len(actions))
+	base.Log("Evaluation complete.")
 
 	return actions, len(actions), nil
 }
@@ -128,7 +127,7 @@ func validateSetVolumeMaxMin(action base.ActionStructure, maximum int, minimum i
 	}
 
 	if level > maximum || level < minimum {
-		log.Printf("ERROR. %v is an invalid volume level for %s", action.Parameters["level"], action.Device.Name)
+		base.Log("ERROR. %v is an invalid volume level for %s", action.Parameters["level"], action.Device.Name)
 		return errors.New(action.Action + " is an invalid command for " + action.Device.Name)
 	}
 	return nil
