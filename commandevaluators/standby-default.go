@@ -2,7 +2,6 @@ package commandevaluators
 
 import (
 	"errors"
-	"log"
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
@@ -18,7 +17,7 @@ type StandbyDefault struct {
 // Evaluate fulfills the CommmandEvaluation evaluate requirement.
 func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actions []base.ActionStructure, count int, err error) {
 
-	log.Printf("Evaluating for Standby Command.")
+	base.Log("Evaluating for Standby Command.")
 
 	var devices []structs.Device
 	eventInfo := eventinfrastructure.EventInfo{
@@ -31,13 +30,13 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 
 	if strings.EqualFold(room.Power, "standby") {
 
-		log.Printf("Room-wide power set. Retrieving all devices.")
+		base.Log("Room-wide power set. Retrieving all devices.")
 		devices, err = dbo.GetDevicesByRoom(room.Building, room.Room)
 		if err != nil {
 			return
 		}
 
-		log.Printf("Setting power to 'standby' state for all devices with a 'standby' power state, that are also output devices.")
+		base.Log("Setting power to 'standby' state for all devices with a 'standby' power state, that are also output devices.")
 		for _, device := range devices {
 
 			containsStandby := false
@@ -50,7 +49,7 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 
 			if containsStandby && device.Output {
 
-				log.Printf("Adding device %+v", device.Name)
+				base.Log("Adding device %+v", device.Name)
 
 				dest := base.DestinationDevice{
 					Device: device,
@@ -79,7 +78,7 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 
 	// now we go through and check if power 'standby' was set for any other device.
 	for _, device := range room.Displays {
-		log.Printf("Evaluating displays for command power standby. ")
+		base.Log("Evaluating displays for command power standby. ")
 		destination := base.DestinationDevice{AudioDevice: true}
 		actions, err = s.evaluateDevice(device.Device, destination, actions, devices, room.Room, room.Building, eventInfo)
 		if err != nil {
@@ -88,15 +87,15 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 	}
 
 	for _, device := range room.AudioDevices {
-		log.Printf("Evaluating audio devices for command power on. ")
+		base.Log("Evaluating audio devices for command power on. ")
 		destination := base.DestinationDevice{AudioDevice: true}
 		actions, err = s.evaluateDevice(device.Device, destination, actions, devices, room.Room, room.Building, eventInfo)
 		if err != nil {
 			return
 		}
 	}
-	log.Printf("%v actions generated.", len(actions))
-	log.Printf("Evaluation complete.")
+	base.Log("%v actions generated.", len(actions))
+	base.Log("Evaluation complete.")
 
 	count = len(actions)
 	return
@@ -104,15 +103,15 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 
 // Validate fulfills the Fulfill requirement on the command interface
 func (s *StandbyDefault) Validate(action base.ActionStructure) (err error) {
-	log.Printf("Validating action for command Standby.")
+	base.Log("Validating action for command Standby.")
 
 	ok, _ := CheckCommands(action.Device.Commands, "Standby")
 	if !ok || !strings.EqualFold(action.Action, "Standby") {
-		log.Printf("ERROR. %s is an invalid command for %s", action.Action, action.Device.GetFullName())
+		base.Log("ERROR. %s is an invalid command for %s", action.Action, action.Device.GetFullName())
 		return errors.New(action.Action + " is an invalid command for" + action.Device.GetFullName())
 	}
 
-	log.Printf("Done.")
+	base.Log("Done.")
 	return
 }
 

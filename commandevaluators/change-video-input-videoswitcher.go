@@ -2,7 +2,6 @@ package commandevaluators
 
 import (
 	"errors"
-	"log"
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
@@ -115,7 +114,7 @@ func GetSwitcherAndCreateAction(room base.PublicRoom, device structs.Device, sel
 		return base.ActionStructure{}, errors.New("too many switchers/none available")
 	}
 
-	log.Printf("Evaluating device %s for a port connecting %s to %s", switcher[0].GetFullName(), selectedInput, device.GetFullName())
+	base.Log("Evaluating device %s for a port connecting %s to %s", switcher[0].GetFullName(), selectedInput, device.GetFullName())
 	for _, port := range switcher[0].Ports {
 
 		if port.Destination == device.Name && port.Source == selectedInput {
@@ -164,18 +163,18 @@ func GetSwitcherAndCreateAction(room base.PublicRoom, device structs.Device, sel
 
 //Validate f
 func (c *ChangeVideoInputVideoSwitcher) Validate(action base.ActionStructure) error {
-	log.Printf("Validating action for command %v", action.Action)
+	base.Log("Validating action for command %v", action.Action)
 
 	// check if ChangeInput is a valid name of a command (ok is a bool)
 	ok, _ := CheckCommands(action.Device.Commands, "ChangeInput")
 
 	// returns and error if the ChangeInput command doesn't exist or if the command isn't ChangeInput
 	if !ok || action.Action != "ChangeInput" {
-		log.Printf("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
+		base.Log("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
 		return errors.New(action.Action + "is not an invalid command for " + action.Device.Name)
 	}
 
-	log.Print("done.")
+	base.Log("done.")
 	return nil
 }
 

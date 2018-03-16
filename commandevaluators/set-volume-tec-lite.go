@@ -3,7 +3,6 @@ package commandevaluators
 import (
 	"errors"
 	"fmt"
-	"log"
 	"strconv"
 
 	"github.com/byuoitav/av-api/base"
@@ -31,7 +30,7 @@ func (*SetVolumeTecLite) Evaluate(room base.PublicRoom, requestor string) ([]bas
 		oldLevel, err := strconv.Atoi(actions[i].Parameters["level"])
 		if err != nil {
 			err = errors.New(fmt.Sprintf("Could not parse parameter 'level' for an integer: %s", err.Error()))
-			log.Printf("%s", err.Error())
+			base.Log("%s", err.Error())
 			return actions, count, err
 		}
 		actions[i].Parameters["level"] = strconv.Itoa(calculateNewLevel(oldLevel, 65))

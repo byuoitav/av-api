@@ -1,8 +1,6 @@
 package statusevaluators
 
 import (
-	"log"
-
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 )
@@ -22,6 +20,6 @@ func (p *MutedDefault) GenerateCommands(devices []structs.Device) ([]StatusComma
 }
 
 func (p *MutedDefault) EvaluateResponse(label string, value interface{}, Source structs.Device, dest base.DestinationDevice) (string, interface{}, error) {
-	log.Printf("Evaluating response: %s, %s in evaluator %v", label, value, MutedDefaultCommandName)
+	base.Log("Evaluating response: %s, %s in evaluator %v", label, value, MutedDefaultCommandName)
 	return label, value, nil
 }

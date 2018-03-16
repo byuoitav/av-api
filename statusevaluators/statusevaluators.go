@@ -1,7 +1,6 @@
 package statusevaluators
 
 import (
-	"log"
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
@@ -38,17 +37,17 @@ func generateStandardStatusCommand(devices []structs.Device, evaluatorName strin
 
 	var count int
 
-	log.Printf("Generating status commands from %v", evaluatorName)
+	base.Log("Generating status commands from %v", evaluatorName)
 	var output []StatusCommand
 
 	//iterate over each device
 	for _, device := range devices {
 
-		log.Printf("Considering device: %s", device.Name)
+		base.Log("Considering device: %s", device.Name)
 
 		for _, command := range device.Commands {
 			if strings.HasPrefix(command.Name, FLAG) && strings.Contains(command.Name, commandName) {
-				log.Printf("Command found")
+				base.Log("Command found")
 
 				//every power command needs an address parameter
 				parameters := make(map[string]string)
@@ -70,7 +69,7 @@ func generateStandardStatusCommand(devices []structs.Device, evaluatorName strin
 
 				destinationDevice.Device = device
 
-				log.Printf("Adding command: %s to action list with device %s", command.Name, device.Name)
+				base.Log("Adding command: %s to action list with device %s", command.Name, device.Name)
 				output = append(output, StatusCommand{
 					Action:            command,
 					Device:            device,

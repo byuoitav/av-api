@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"log"
 	"net"
 	"net/http"
 	"os"
@@ -29,18 +28,18 @@ func GetRoomState(context echo.Context) error {
 
 //GetRoomByNameAndBuilding is almost identical to GetRoomByName
 func GetRoomByNameAndBuilding(context echo.Context) error {
-	log.Printf("Getting room...")
+	base.Log("Getting room...")
 	room, err := dbo.GetRoomByInfo(context.Param("building"), context.Param("room"))
 	if err != nil {
 		return context.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 	}
-	log.Printf("Done.\n")
+	base.Log("Done.\n")
 	return context.JSON(http.StatusOK, room)
 }
 
 func SetRoomState(context echo.Context) error {
 	building, room := context.Param("building"), context.Param("room")
-	log.Printf("%s", color.HiGreenString("[handlers] putting room changes..."))
+	base.Log("%s", color.HiGreenString("[handlers] putting room changes..."))
 
 	var roomInQuestion base.PublicRoom
 	err := context.Bind(&roomInQuestion)
@@ -55,27 +54,27 @@ func SetRoomState(context echo.Context) error {
 	hn, err := net.LookupAddr(context.RealIP())
 	color.Set(color.FgYellow, color.Bold)
 	if err != nil {
-		log.Printf("err %s", err)
-		log.Printf("REQUESTOR: %s", context.RealIP())
+		base.Log("err %s", err)
+		base.Log("REQUESTOR: %s", context.RealIP())
 		color.Unset()
 		report, err = state.SetRoomState(roomInQuestion, context.RealIP())
 	} else if strings.Contains(hn[0], "localhost") {
-		log.Printf("REQUESTOR: %s", os.Getenv("PI_HOSTNAME"))
+		base.Log("REQUESTOR: %s", os.Getenv("PI_HOSTNAME"))
 		color.Unset()
 		report, err = state.SetRoomState(roomInQuestion, os.Getenv("PI_HOSTNAME"))
 	} else {
-		log.Printf("REQUESTOR: %s", hn[0])
+		base.Log("REQUESTOR: %s", hn[0])
 		color.Unset()
 		report, err = state.SetRoomState(roomInQuestion, hn[0])
 	}
 	if err != nil {
-		log.Printf("Error: %s", err.Error())
+		base.Log("Error: %s", err.Error())
 		return context.JSON(http.StatusInternalServerError, helpers.ReturnError(err))
 	}
 
 	//hasError := helpers.CheckReport(report)
 
-	log.Printf("Done.\n")
+	base.Log("Done.\n")
 
 	//if hasError {
 	//	return context.JSON(http.StatusInternalServerError, report)
