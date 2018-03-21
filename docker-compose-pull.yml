@@ -98,16 +98,6 @@ services:
         network_mode: "host"
         restart: always
         tty: true
-    configuration-database-tool:
-        image: byuoitav/configuration-database-tool:${DOCKER_HUB_TAG}
-        ports:
-            - "9999:9999"
-        environment:
-            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
-            - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
-        network_mode: "host"
-        restart: always
-        tty: true
     event-router-microservice:
         image: byuoitav/event-router-microservice:${DOCKER_HUB_TAG}
         ports:
@@ -146,21 +136,3 @@ services:
             - PI_HOSTNAME=$PI_HOSTNAME
             - EVENT_ROUTER_ADDRESS=$EVENT_ROUTER_ADDRESS
         network_mode: "host"
-    atlona-microservice:
-        image: byuoitav/atlona-microservice:${DOCKER_HUB_TAG}
-        ports:
-            - "8015:8015"
-        environment:
-            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
-        network_mode: "host"
-        restart: always
-        tty: true
-    qsc-microservice:
-        image: byuoitav/qsc-microservice:${DOCKER_HUB_TAG}
-        ports:
-            - "7016:7016"
-        environment:
-            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
-        network_mode: "host"
-        restart: always
-        tty: true
