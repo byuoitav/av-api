@@ -9,5 +9,4 @@ COPY version.txt version.txt
 
 # add any required files/folders here
 
-# ENTRYPOINT ./${name}-bin
-ENTRYPOINT ["./av-api-bin"]
+ENTRYPOINT ./${name}-bin

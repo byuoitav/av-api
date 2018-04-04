@@ -11,5 +11,4 @@ COPY version.txt version.txt
 
 # add any required files/folders here
 
-# ENTRYPOINT ./${name}-arm
-ENTRYPOINT ["./av-api-arm"]
+ENTRYPOINT ./${name}-arm
