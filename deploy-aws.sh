@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
 PROJECT_NAME=$1
 SHA1=$2 # Nab the SHA1 of the desired build from a command-line argument
