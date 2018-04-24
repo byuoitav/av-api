@@ -1,12 +1,9 @@
 package base
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"os"
-
-	"github.com/fatih/color"
 )
 
 var logBuffer chan string
@@ -25,16 +22,17 @@ func Log(format string, values ...interface{}) {
 func logger() {
 
 	if len(os.Getenv("DEBUG_LOGS")) == 0 {
+		/*
+			f, err := os.OpenFile("/var/log/av-api.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+			if err != nil {
+				msg := fmt.Sprintf("Couldn't open log file: %s", err)
+				log.Printf(color.HiRedString(msg))
+				panic(errors.New(msg))
+			}
+			defer f.Close()
 
-		f, err := os.OpenFile("/var/log/av-api.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
-		if err != nil {
-			msg := fmt.Sprintf("Couldn't open log file: %s", err)
-			log.Printf(color.HiRedString(msg))
-			panic(errors.New(msg))
-		}
-		defer f.Close()
-
-		log.SetOutput(f)
+			log.SetOutput(f)
+		*/
 	}
 
 	for {

@@ -15,28 +15,28 @@ type PublicRoom struct {
 	Blanked           *bool         `json:"blanked,omitempty"`
 	Muted             *bool         `json:"muted,omitempty"`
 	Volume            *int          `json:"volume,omitempty"`
-	Displays          []Display     `json:"displays"`
-	AudioDevices      []AudioDevice `json:"audioDevices"`
+	Displays          []Display     `json:"displays,omitempty"`
+	AudioDevices      []AudioDevice `json:"audioDevices,omitempty"`
 }
 
 //Device is a struct for inheriting
 type Device struct {
-	Name  string `json:"name"`
-	Power string `json:"power"`
-	Input string `json:"input"`
+	Name  string `json:"name,omitempty"`
+	Power string `json:"power,omitempty"`
+	Input string `json:"input,omitempty"`
 }
 
 //AudioDevice represents an audio device
 type AudioDevice struct {
 	Device
-	Muted  *bool `json:"muted"`
-	Volume *int  `json:"volume"`
+	Muted  *bool `json:"muted,omitempty"`
+	Volume *int  `json:"volume,omitempty"`
 }
 
 //Display represents a display
 type Display struct {
 	Device
-	Blanked *bool `json:"blanked"`
+	Blanked *bool `json:"blanked,omitempty"`
 }
 
 //ActionStructure is the internal struct we use to pass commands around once
