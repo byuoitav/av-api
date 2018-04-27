@@ -2,3 +2,4 @@ debug
 .DS_Store
 .scratch
 *.swp
+*-bin

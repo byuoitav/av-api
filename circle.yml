@@ -12,3 +12,4 @@ jobs:
             - run: make deps
             - run: make build
             - run: make docker
+            - run: ./deploy-aws.sh $CIRCLE_PROJECT_REPONAME $CIRCLE_SHA1 $CIRCLE_BRANCH
