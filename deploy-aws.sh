@@ -19,11 +19,10 @@ if [ "$BRANCH" == "production" ]; then
 	
 	# Update Elastic Beanstalk environment to new version
 	aws elasticbeanstalk update-environment --environment-name $PROJECT_NAME-env --version-label $SHA1
-
-#We don't have a stage area yet. 
-exit 0
-
 elif [ "$BRANCH" == "master" ]; then
+
+    #We don't have a stage area yet. 
+    exit 0
 
 	sed "s/<TAG>/stage/" < Dockerrun.aws.json > $DOCKERRUN_FILE
 	aws configure set default.region us-west-2
