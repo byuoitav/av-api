@@ -3,11 +3,11 @@ package gateway
 import (
 	"errors"
 	"fmt"
-	"log"
 	"regexp"
 	"strconv"
 	"strings"
 
+	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/fatih/color"
@@ -21,27 +21,27 @@ import (
 */
 func SetGateway(url string, device structs.Device) (string, error) {
 	if structs.HasRole(device, "GatedDevice") { //we need to add a gateway parameter to the action
-		log.Printf(color.BlueString("[gateway-processing]Device %v is a gated device, looking for gateway", device.GetFullName()))
+		base.Log(color.BlueString("[gateway-processing]Device %v is a gated device, looking for gateway", device.GetFullName()))
 		parseString := `http:\/\/(.+?)\/(.*)`
 
 		gateway, port, err := getDeviceGateway(device)
 		if err != nil {
 			return "", err
 		}
-		log.Printf(color.BlueString("[gateway-processing]Found a gateway %v connectd via port %v", gateway.GetFullName(), port))
+		base.Log(color.BlueString("[gateway-processing]Found a gateway %v connectd via port %v", gateway.GetFullName(), port))
 
 		newpath, err := processPort(gateway, port)
 		if err != nil {
 			return "", err
 		}
-		log.Printf(color.BlueString("[gateway-processing] Generated a new path: %v", newpath))
+		base.Log(color.BlueString("[gateway-processing] Generated a new path: %v", newpath))
 
 		//now we need to parse the url and plug the values into the new string
 		regex := regexp.MustCompile(parseString)
 		vals := regex.FindAllStringSubmatch(url, -1)
 		if len(vals) == 0 {
 			msg := fmt.Sprintf("[gateway-processing]Invalid path, could not parse path for gateway replacement %v", url)
-			log.Printf(color.HiRedString(msg))
+			base.Log(color.HiRedString(msg))
 			return "", errors.New(msg)
 		}
 
@@ -50,7 +50,7 @@ func SetGateway(url string, device structs.Device) (string, error) {
 		newpath = strings.Replace(newpath, ":path", vals[0][2], -1)
 		newpath = strings.Replace(newpath, ":gateway", gateway.Address, -1)
 
-		log.Printf(color.BlueString("[gateway-processing] Processed path: %v", newpath))
+		base.Log(color.BlueString("[gateway-processing] Processed path: %v", newpath))
 
 		return SetGateway(newpath, gateway)
 	}
@@ -109,7 +109,7 @@ func processPort(gateway structs.Device, port string) (string, error) {
 	if len(command.Name) == 0 {
 		//there was an error
 		msg := fmt.Sprintf("There was no command for the gateway device %v that corresponds to port %v", gateway.GetFullName(), port)
-		log.Printf(color.HiRedString(msg))
+		base.Log(color.HiRedString(msg))
 		return "", errors.New(msg)
 	}
 	//for now we assume that those numbered parameters are only valid for the endpoint, otherwise we run into port issues

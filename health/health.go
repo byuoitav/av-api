@@ -1,7 +1,6 @@
 package health
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/byuoitav/av-api/base"
@@ -14,7 +13,7 @@ import (
 
 func GetHealth() map[string]string {
 
-	log.Printf("[HealthCheck] Checking microservice health: ")
+	base.Log("[HealthCheck] Checking microservice health: ")
 
 	healthReport := make(map[string]string)
 
@@ -30,11 +29,11 @@ func GetHealth() map[string]string {
 		healthReport["Configuration Database Microservice Connectivity"] = "ok"
 	}
 
-	log.Printf("[HealthCheck] Done. Report:")
+	base.Log("[HealthCheck] Done. Report:")
 	for k, v := range healthReport {
-		log.Printf("%v: %v", k, v)
+		base.Log("%v: %v", k, v)
 	}
-	log.Printf("[HealthCheck] End.")
+	base.Log("[HealthCheck] End.")
 
 	return healthReport
 }

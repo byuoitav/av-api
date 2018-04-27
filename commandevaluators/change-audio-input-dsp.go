@@ -2,7 +2,7 @@ package commandevaluators
 
 import (
 	"errors"
-	"log"
+	"fmt"
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
@@ -29,7 +29,7 @@ type ChangeAudioInputDSP struct{}
 
 func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 
-	log.Printf("Evaluating PUT body for \"ChangeInput\" command in an audio DSP context...")
+	base.Log("[commandevaluators] evaluating PUT body for \"ChangeInput\" command in an audio DSP context...")
 
 	var actions []base.ActionStructure
 
@@ -49,7 +49,7 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) (
 		generalAction, err := GetDSPMediaInputAction(room, eventInfo, room.CurrentAudioInput, false, destination)
 		if err != nil {
 			errorMessage := "Could not generate actions for room-wide \"ChangeInput\" request: " + err.Error()
-			log.Printf(errorMessage)
+			base.Log(errorMessage)
 			return []base.ActionStructure{}, 0, errors.New(errorMessage)
 		}
 
@@ -58,7 +58,7 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) (
 		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "AudioOut")
 		if err != nil {
 			errorMessage := "Could not generate actions for room-wide \"ChangeInput\" request: " + err.Error()
-			log.Printf(errorMessage)
+			base.Log(errorMessage)
 			return []base.ActionStructure{}, 0, errors.New(errorMessage)
 		}
 
@@ -66,7 +66,7 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) (
 
 			if device.Output && !device.HasRole("Microphone") {
 
-				log.Printf("Adding device %+v", device.Name)
+				base.Log("Adding device %+v", device.Name)
 
 				eventInfo.Device = device.Name
 				actions = append(actions, base.ActionStructure{
@@ -93,7 +93,7 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) (
 				device, err := dbo.GetDeviceByName(room.Building, room.Room, audioDevice.Name)
 				if err != nil {
 					errorMessage := "Could not get device: " + audioDevice.Name + " from database: " + err.Error()
-					log.Printf(errorMessage)
+					base.Log(errorMessage)
 					return []base.ActionStructure{}, 0, errors.New(errorMessage)
 				}
 
@@ -102,7 +102,7 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) (
 					dspAction, err := GetDSPMediaInputAction(room, eventInfo, room.AudioDevices[0].Input, true, destination)
 					if err != nil {
 						errorMessage := "Could not generate actions for specific \"ChangeInput\" requests: " + err.Error()
-						log.Printf(errorMessage)
+						base.Log(errorMessage)
 						return []base.ActionStructure{}, 0, errors.New(errorMessage)
 					}
 
@@ -112,9 +112,9 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) (
 
 					mediaAction, err := generateChangeInputByDevice(audioDevice.Device, room.Room, room.Building, "ChangeAudioInputDefault", requestor)
 					if err != nil {
-						errorMessage := "Could not generate actions for specific \"ChangeInput\" request for deivce: " + device.Name + ": " + err.Error()
-						log.Printf(errorMessage)
-						return []base.ActionStructure{}, 0, errors.New(errorMessage)
+						msg := fmt.Sprintf("unable to generate actions corresponding to \"ChangeInput\" request against device: %s: %s", device.Name, err.Error())
+						base.Log(msg)
+						return []base.ActionStructure{}, 0, errors.New(msg)
 					}
 					actions = append(actions, mediaAction)
 				}
@@ -122,8 +122,7 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) (
 		}
 	}
 
-	log.Printf("%s actions generated.", len(actions))
-	log.Printf("Evalutation complete")
+	base.Log("[commandevaluators] evaluation complete: %s actions generated.", len(actions))
 
 	return actions, len(actions), nil
 }
@@ -134,14 +133,14 @@ func GetDSPMediaInputAction(room base.PublicRoom, eventInfo ei.EventInfo, input 
 	dsp, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "DSP")
 	if err != nil {
 		errorMessage := "Problem getting device " + input + " from database " + err.Error()
-		log.Printf(errorMessage)
+		base.Log(errorMessage)
 		return base.ActionStructure{}, errors.New(errorMessage)
 	}
 
 	//validate number of DSPs
 	if len(dsp) != 1 {
 		errorMessage := "Invalid DSP configuration detected in room"
-		log.Printf(errorMessage)
+		base.Log(errorMessage)
 		return base.ActionStructure{}, errors.New(errorMessage)
 	}
 
@@ -149,14 +148,14 @@ func GetDSPMediaInputAction(room base.PublicRoom, eventInfo ei.EventInfo, input 
 	switchers, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "VideoSwitcher")
 	if err != nil {
 		errorMessage := "Could not get room switch in room " + room.Room + ", building " + room.Building + ": " + err.Error()
-		log.Printf(errorMessage)
+		base.Log(errorMessage)
 		return base.ActionStructure{}, errors.New(errorMessage)
 	}
 
 	//validate number of switchers
 	if len(switchers) != 1 {
 		errorMessage := "Invalid video switch configuration detected in room"
-		log.Printf(errorMessage)
+		base.Log(errorMessage)
 		return base.ActionStructure{}, errors.New(errorMessage)
 	}
 
@@ -164,7 +163,7 @@ func GetDSPMediaInputAction(room base.PublicRoom, eventInfo ei.EventInfo, input 
 	device, err := dbo.GetDeviceByName(room.Building, room.Room, input)
 	if err != nil {
 		errorMessage := "Problem getting device " + input + " from database " + err.Error()
-		log.Printf(errorMessage)
+		base.Log(errorMessage)
 		return base.ActionStructure{}, errors.New(errorMessage)
 	}
 

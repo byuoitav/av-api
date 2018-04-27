@@ -3,7 +3,6 @@ package state
 import (
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"sync"
 	"time"
@@ -18,7 +17,7 @@ import (
 func GenerateStatusCommands(room structs.Room, commandMap map[string]se.StatusEvaluator) ([]se.StatusCommand, int, error) {
 
 	color.Set(color.FgHiCyan)
-	log.Printf("[state] generating status commands...")
+	base.Log("[state] generating status commands...")
 	color.Unset()
 
 	var output []se.StatusCommand
@@ -51,7 +50,7 @@ func GenerateStatusCommands(room structs.Room, commandMap map[string]se.StatusEv
 
 func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse, err error) {
 
-	log.Printf("%s", color.HiBlueString("[state] running status commands..."))
+	base.Log("%s", color.HiBlueString("[state] running status commands..."))
 
 	if len(commands) == 0 {
 		err = errors.New("no commands")
@@ -61,21 +60,21 @@ func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse
 	//map device names to commands
 	commandMap := make(map[string][]se.StatusCommand)
 
-	log.Printf("%s", color.HiBlueString("[state] building device map..."))
+	base.Log("%s", color.HiBlueString("[state] building device map..."))
 	for _, command := range commands {
 
-		//log.Printf("[state] command: %s against device %s, destination device: %s, parameters: %v", command.Action.Name, command.Device.Name, command.DestinationDevice.Device.Name, command.Parameters)
+		//base.Log("[state] command: %s against device %s, destination device: %s, parameters: %v", command.Action.Name, command.Device.Name, command.DestinationDevice.Device.Name, command.Parameters)
 		_, present := commandMap[command.Device.Name]
 		if !present {
 			commandMap[command.Device.Name] = []se.StatusCommand{command}
-			//	log.Printf("Device %s identified", command.Device.Name)
+			//	base.Log("Device %s identified", command.Device.Name)
 		} else {
 			commandMap[command.Device.Name] = append(commandMap[command.Device.Name], command)
 		}
 
 	}
 
-	log.Printf("[state] creating channel")
+	base.Log("[state] creating channel")
 	channel := make(chan []se.StatusResponse, len(commandMap))
 	var group sync.WaitGroup
 
@@ -83,29 +82,29 @@ func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse
 		group.Add(1)
 		go issueCommands(deviceCommands, channel, &group)
 
-		log.Printf("%s", color.HiBlueString("[state] commands to issue:"))
+		base.Log("%s", color.HiBlueString("[state] commands to issue:"))
 
 		/*
 			for _, command := range deviceCommands {
-				log.Printf("[state] command: %s against device %s, destination device: %s, parameters: %v", command.Action.Name, command.Device.Name, command.DestinationDevice.Device.Name, command.Parameters)
+				base.Log("[state] command: %s against device %s, destination device: %s, parameters: %v", command.Action.Name, command.Device.Name, command.DestinationDevice.Device.Name, command.Parameters)
 			}
 		*/
 	}
 
-	log.Printf("[state] waiting for commands to issue...")
+	base.Log("[state] waiting for commands to issue...")
 	group.Wait()
-	log.Printf("[state] Done. Closing channel...")
+	base.Log("[state] Done. Closing channel...")
 	close(channel)
 
 	for outputList := range channel {
 		for _, output := range outputList {
 			if output.ErrorMessage != nil {
 				msg := fmt.Sprintf("problem querying status of device: %s with destination %s: %s", output.SourceDevice.Name, output.DestinationDevice.Name, *output.ErrorMessage)
-				log.Printf("%s", color.HiRedString("[error] %s", msg))
+				base.Log("%s", color.HiRedString("[error] %s", msg))
 				cause := eventinfrastructure.INTERNAL
 				base.PublishError(msg, cause)
 			}
-			//log.Printf("[state] appending status: %v of %s to output", output.Status, output.DestinationDevice.Name)
+			//base.Log("[state] appending status: %v of %s to output", output.Status, output.DestinationDevice.Name)
 			outputs = append(outputs, output)
 		}
 	}
@@ -114,12 +113,12 @@ func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse
 
 func EvaluateResponses(responses []se.StatusResponse, count int) (base.PublicRoom, error) {
 
-	log.Printf("%s", color.HiBlueString("[state] Evaluating responses..."))
+	base.Log("%s", color.HiBlueString("[state] Evaluating responses..."))
 
 	if len(responses) == 0 { //make sure things aren't broken
 		msg := "no status responses found"
 		return base.PublicRoom{}, errors.New(msg)
-		log.Printf("%s", color.HiRedString("[error] %s", msg))
+		base.Log("%s", color.HiRedString("[error] %s", msg))
 	}
 
 	var AudioDevices []base.AudioDevice
@@ -136,11 +135,11 @@ func EvaluateResponses(responses []se.StatusResponse, count int) (base.PublicRoo
 		//we do thing the old fashioned way
 		if resp.Callback == nil {
 			for key, value := range resp.Status {
-				log.Printf("[state] Checking generator: %s", resp.Generator)
+				base.Log("[state] Checking generator: %s", resp.Generator)
 				k, v, err := se.STATUS_EVALUATORS[resp.Generator].EvaluateResponse(key, value, resp.SourceDevice, resp.DestinationDevice)
 				if err != nil {
 
-					log.Printf("%s", color.HiRedString("[state] problem procesing the response %v - %v with evaluator %v: %s",
+					base.Log("%s", color.HiRedString("[state] problem procesing the response %v - %v with evaluator %v: %s",
 						key, value, resp.Generator, err.Error()))
 					continue
 				}
@@ -156,7 +155,7 @@ func EvaluateResponses(responses []se.StatusResponse, count int) (base.PublicRoo
 						DestinationDevice: resp.DestinationDevice,
 					}
 					responsesByDestinationDevice[resp.DestinationDevice.GetFullName()] = statusForDevice
-					log.Printf("[state] adding device %v to the map", resp.DestinationDevice.GetFullName())
+					base.Log("[state] adding device %v to the map", resp.DestinationDevice.GetFullName())
 					doneCount++
 				}
 			}
@@ -193,7 +192,7 @@ func EvaluateResponses(responses []se.StatusResponse, count int) (base.PublicRoo
 					DestinationDevice: val.Dest,
 				}
 				responsesByDestinationDevice[val.Dest.GetFullName()] = statusForDevice
-				log.Printf("[state] adding device %v to the map", val.Dest.GetFullName())
+				base.Log("[state] adding device %v to the map", val.Dest.GetFullName())
 				doneCount++
 			}
 		}

@@ -2,7 +2,6 @@ package statusevaluators
 
 import (
 	"errors"
-	"log"
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/configuration-database-microservice/structs"
@@ -24,7 +23,7 @@ func (p *PowerDefault) GenerateCommands(devices []structs.Device) ([]StatusComma
 }
 
 func (p *PowerDefault) EvaluateResponse(label string, value interface{}, Source structs.Device, dest base.DestinationDevice) (string, interface{}, error) {
-	log.Printf("Evaluating response: %s, %s in evaluator %v", label, value, PowerDefaultEvaluatorName)
+	base.Log("Evaluating response: %s, %s in evaluator %v", label, value, PowerDefaultEvaluatorName)
 	if value == nil {
 		return label, value, errors.New("cannot process nil value")
 	}

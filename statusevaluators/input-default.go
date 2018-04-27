@@ -1,8 +1,6 @@
 package statusevaluators
 
 import (
-	"log"
-
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 )
@@ -22,7 +20,7 @@ func (p *InputDefault) GenerateCommands(devices []structs.Device) ([]StatusComma
 }
 
 func (p *InputDefault) EvaluateResponse(label string, value interface{}, source structs.Device, dest base.DestinationDevice) (string, interface{}, error) {
-	log.Printf("Evaluating response: %s, %s in evaluator %v", label, value, BlankedDefaultName)
+	base.Log("Evaluating response: %s, %s in evaluator %v", label, value, BlankedDefaultName)
 
 	//we need to remap the port value to the device name, for this case, that's just the device plugged into that port, as defined in the port mapping
 

@@ -2,7 +2,6 @@ package statusevaluators
 
 import (
 	"errors"
-	"log"
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/configuration-database-microservice/structs"
@@ -24,19 +23,19 @@ func (p *VolumeDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand,
 
 	for _, device := range devices {
 
-		log.Printf("Considering device: %s", device.GetFullName())
+		base.Log("Considering device: %s", device.GetFullName())
 
 		if device.HasRole("Microphone") {
 
-			log.Printf("Appending %s to mic array...", device.Name)
+			base.Log("Appending %s to mic array...", device.Name)
 			mics = append(mics, device)
 		} else if device.HasRole("DSP") {
 
-			log.Printf("Appending %s to DSP array...", device.Name)
+			base.Log("Appending %s to DSP array...", device.Name)
 			dsp = append(dsp, device)
 		} else if device.HasRole("AudioOut") {
 
-			log.Printf("Appending %s to audio devices array...", device.Name)
+			base.Log("Appending %s to audio devices array...", device.Name)
 			audioDevices = append(audioDevices, device)
 		} else {
 			continue
@@ -46,14 +45,14 @@ func (p *VolumeDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand,
 	commands, count, err := generateStandardStatusCommand(audioDevices, VOLUME_DSP, VolumeDefaultCommandName)
 	if err != nil {
 		errorMessage := "Could not generate " + STATUS_VOLUME_DSP + "commands for audio devices: " + err.Error()
-		log.Printf(errorMessage)
+		base.Log(errorMessage)
 		return []StatusCommand{}, 0, errors.New(errorMessage)
 	}
 
 	micCommands, c, err := generateMicStatusCommands(mics, VOLUME_DSP, STATUS_VOLUME_DSP)
 	if err != nil {
 		errorMessage := "Could not generate " + STATUS_VOLUME_DSP + "commands for microphones: " + err.Error()
-		log.Printf(errorMessage)
+		base.Log(errorMessage)
 		return []StatusCommand{}, 0, errors.New(errorMessage)
 	}
 
@@ -63,7 +62,7 @@ func (p *VolumeDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand,
 	dspCommands, c, err := generateDSPStatusCommands(dsp, VOLUME_DSP, STATUS_VOLUME_DSP)
 	if err != nil {
 		errorMessage := "Could not generate " + STATUS_VOLUME_DSP + "commands for DSP: " + err.Error()
-		log.Printf(errorMessage)
+		base.Log(errorMessage)
 		return []StatusCommand{}, 0, errors.New(errorMessage)
 	}
 

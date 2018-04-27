@@ -1,7 +1,6 @@
 package statusevaluators
 
 import (
-	"log"
 	"strings"
 	"time"
 
@@ -42,12 +41,12 @@ func (p *InputTieredSwitcher) GenerateCommands(devs []structs.Device) ([]StatusC
 
 		//validate it has the command
 		if len(cmd.Name) == 0 {
-			log.Printf(color.HiRedString("[error] no input command for device %v...", d.Name))
+			base.Log(color.HiRedString("[error] no input command for device %v...", d.Name))
 			continue
 		}
 
 		if isVS {
-			log.Printf("[statusevaluators] identified video switcher, generating commands...")
+			base.Log("[statusevaluators] identified video switcher, generating commands...")
 			//we need to generate commands for every output port
 
 			for _, p := range d.Ports {
@@ -102,7 +101,7 @@ func (p *InputTieredSwitcher) GenerateCommands(devs []structs.Device) ([]StatusC
 	go callbackEngine.StartAggregator()
 
 	for _, a := range toReturn {
-		log.Printf(color.HiYellowString("%v, %v, %v", a.Action, a.Device.Name, a.Parameters))
+		base.Log(color.HiYellowString("%v, %v, %v", a.Action, a.Device.Name, a.Parameters))
 	}
 
 	return toReturn, count, nil
@@ -123,14 +122,14 @@ type TieredSwitcherCallback struct {
 }
 
 func (p *TieredSwitcherCallback) Callback(sp base.StatusPackage, c chan<- base.StatusPackage) error {
-	log.Printf(color.HiYellowString("[callback] calling"))
-	log.Printf(color.HiYellowString("[callback] Device: %v", sp.Device.GetFullName()))
-	log.Printf(color.HiYellowString("[callback] Dest Device: %v", sp.Dest.GetFullName()))
-	log.Printf(color.HiYellowString("[callback] Key: %v", sp.Key))
-	log.Printf(color.HiYellowString("[callback] Value: %v", sp.Value))
+	base.Log(color.HiYellowString("[callback] calling"))
+	base.Log(color.HiYellowString("[callback] Device: %v", sp.Device.GetFullName()))
+	base.Log(color.HiYellowString("[callback] Dest Device: %v", sp.Dest.GetFullName()))
+	base.Log(color.HiYellowString("[callback] Key: %v", sp.Key))
+	base.Log(color.HiYellowString("[callback] Value: %v", sp.Value))
 
-	log.Printf(color.HiYellowString("[callback] ExpectedCount: %v", p.ExpectedCount))
-	log.Printf(color.HiYellowString("[callback] ExpectedActionCount: %v", p.ExpectedActionCount))
+	base.Log(color.HiYellowString("[callback] ExpectedCount: %v", p.ExpectedCount))
+	base.Log(color.HiYellowString("[callback] ExpectedActionCount: %v", p.ExpectedActionCount))
 
 	//we pass down the the aggregator that was started before
 	p.OutChan = c
@@ -155,14 +154,14 @@ func (p *TieredSwitcherCallback) GetInputPaths(pathfinder pathfinder.SignalPathf
 
 	inputMap, err := pathfinder.GetInputs()
 	if err != nil {
-		log.Printf("Error getting the inputs")
+		base.Log("Error getting the inputs")
 		return
 	}
 
 	for k, v := range inputMap {
 		outDev := p.getDeviceByName(k)
 		if len(outDev.Name) == 0 {
-			log.Printf("No device by name %v in the device list for the callback", k)
+			base.Log("No device by name %v in the device list for the callback", k)
 		}
 
 		destDev := base.DestinationDevice{
@@ -170,7 +169,7 @@ func (p *TieredSwitcherCallback) GetInputPaths(pathfinder pathfinder.SignalPathf
 			AudioDevice: outDev.HasRole("AudioOut"),
 			Display:     outDev.HasRole("VideoOut"),
 		}
-		log.Printf(color.HiYellowString("[callback] Sending input %v -> %v", v.Name, k))
+		base.Log(color.HiYellowString("[callback] Sending input %v -> %v", v.Name, k))
 
 		p.OutChan <- base.StatusPackage{
 			Dest:  destDev,
@@ -178,12 +177,12 @@ func (p *TieredSwitcherCallback) GetInputPaths(pathfinder pathfinder.SignalPathf
 			Value: v.Name,
 		}
 	}
-	log.Printf(color.HiYellowString("[callback] Done with evaluation. Closing."))
+	base.Log(color.HiYellowString("[callback] Done with evaluation. Closing."))
 	return
 }
 
 func (p *TieredSwitcherCallback) StartAggregator() {
-	log.Printf(color.HiYellowString("[callback] Starting aggregator."))
+	base.Log(color.HiYellowString("[callback] Starting aggregator."))
 	started := false
 
 	t := time.NewTimer(0)
@@ -194,22 +193,22 @@ func (p *TieredSwitcherCallback) StartAggregator() {
 		select {
 		case <-t.C:
 			//we're timed out
-			log.Printf(color.HiYellowString("[callback] Timeout."))
+			base.Log(color.HiYellowString("[callback] Timeout."))
 			p.GetInputPaths(pathfinder)
 			return
 
 		case val := <-p.InChan:
-			log.Printf(color.HiYellowString("[callback] Received Information, adding an edge: %v %v", val.Device.Name, val.Value))
+			base.Log(color.HiYellowString("[callback] Received Information, adding an edge: %v %v", val.Device.Name, val.Value))
 			//start our timeout
 			if !started {
-				log.Printf("%v", val)
+				base.Log("%v", val)
 				started = true
 				t.Reset(500 * time.Millisecond)
 			}
 			//we need to start our graph, then check if we have any completed paths
 			ready := pathfinder.AddEdge(val.Device, val.Value.(string))
 			if ready {
-				log.Printf(color.HiYellowString("[callback] All Information received."))
+				base.Log(color.HiYellowString("[callback] All Information received."))
 				p.GetInputPaths(pathfinder)
 				return
 			}

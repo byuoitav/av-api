@@ -2,7 +2,6 @@ package commandevaluators
 
 import (
 	"errors"
-	"log"
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
@@ -20,9 +19,9 @@ type PowerOnDefault struct {
 func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actions []base.ActionStructure, count int, err error) {
 	count = 0
 
-	log.Printf("Evaluating for PowerOn command.")
+	base.Log("Evaluating for PowerOn command.")
 	color.Set(color.FgYellow, color.Bold)
-	log.Printf("requestor: %s", requestor)
+	base.Log("requestor: %s", requestor)
 	color.Unset()
 
 	eventInfo := eventinfrastructure.EventInfo{
@@ -36,14 +35,14 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 	var devices []structs.Device
 	if strings.EqualFold(room.Power, "on") {
 
-		log.Printf("Room-wide PowerOn request received. Retrieving all devices.")
+		base.Log("Room-wide PowerOn request received. Retrieving all devices.")
 
 		devices, err = dbo.GetDevicesByRoom(room.Building, room.Room)
 		if err != nil {
 			return
 		}
 
-		log.Printf("Setting power 'on' state for all output devices.")
+		base.Log("Setting power 'on' state for all output devices.")
 
 		for _, device := range devices {
 
@@ -61,7 +60,7 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 					destination.Display = true
 				}
 
-				log.Printf("Adding device %+v", device.Name)
+				base.Log("Adding device %+v", device.Name)
 
 				eventInfo.Device = device.Name
 				actions = append(actions, base.ActionStructure{
@@ -77,7 +76,7 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 	}
 
 	// Now we go through and check if power 'on' was set for any other device.
-	log.Printf("Evaluating displays for power on command.")
+	base.Log("Evaluating displays for power on command.")
 	for _, device := range room.Displays {
 
 		actions, err = p.evaluateDevice(device.Device, actions, devices, room.Room, room.Building, eventInfo)
@@ -88,7 +87,7 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 
 	for _, device := range room.AudioDevices {
 
-		log.Printf("Evaluating audio devices for command power on. ")
+		base.Log("Evaluating audio devices for command power on. ")
 
 		actions, err = p.evaluateDevice(device.Device, actions, devices, room.Room, room.Building, eventInfo)
 		if err != nil {
@@ -96,8 +95,8 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 		}
 	}
 
-	log.Printf("%v actions generated.", len(actions))
-	log.Printf("Evaluation complete.")
+	base.Log("%v actions generated.", len(actions))
+	base.Log("Evaluation complete.")
 
 	count = len(actions)
 	return
@@ -106,15 +105,15 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 // Validate fulfills the Fulfill requirement on the command interface
 func (p *PowerOnDefault) Validate(action base.ActionStructure) (err error) {
 
-	log.Printf("Validating action for comand PowerOn")
+	base.Log("Validating action for comand PowerOn")
 
 	ok, _ := CheckCommands(action.Device.Commands, "PowerOn")
 	if !ok || !strings.EqualFold(action.Action, "PowerOn") {
-		log.Printf("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
+		base.Log("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
 		return errors.New(action.Action + " is an invalid command for" + action.Device.Name)
 	}
 
-	log.Printf("Done.")
+	base.Log("Done.")
 	return
 }
 

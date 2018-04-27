@@ -2,9 +2,9 @@ package pathfinder
 
 import (
 	"errors"
-	"log"
 	"strings"
 
+	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/fatih/color"
 )
@@ -22,7 +22,7 @@ type Node struct {
 }
 
 func InitializeSignalPathfinder(devices []structs.Device, expected int) SignalPathfinder {
-	log.Printf("[Pathfinder] initializing pathfinder")
+	base.Log("[Pathfinder] initializing pathfinder")
 	sf := SignalPathfinder{
 		Expected: expected,
 		Pending:  make(map[string][]structs.Port),
@@ -41,7 +41,7 @@ func InitializeSignalPathfinder(devices []structs.Device, expected int) SignalPa
 //we need to store the state so that we can later use it to trace the value
 func (sp *SignalPathfinder) AddEdge(Device structs.Device, port string) bool {
 
-	log.Printf(color.HiCyanString("[Pathfinder] Adding edge :%v %v", Device.Name, port))
+	base.Log(color.HiCyanString("[Pathfinder] Adding edge :%v %v", Device.Name, port))
 	//we need to get the port from the list of devices
 
 	//go through the ports
@@ -104,18 +104,18 @@ func (sp *SignalPathfinder) AddEdge(Device structs.Device, port string) bool {
 //we assume that there is an entry for each output device - and will trace back as far as we can through that route
 //we assume that all the 'edges' have been added
 func (sp *SignalPathfinder) GetInputs() (map[string]structs.Device, error) {
-	log.Printf(color.HiCyanString("[Pathfinder] Getting all inputs"))
+	base.Log(color.HiCyanString("[Pathfinder] Getting all inputs"))
 
 	toReturn := make(map[string]structs.Device)
 
-	log.Printf(color.HiCyanString("[Pathfinder] Devices: %v", len(sp.Devices)))
+	base.Log(color.HiCyanString("[Pathfinder] Devices: %v", len(sp.Devices)))
 	//we need to go through and find all of our output devices - then
 	for k, v := range sp.Devices {
 		_, ok := sp.Pending[k]
 		if !v.Output || !ok {
 			continue
 		}
-		log.Printf(color.HiCyanString("[Pathfinder] Tracing input for %v", k))
+		base.Log(color.HiCyanString("[Pathfinder] Tracing input for %v", k))
 
 		//we now trace his path back as far as we can
 		curDevice := k
@@ -128,9 +128,9 @@ func (sp *SignalPathfinder) GetInputs() (map[string]structs.Device, error) {
 			}
 			prevDevice = curDevice
 			curDevice = next
-			log.Printf(color.HiCyanString("[Pathfinder] Path includes %v -> %v", prevDevice, curDevice))
+			base.Log(color.HiCyanString("[Pathfinder] Path includes %v -> %v", prevDevice, curDevice))
 		}
-		log.Printf(color.HiCyanString("[Pathfinder] Path ended. Final is %v -> %v  ", k, curDevice))
+		base.Log(color.HiCyanString("[Pathfinder] Path ended. Final is %v -> %v  ", k, curDevice))
 		toReturn[k] = sp.Devices[curDevice]
 	}
 	return toReturn, nil
@@ -158,12 +158,12 @@ func (sp *SignalPathfinder) getNextDeviceInPath(curDevice string, lastDevice str
 
 	//we have multiple entries for the device, check if it's a vs, if not it's an error
 	if !dev.HasRole("VideoSwitcher") {
-		log.Printf(color.HiRedString("Non video switcher has multiple entries in the table, invalid state."))
+		base.Log(color.HiRedString("Non video switcher has multiple entries in the table, invalid state."))
 		return "", errors.New("Non video switcher has multiple entries in the table, invalid state.")
 	}
 	if len(lastDevice) == 0 {
 		msg := "Invalid state, videoswitcher evaluated as first in chain"
-		log.Printf(color.HiRedString(msg))
+		base.Log(color.HiRedString(msg))
 		return "", errors.New(msg)
 	}
 

@@ -2,7 +2,6 @@ package commandevaluators
 
 import (
 	"errors"
-	"log"
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
@@ -30,20 +29,20 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 
 	if room.Blanked != nil && !*room.Blanked {
 
-		log.Printf("Room-wide UnBlank request received. Retrieving all devices.")
+		base.Log("Room-wide UnBlank request received. Retrieving all devices.")
 
 		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "VideoOut")
 		if err != nil {
 			return []base.ActionStructure{}, 0, err
 		}
 
-		log.Printf("Un-Blanking all displays in room.")
+		base.Log("Un-Blanking all displays in room.")
 
 		for _, device := range devices {
 
 			if device.Output {
 
-				log.Printf("Adding Device %+v", device.Name)
+				base.Log("Adding Device %+v", device.Name)
 
 				eventInfo.Device = device.Name
 				destination.Device = device
@@ -66,11 +65,11 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 
 	}
 
-	log.Printf("Evaluating individial displays for unblanking.")
+	base.Log("Evaluating individial displays for unblanking.")
 
 	for _, display := range room.Displays {
 
-		log.Printf("Adding device %+v", display.Name)
+		base.Log("Adding device %+v", display.Name)
 
 		if display.Blanked != nil && !*display.Blanked {
 
@@ -98,23 +97,23 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 		}
 	}
 
-	log.Printf("Evaluation complete; %v actions generated.", len(actions))
+	base.Log("Evaluation complete; %v actions generated.", len(actions))
 
 	return actions, len(actions), nil
 }
 
 //Validate returns an error if a command is invalid for a device
 func (p *UnBlankDisplayDefault) Validate(action base.ActionStructure) error {
-	log.Printf("Validating action for command \"UnBlank\"")
+	base.Log("Validating action for command \"UnBlank\"")
 
 	ok, _ := CheckCommands(action.Device.Commands, "UnblankDisplay")
 
 	if !ok || !strings.EqualFold(action.Action, "UnblankDisplay") {
-		log.Printf("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
+		base.Log("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
 		return errors.New(action.Action + " is an invalid command for" + action.Device.Name)
 	}
 
-	log.Printf("Done.")
+	base.Log("Done.")
 	return nil
 }
 

@@ -1,9 +1,9 @@
 package inputgraph
 
 import (
-	"log"
 	"testing"
 
+	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 )
 
@@ -226,12 +226,12 @@ func TestGraphBuilding(t *testing.T) {
 
 	graph, err := BuildGraph(Devices)
 	if err != nil {
-		log.Printf("error: %v", err.Error())
+		base.Log("error: %v", err.Error())
 		t.FailNow()
 	}
 
 	if debug {
-		log.Printf("%+v", graph.AdjacencyMap)
+		base.Log("%+v", graph.AdjacencyMap)
 	}
 }
 
@@ -239,7 +239,7 @@ func TestReachability(t *testing.T) {
 
 	graph, err := BuildGraph(Devices)
 	if err != nil {
-		log.Printf("error: %v", err.Error())
+		base.Log("error: %v", err.Error())
 		t.FailNow()
 	}
 
@@ -251,7 +251,7 @@ func TestReachability(t *testing.T) {
 
 	if debug {
 		for _, v := range ret {
-			log.Printf("%v", v.ID)
+			base.Log("%v", v.ID)
 		}
 	}
 	debug = false
