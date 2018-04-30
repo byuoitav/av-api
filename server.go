@@ -76,6 +76,7 @@ func GetStatus(context echo.Context) error {
 		s.Status = si.StatusOK
 		s.StatusInfo = ""
 	}
+	base.Log("Gettig Mstatus")
 
 	return context.JSON(http.StatusOK, s)
 }
