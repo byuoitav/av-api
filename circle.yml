@@ -1,33 +1,15 @@
-machine:
-    node:
-        version: 8.7.0
-    services:
-        - docker
-    environment:
-        GOROOT: ""
-        GOPATH: "${HOME}/.go_project"
-        PATH: "${GOPATH}/bin:${PATH}"
-        BUILD_PATH: "${GOPATH}/src/github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}"
+version: 2
+jobs:
+    build:
+        docker:
+            - image: byuoitav/build-env:master
 
-dependencies:
-    pre:
-        - rm -rf ~/.go_workspace
-        - go get -u github.com/FiloSottile/gvt
-    override:
-        - mkdir -p ~/.go_project/src/github.com/${CIRCLE_PROJECT_USERNAME}
-        - ln -s ${HOME}/${CIRCLE_PROJECT_REPONAME} ${BUILD_PATH}
-        - cd $BUILD_PATH && make deps
+        working_directory: /go/src/github.com/byuoitav/av-api
 
-compile:
-    override:
-        - cd $BUILD_PATH && make build
-
-test:
-    override:
-        - cd $BUILD_PATH && make test
-
-deployment:
-    deploy:
-        branch: [master, testing, stage, production]
-        commands:
-            - cd $BUILD_PATH && make docker
+        steps:
+            - checkout
+            - setup_remote_docker
+            - run: make deps
+            - run: make build
+            - run: make docker
+            - run: ./deploy-aws.sh $CIRCLE_PROJECT_REPONAME $CIRCLE_SHA1 $CIRCLE_BRANCH
