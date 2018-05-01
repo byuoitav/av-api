@@ -28,6 +28,6 @@ test:
 
 deployment:
     deploy:
-        branch: [master, testing, stage, prod]
+        branch: [master, testing, stage, production]
         commands:
             - cd $BUILD_PATH && make docker
