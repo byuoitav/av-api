@@ -131,6 +131,7 @@ services:
             - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
             - EVENT_ROUTER_ADDRESS=$EVENT_ROUTER_ADDRESS
         network_mode: "host"
+        restart: always
         tty: true
     shure-audio-microservice:
         image: byuoitav/shure-audio-microservice:${DOCKER_HUB_TAG}
@@ -149,6 +150,15 @@ services:
         image: byuoitav/atlona-microservice:${DOCKER_HUB_TAG}
         ports:
             - "8015:8015"
+        environment:
+            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+        network_mode: "host"
+        restart: always
+        tty: true
+    qsc-microservice:
+        image: byuoitav/qsc-microservice:${DOCKER_HUB_TAG}
+        ports:
+            - "7016:7016"
         environment:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
         network_mode: "host"
