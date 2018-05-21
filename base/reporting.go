@@ -5,16 +5,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	"github.com/byuoitav/common/events"
 )
 
-var EventNode *eventinfrastructure.EventNode
+var EventNode *events.EventNode
 
-func PublishHealth(e eventinfrastructure.Event) {
+func PublishHealth(e events.Event) {
 	Publish(e, false)
 }
 
-func Publish(e eventinfrastructure.Event, Error bool) error {
+func Publish(e events.Event, Error bool) error {
 	var err error
 
 	e.Timestamp = time.Now().Format(time.RFC3339)
@@ -34,16 +34,16 @@ func Publish(e eventinfrastructure.Event, Error bool) error {
 	e.LocalEnvironment = len(os.Getenv("LOCAL_ENVIRONMENT")) > 0
 
 	if !Error {
-		EventNode.PublishEvent(e, eventinfrastructure.APISuccess)
+		EventNode.PublishEvent(events.APISuccess, e)
 	} else {
-		EventNode.PublishEvent(e, eventinfrastructure.APIError)
+		EventNode.PublishEvent(events.APIError, e)
 	}
 
 	return err
 }
 
-func SendEvent(Type eventinfrastructure.EventType,
-	Cause eventinfrastructure.EventCause,
+func SendEvent(Type events.EventType,
+	Cause events.EventCause,
 	Device string,
 	Room string,
 	Building string,
@@ -52,7 +52,7 @@ func SendEvent(Type eventinfrastructure.EventType,
 	Requestor string,
 	Error bool) error {
 
-	e := eventinfrastructure.EventInfo{
+	e := events.EventInfo{
 		Type:           Type,
 		EventCause:     Cause,
 		Device:         Device,
@@ -61,7 +61,7 @@ func SendEvent(Type eventinfrastructure.EventType,
 		Requestor:      Requestor,
 	}
 
-	err := Publish(eventinfrastructure.Event{
+	err := Publish(events.Event{
 		Event:    e,
 		Building: Building,
 		Room:     Room,
@@ -70,9 +70,9 @@ func SendEvent(Type eventinfrastructure.EventType,
 	return err
 }
 
-func PublishError(errorStr string, cause eventinfrastructure.EventCause) {
-	e := eventinfrastructure.EventInfo{
-		Type:           eventinfrastructure.ERROR,
+func PublishError(errorStr string, cause events.EventCause) {
+	e := events.EventInfo{
+		Type:           events.ERROR,
 		EventCause:     cause,
 		EventInfoKey:   "Error String",
 		EventInfoValue: errorStr,
@@ -91,7 +91,7 @@ func PublishError(errorStr string, cause eventinfrastructure.EventCause) {
 		}
 	}
 
-	Publish(eventinfrastructure.Event{
+	Publish(events.Event{
 		Event:    e,
 		Building: building,
 		Room:     room,

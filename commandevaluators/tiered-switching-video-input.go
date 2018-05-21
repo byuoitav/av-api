@@ -7,11 +7,11 @@ import (
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/av-api/inputgraph"
 	"github.com/byuoitav/av-api/statusevaluators"
-	"github.com/byuoitav/configuration-database-microservice/structs"
-	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/events"
+	"github.com/byuoitav/common/structs"
 	"github.com/fatih/color"
 )
 
@@ -61,7 +61,8 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 	}
 
 	//get all the devices from the room
-	devices, err := dbo.GetDevicesByRoom(room.Building, room.Room)
+	roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
+	devices, err := db.GetDB().GetDevicesByRoom(roomID)
 	if err != nil {
 		base.Log(color.HiRedString("[error] there was an issue getting the devices from the room: %v", err.Error()))
 		return []base.ActionStructure{}, 0, err
@@ -142,7 +143,7 @@ func (c *ChangeVideoInputTieredSwitchers) Validate(action base.ActionStructure) 
 	base.Log("Validating action for command %v", action.Action)
 
 	// check if ChangeInput is a valid name of a command (ok is a bool)
-	ok, _ := CheckCommands(action.Device.Commands, "ChangeInput")
+	ok, _ := CheckCommands(action.Device.Type.Commands, "ChangeInput")
 
 	// returns and error if the ChangeInput command doesn't exist or if the command isn't ChangeInput
 	if !ok || action.Action != "ChangeInput" {
@@ -171,7 +172,7 @@ func (c *ChangeVideoInputTieredSwitchers) RoutePath(input, output string, graph 
 		return []base.ActionStructure{}, errors.New(msg)
 	}
 
-	if !inDev.Device.Input {
+	if !inDev.Device.Type.Input {
 		msg := fmt.Sprintf("Device %v is not an input device in this room", input)
 		base.Log("%s", color.HiRedString("[error] %s", msg))
 		return []base.ActionStructure{}, errors.New(msg)
@@ -184,7 +185,7 @@ func (c *ChangeVideoInputTieredSwitchers) RoutePath(input, output string, graph 
 		return []base.ActionStructure{}, errors.New(msg)
 	}
 
-	if !outDev.Device.Output {
+	if !outDev.Device.Type.Output {
 		msg := fmt.Sprintf("Device %v is not an input device in this room", output)
 		base.Log("%s", color.HiRedString("[error] %s", msg))
 		return []base.ActionStructure{}, errors.New(msg)
@@ -223,13 +224,13 @@ func (c *ChangeVideoInputTieredSwitchers) ChangeAll(input string, devices []stru
 	var dev *inputgraph.Node
 
 	if dev, ok = graph.DeviceMap[input]; !ok {
-		msg := fmt.Sprintf("device %v is not included in the connection graph for this room.")
+		msg := fmt.Sprintf("device %v is not included in the connection graph for this room.", input)
 		base.Log("%s", color.HiRedString("[error] %s", msg))
 		return []base.ActionStructure{}, 0, errors.New(msg)
 	}
 
-	if !dev.Device.Input {
-		msg := fmt.Sprintf("device %v is not an input device in this room")
+	if !dev.Device.Type.Input {
+		msg := fmt.Sprintf("device %v is not an input device in this room", input)
 		base.Log("%s", color.HiRedString("[error] %s", msg))
 		return []base.ActionStructure{}, 0, errors.New(msg)
 	}
@@ -237,7 +238,7 @@ func (c *ChangeVideoInputTieredSwitchers) ChangeAll(input string, devices []stru
 	//ok we know it's in the room, check it's reachability in the graph
 	paths := make(map[string][]inputgraph.Node)
 	for _, d := range devices {
-		if d.Output {
+		if d.Type.Output {
 			ok, p, err := inputgraph.CheckReachability(d.Name, input, graph)
 			if err != nil {
 				return []base.ActionStructure{}, 0, err
@@ -280,7 +281,7 @@ func (c *ChangeVideoInputTieredSwitchers) GenerateActionsFromPath(path []inputgr
 	for i := 1; i < len(path); i++ {
 		cur := path[i]
 		//we look for a path from last to cur, assuming that the change has to happen on cur. if cur is a videoswitcher we need to check for an in and out port to generate the action
-		if cur.Device.HasRole("VideoSwitcher") {
+		if structs.HasRole(cur.Device, "VideoSwitcher") {
 			base.Log("Generating action for VS %v", cur.ID)
 			//we assume we have an in and out port
 			tempAction, err := generateActionForSwitch(last, cur, path[i+1], path[len(path)-1].Device, path[0].Device.Name, callbackEngine, requestor)
@@ -313,8 +314,8 @@ func generateActionForNonSwitch(prev, cur inputgraph.Node, destination structs.D
 
 	for _, p := range cur.Device.Ports {
 		//check for the 'in' port
-		if p.Source == prev.ID && p.Destination == cur.ID && p.Host == cur.ID {
-			in = p.Name
+		if p.SourceDevice == prev.ID && p.DestinationDevice == cur.ID {
+			in = p.ID
 			break
 		}
 	}
@@ -329,9 +330,9 @@ func generateActionForNonSwitch(prev, cur inputgraph.Node, destination structs.D
 	m := make(map[string]string)
 	m["port"] = in
 
-	eventInfo := eventinfrastructure.EventInfo{
-		Type:           eventinfrastructure.CORESTATE,
-		EventCause:     eventinfrastructure.USERINPUT,
+	eventInfo := events.EventInfo{
+		Type:           events.CORESTATE,
+		EventCause:     events.USERINPUT,
 		Device:         destination.Name,
 		EventInfoKey:   "input",
 		EventInfoValue: selected,
@@ -342,11 +343,11 @@ func generateActionForNonSwitch(prev, cur inputgraph.Node, destination structs.D
 		Device: destination,
 	}
 
-	if destination.HasRole("AudioOut") {
+	if structs.HasRole(destination, "AudioOut") {
 		destStruct.AudioDevice = true
 	}
 
-	if destination.HasRole("VideoOut") {
+	if structs.HasRole(destination, "VideoOut") {
 		destStruct.Display = true
 	}
 
@@ -358,7 +359,7 @@ func generateActionForNonSwitch(prev, cur inputgraph.Node, destination structs.D
 		Parameters:          m,
 		DeviceSpecific:      false,
 		Overridden:          false,
-		EventLog:            []eventinfrastructure.EventInfo{eventInfo},
+		EventLog:            []events.EventInfo{eventInfo},
 		Callback:            callbackEngine.Callback,
 	}
 	return tempAction, nil
@@ -373,12 +374,12 @@ func generateActionForSwitch(prev, cur, next inputgraph.Node, destination struct
 	for _, p := range cur.Device.Ports {
 
 		//check for the 'in' port
-		if p.Source == prev.ID && p.Destination == cur.ID && p.Host == cur.ID {
-			in = p.Name
+		if p.SourceDevice == prev.ID && p.DestinationDevice == cur.ID {
+			in = p.ID
 
 			//check for the 'out' port
-		} else if p.Source == cur.ID && p.Destination == next.ID && p.Host == cur.ID {
-			out = p.Name
+		} else if p.SourceDevice == cur.ID && p.DestinationDevice == next.ID {
+			out = p.ID
 		}
 	}
 	if len(in) == 0 || len(out) == 0 {
@@ -395,9 +396,9 @@ func generateActionForSwitch(prev, cur, next inputgraph.Node, destination struct
 
 	base.Log("params: %v", m)
 
-	eventInfo := eventinfrastructure.EventInfo{
-		Type:           eventinfrastructure.CORESTATE,
-		EventCause:     eventinfrastructure.USERINPUT,
+	eventInfo := events.EventInfo{
+		Type:           events.CORESTATE,
+		EventCause:     events.USERINPUT,
 		Device:         destination.Name,
 		EventInfoKey:   "input",
 		EventInfoValue: selected,
@@ -408,11 +409,11 @@ func generateActionForSwitch(prev, cur, next inputgraph.Node, destination struct
 		Device: destination,
 	}
 
-	if destination.HasRole("AudioOut") {
+	if structs.HasRole(destination, "AudioOut") {
 		destStruct.AudioDevice = true
 	}
 
-	if destination.HasRole("VideoOut") {
+	if structs.HasRole(destination, "VideoOut") {
 		destStruct.Display = true
 	}
 
@@ -424,7 +425,7 @@ func generateActionForSwitch(prev, cur, next inputgraph.Node, destination struct
 		Parameters:          m,
 		DeviceSpecific:      false,
 		Overridden:          false,
-		EventLog:            []eventinfrastructure.EventInfo{eventInfo},
+		EventLog:            []events.EventInfo{eventInfo},
 		Callback:            callbackEngine.Callback,
 	}
 

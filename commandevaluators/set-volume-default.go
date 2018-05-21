@@ -6,8 +6,9 @@ import (
 	"strconv"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/events"
+	"github.com/byuoitav/common/structs"
 )
 
 type SetVolumeDefault struct {
@@ -18,9 +19,9 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 
 	var actions []base.ActionStructure
 
-	eventInfo := eventinfrastructure.EventInfo{
-		Type:         eventinfrastructure.CORESTATE,
-		EventCause:   eventinfrastructure.USERINPUT,
+	eventInfo := events.EventInfo{
+		Type:         events.CORESTATE,
+		EventCause:   events.USERINPUT,
 		EventInfoKey: "volume",
 		Requestor:    requestor,
 	}
@@ -34,14 +35,15 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 
 		base.Log("General volume request detected.")
 
-		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "AudioOut")
+		roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
+		devices, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "AudioOut")
 		if err != nil {
 			return []base.ActionStructure{}, 0, err
 		}
 
 		for _, device := range devices {
 
-			if device.Output {
+			if device.Type.Output {
 
 				parameters := make(map[string]string)
 				parameters["level"] = fmt.Sprintf("%v", *room.Volume)
@@ -50,7 +52,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 				eventInfo.Device = device.Name
 				destination.Device = device
 
-				if device.HasRole("VideoOut") {
+				if structs.HasRole(device, "VideoOut") {
 					destination.Display = true
 				}
 
@@ -61,7 +63,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 					Device:              device,
 					DestinationDevice:   destination,
 					DeviceSpecific:      false,
-					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
+					EventLog:            []events.EventInfo{eventInfo},
 				})
 
 			}
@@ -81,7 +83,8 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 			if audioDevice.Volume != nil {
 				base.Log("Adding device %+v", audioDevice.Name)
 
-				device, err := dbo.GetDeviceByName(room.Building, room.Room, audioDevice.Name)
+				deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, audioDevice.Name)
+				device, err := db.GetDB().GetDevice(deviceID)
 				if err != nil {
 					return []base.ActionStructure{}, 0, err
 				}
@@ -94,7 +97,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 				eventInfo.Device = device.Name
 				destination.Device = device
 
-				if device.HasRole("VideoOut") {
+				if structs.HasRole(device, "VideoOut") {
 					destination.Display = true
 				}
 
@@ -105,7 +108,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 					DestinationDevice:   destination,
 					DeviceSpecific:      true,
 					Parameters:          parameters,
-					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
+					EventLog:            []events.EventInfo{eventInfo},
 				})
 
 			}

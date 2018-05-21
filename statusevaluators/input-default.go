@@ -2,7 +2,7 @@ package statusevaluators
 
 import (
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/configuration-database-microservice/structs"
+	"github.com/byuoitav/common/structs"
 )
 
 const DEFAULT_INPUT_EVALUATOR = "STATUS_InputDefault"
@@ -27,9 +27,9 @@ func (p *InputDefault) EvaluateResponse(label string, value interface{}, source 
 	for _, port := range dest.Ports {
 
 		valueString, ok := value.(string)
-		if ok && port.Name == valueString {
+		if ok && port.ID == valueString {
 
-			value = port.Source
+			value = port.SourceDevice
 
 		}
 

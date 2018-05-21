@@ -6,8 +6,9 @@ import (
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/events"
+	"github.com/byuoitav/common/structs"
 )
 
 //MuteDefault implements CommandEvaluation
@@ -28,9 +29,9 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 		AudioDevice: true,
 	}
 
-	eventInfo := eventinfrastructure.EventInfo{
-		Type:           eventinfrastructure.CORESTATE,
-		EventCause:     eventinfrastructure.USERINPUT,
+	eventInfo := events.EventInfo{
+		Type:           events.CORESTATE,
+		EventCause:     events.USERINPUT,
 		EventInfoKey:   "muted",
 		EventInfoValue: "true",
 		Requestor:      requestor,
@@ -40,7 +41,8 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 
 		base.Log("Room-wide Mute request recieved. Retrieving all devices.")
 
-		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "AudioOut")
+		roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
+		devices, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "AudioOut")
 		if err != nil {
 			return []base.ActionStructure{}, 0, err
 		}
@@ -48,13 +50,13 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 		base.Log("Muting all devices in room.")
 
 		for _, device := range devices {
-			if device.Output {
+			if device.Type.Output {
 				base.Log("Adding device %+v", device.Name)
 
 				eventInfo.Device = device.Name
 				destination.Device = device
 
-				if device.HasRole("VideoOut") {
+				if structs.HasRole(device, "VideoOut") {
 					destination.Display = true
 				}
 
@@ -64,7 +66,7 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 					Device:              device,
 					DestinationDevice:   destination,
 					DeviceSpecific:      false,
-					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
+					EventLog:            []events.EventInfo{eventInfo},
 				})
 			}
 		}
@@ -78,7 +80,8 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 		if audioDevice.Muted != nil && *audioDevice.Muted {
 
 			//get the device
-			device, err := dbo.GetDeviceByName(room.Building, room.Room, audioDevice.Name)
+			deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, audioDevice.Name)
+			device, err := db.GetDB().GetDevice(deviceID)
 			if err != nil {
 				return []base.ActionStructure{}, 0, err
 			}
@@ -92,7 +95,7 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 				Device:              device,
 				DestinationDevice:   destination,
 				DeviceSpecific:      true,
-				EventLog:            []eventinfrastructure.EventInfo{eventInfo},
+				EventLog:            []events.EventInfo{eventInfo},
 			})
 
 		}
@@ -108,7 +111,7 @@ func (p *MuteDefault) Validate(action base.ActionStructure) error {
 
 	base.Log("Validating for command \"Mute\".")
 
-	ok, _ := CheckCommands(action.Device.Commands, "Mute")
+	ok, _ := CheckCommands(action.Device.Type.Commands, "Mute")
 
 	// fmt.Printf("action.Device.Commands contains: %+v\n", action.Device.Commands)
 	fmt.Printf("Device ID: %v\n", action.Device.ID)

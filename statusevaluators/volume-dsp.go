@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/configuration-database-microservice/structs"
+	"github.com/byuoitav/common/structs"
 )
 
 const VOLUME_DSP = "STATUS_VolumeDSP"
@@ -23,17 +23,17 @@ func (p *VolumeDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand,
 
 	for _, device := range devices {
 
-		base.Log("Considering device: %s", device.GetFullName())
+		base.Log("Considering device: %s", device.ID)
 
-		if device.HasRole("Microphone") {
+		if structs.HasRole(device, "Microphone") {
 
 			base.Log("Appending %s to mic array...", device.Name)
 			mics = append(mics, device)
-		} else if device.HasRole("DSP") {
+		} else if structs.HasRole(device, "DSP") {
 
 			base.Log("Appending %s to DSP array...", device.Name)
 			dsp = append(dsp, device)
-		} else if device.HasRole("AudioOut") {
+		} else if structs.HasRole(device, "AudioOut") {
 
 			base.Log("Appending %s to audio devices array...", device.Name)
 			audioDevices = append(audioDevices, device)
@@ -76,7 +76,7 @@ func (p *VolumeDSP) EvaluateResponse(label string, value interface{}, source str
 
 	const SCALE_FACTOR = 3
 	const MINIMUM = 45
-	if destination.Device.HasRole("Microphone") {
+	if structs.HasRole(destination.Device, "Microphone") {
 
 		intValue, ok := value.(int)
 		if ok {

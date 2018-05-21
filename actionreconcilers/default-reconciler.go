@@ -2,10 +2,14 @@ package actionreconcilers
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"sort"
 
+	"github.com/byuoitav/common/db"
+
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/configuration-database-microservice/structs"
+	"github.com/byuoitav/common/structs"
 	"github.com/fatih/color"
 )
 
@@ -19,7 +23,7 @@ func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure, inCount in
 	base.Log("[reconciler] Removing incompatible actions...")
 	var buffer bytes.Buffer
 
-	actionMap := make(map[int][]base.ActionStructure)
+	actionMap := make(map[string][]base.ActionStructure)
 	for _, action := range actions {
 
 		buffer.WriteString(action.Device.Name + " ")
@@ -81,11 +85,20 @@ func SortActionsByPriority(actions []base.ActionStructure) (output []base.Action
 
 	for _, action := range actions {
 
-		for _, command := range action.Device.Commands {
+		room, err := db.GetDB().GetRoom(action.Device.GetDeviceRoomID())
+		if err != nil {
+			errorMessage := fmt.Sprintf("Problem getting command evaluators for %s", action.Device.GetDeviceRoomID())
+			base.Log(errorMessage)
+			return []base.ActionStructure{}, errors.New(errorMessage)
+		}
 
-			if command.Name == action.Action {
+		evaluators := room.Configuration.Evaluators
 
-				actionMap[command.Priority] = append(actionMap[command.Priority], action)
+		for _, commandEval := range evaluators {
+
+			if commandEval.ID == action.Action {
+
+				actionMap[commandEval.Priority] = append(actionMap[commandEval.Priority], action)
 			}
 		}
 	}

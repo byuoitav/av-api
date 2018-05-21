@@ -47,7 +47,7 @@ func Init() map[string]ActionReconciler {
 	return reconcilerMap
 }
 
-func StandardReconcile(device int, inCount int, actions []base.ActionStructure) ([]base.ActionStructure, int, error) {
+func StandardReconcile(device string, inCount int, actions []base.ActionStructure) ([]base.ActionStructure, int, error) {
 
 	color.Set(color.FgHiMagenta)
 	base.Log("[reconciler] performing standard reconcile...")

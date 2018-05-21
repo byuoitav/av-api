@@ -6,15 +6,16 @@ import (
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/events"
+	"github.com/byuoitav/common/structs"
 )
 
-// BlankDisplay is struct that implements the CommandEvaluation struct
+// BlankDisplayDefault is struct that implements the CommandEvaluation struct
 type BlankDisplayDefault struct {
 }
 
-// Takes a PublicRoom and builds a slice of ActionStructures
+// Evaluate takes a PublicRoom and builds a slice of ActionStructures
 func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 
 	base.Log("[command_evaluators] evaluating BlankDisplay commands...")
@@ -22,9 +23,9 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 	var actions []base.ActionStructure
 
 	//build event info
-	eventInfo := eventinfrastructure.EventInfo{
-		Type:           eventinfrastructure.CORESTATE,
-		EventCause:     eventinfrastructure.USERINPUT,
+	eventInfo := events.EventInfo{
+		Type:           events.CORESTATE,
+		EventCause:     events.USERINPUT,
 		EventInfoKey:   "blanked",
 		EventInfoValue: "true",
 		Requestor:      requestor,
@@ -35,7 +36,8 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 		base.Log("[command_evaluators] room-wide blank request received. Retrieving all devices...")
 
 		// Get all devices
-		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "VideoOut")
+		roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
+		devices, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "VideoOut")
 		if err != nil {
 			return []base.ActionStructure{}, 0, err
 		}
@@ -46,7 +48,7 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 		// Currently we only check for output devices
 		for _, device := range devices {
 
-			if device.Output {
+			if device.Type.Output {
 
 				base.Log("[command_evaluators]Adding device %+v", device.Name)
 
@@ -55,7 +57,7 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 					Display: true,
 				}
 
-				if device.HasRole("AudioOut") {
+				if structs.HasRole(device, "AudioOut") {
 					destination.AudioDevice = true
 				}
 
@@ -66,7 +68,7 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 					Device:              device,
 					DestinationDevice:   destination,
 					DeviceSpecific:      false,
-					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
+					EventLog:            []events.EventInfo{eventInfo},
 				})
 			}
 		}
@@ -78,8 +80,8 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 		base.Log("[command_evaluators]Adding device %+v", display.Name)
 
 		if display.Blanked != nil && *display.Blanked {
-
-			device, err := dbo.GetDeviceByName(room.Building, room.Room, display.Name)
+			deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, display.Name)
+			device, err := db.GetDB().GetDevice(deviceID)
 			if err != nil {
 				return []base.ActionStructure{}, 0, err
 			}
@@ -89,7 +91,7 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 				Display: true,
 			}
 
-			if device.HasRole("AudioOut") {
+			if structs.HasRole(device, "AudioOut") {
 				destination.AudioDevice = true
 			}
 
@@ -100,7 +102,7 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 				Device:              device,
 				DestinationDevice:   destination,
 				DeviceSpecific:      true,
-				EventLog:            []eventinfrastructure.EventInfo{eventInfo},
+				EventLog:            []events.EventInfo{eventInfo},
 			})
 		}
 	}
@@ -116,7 +118,7 @@ func (p *BlankDisplayDefault) Validate(action base.ActionStructure) (err error) 
 	base.Log("[command_evaluators] validating action for command %v", action.Action)
 
 	// Check if the BlankDisplay command is a valid name of a command
-	ok, _ := CheckCommands(action.Device.Commands, "BlankDisplay")
+	ok, _ := CheckCommands(action.Device.Type.Commands, "BlankDisplay")
 	// Return an error if the BlankDisplay command doesn't exist or the command in question isn't a BlankDisplay command
 	if !ok || !strings.EqualFold(action.Action, "BlankDisplay") {
 		base.Log("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)

@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/configuration-database-microservice/structs"
+	"github.com/byuoitav/common/structs"
 )
 
 const PowerDefaultEvaluatorName = "STATUS_PowerDefault"

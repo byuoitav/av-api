@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/configuration-database-microservice/structs"
+	"github.com/byuoitav/common/structs"
 	"github.com/fatih/color"
 )
 
@@ -39,12 +39,12 @@ func BuildGraph(devs []structs.Device) (InputGraph, error) {
 		}
 
 		for _, port := range device.Ports { // add entry in adjacency map
-			base.Log("[tiered-switcher-eval] addding %v to the adjecency for %v based on port %v", port.Source, port.Destination, port.Name)
+			base.Log("[tiered-switcher-eval] addding %v to the adjecency for %v based on port %v", port.SourceDevice, port.DestinationDevice, port.ID)
 
-			if _, ok := ig.AdjacencyMap[port.Destination]; ok {
-				ig.AdjacencyMap[port.Destination] = append(ig.AdjacencyMap[port.Destination], port.Source)
+			if _, ok := ig.AdjacencyMap[port.DestinationDevice]; ok {
+				ig.AdjacencyMap[port.DestinationDevice] = append(ig.AdjacencyMap[port.DestinationDevice], port.SourceDevice)
 			} else {
-				ig.AdjacencyMap[port.Destination] = []string{port.Source}
+				ig.AdjacencyMap[port.DestinationDevice] = []string{port.SourceDevice}
 			}
 		}
 	}
@@ -54,7 +54,7 @@ func BuildGraph(devs []structs.Device) (InputGraph, error) {
 	return ig, nil
 }
 
-//where deviceA is the sink and deviceB is the source
+//where deviceA is the sink and deviceB is the SourceDevice
 func CheckReachability(deviceA, deviceB string, ig InputGraph) (bool, []Node, error) {
 	base.Log("looking for a path from %v to %v", deviceA, deviceB)
 
@@ -91,7 +91,7 @@ func CheckReachability(deviceA, deviceB string, ig InputGraph) (bool, []Node, er
 		case cur := <-frontier:
 			base.Log("Evaluating %v", cur)
 			if cur == deviceB {
-				base.Log("Destination reached.", cur)
+				base.Log("DestinationDevice reached.", cur)
 				dev := cur
 
 				toReturn := []Node{}

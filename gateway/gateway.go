@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/structs"
+	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/structs"
 	"github.com/fatih/color"
 )
 
@@ -21,14 +21,14 @@ import (
 */
 func SetGateway(url string, device structs.Device) (string, error) {
 	if structs.HasRole(device, "GatedDevice") { //we need to add a gateway parameter to the action
-		base.Log(color.BlueString("[gateway-processing]Device %v is a gated device, looking for gateway", device.GetFullName()))
+		base.Log(color.BlueString("[gateway-processing]Device %v is a gated device, looking for gateway", device.ID))
 		parseString := `http:\/\/(.+?)\/(.*)`
 
 		gateway, port, err := getDeviceGateway(device)
 		if err != nil {
 			return "", err
 		}
-		base.Log(color.BlueString("[gateway-processing]Found a gateway %v connectd via port %v", gateway.GetFullName(), port))
+		base.Log(color.BlueString("[gateway-processing]Found a gateway %v connectd via port %v", gateway.ID, port))
 
 		newpath, err := processPort(gateway, port)
 		if err != nil {
@@ -65,22 +65,23 @@ func SetStatusGateway(url string, device structs.Device) (string, error) {
 func getDeviceGateway(d structs.Device) (structs.Device, string, error) {
 
 	//get devices by building and room and role
-	devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(d.Building.Shortname, d.Room.Name, "Gateway")
+	roomID := d.GetDeviceRoomID()
+	devices, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "Gateway")
 	if err != nil {
 		return structs.Device{}, "", err
 	}
 
 	if len(devices) == 0 {
-		return structs.Device{}, "", errors.New(fmt.Sprintf("no gateway devices found in room %s-%s", d.Building.Name, d.Room.Name))
+		return structs.Device{}, "", errors.New(fmt.Sprintf("no gateway devices found in room %s", roomID))
 	}
 
 	for _, device := range devices {
 
 		for _, port := range device.Ports {
 
-			if port.Destination == d.Name {
+			if port.DestinationDevice == d.Name {
 
-				return device, port.Name, nil
+				return device, port.ID, nil
 			}
 		}
 	}
@@ -106,9 +107,10 @@ func processPort(gateway structs.Device, port string) (string, error) {
 
 	//check for a command that corresponds to the port
 	command := gateway.GetCommandByName(port)
-	if len(command.Name) == 0 {
+
+	if len(command.ID) == 0 {
 		//there was an error
-		msg := fmt.Sprintf("There was no command for the gateway device %v that corresponds to port %v", gateway.GetFullName(), port)
+		msg := fmt.Sprintf("There was no command for the gateway device %v that corresponds to port %v", gateway.ID, port)
 		base.Log(color.HiRedString(msg))
 		return "", errors.New(msg)
 	}
@@ -121,7 +123,7 @@ func processPort(gateway structs.Device, port string) (string, error) {
 	}
 
 	//we have the command, so we can build the command,
-	path = command.Microservice + path
+	path = command.Microservice.Address + path
 
 	return path, nil
 }

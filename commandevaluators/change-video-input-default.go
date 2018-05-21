@@ -2,12 +2,13 @@ package commandevaluators
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/structs"
-	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/events"
+	"github.com/byuoitav/common/structs"
 )
 
 //ChangeVideoInputDefault is struct that implements the CommandEvaluation struct
@@ -70,7 +71,8 @@ func generateChangeInputByDevice(dev base.Device, room, building, generatingEval
 
 	var curDevice structs.Device
 
-	curDevice, err = dbo.GetDeviceByName(building, room, dev.Name)
+	deviceID := fmt.Sprintf("%v-%v-%v", building, room, dev.Name)
+	curDevice, err = db.GetDB().GetDevice(deviceID)
 	if err != nil {
 		return
 	}
@@ -79,9 +81,9 @@ func generateChangeInputByDevice(dev base.Device, room, building, generatingEval
 	var portSource string
 
 	for _, port := range curDevice.Ports {
-		if strings.EqualFold(port.Source, dev.Input) {
-			paramMap["port"] = port.Name
-			portSource = port.Source
+		if strings.EqualFold(port.SourceDevice, dev.Input) {
+			paramMap["port"] = port.ID
+			portSource = port.SourceDevice
 			break
 		}
 	}
@@ -95,17 +97,17 @@ func generateChangeInputByDevice(dev base.Device, room, building, generatingEval
 		Device: curDevice,
 	}
 
-	if curDevice.HasRole("AudioOut") {
+	if structs.HasRole(curDevice, "AudioOut") {
 		destination.AudioDevice = true
 	}
 
-	if curDevice.HasRole("VideoOut") {
+	if structs.HasRole(curDevice, "VideoOut") {
 		destination.Display = true
 	}
 
-	eventInfo := eventinfrastructure.EventInfo{
-		Type:           eventinfrastructure.CORESTATE,
-		EventCause:     eventinfrastructure.USERINPUT,
+	eventInfo := events.EventInfo{
+		Type:           events.CORESTATE,
+		EventCause:     events.USERINPUT,
 		Device:         dev.Name,
 		EventInfoKey:   "input",
 		EventInfoValue: portSource,
@@ -119,14 +121,15 @@ func generateChangeInputByDevice(dev base.Device, room, building, generatingEval
 		Parameters:          paramMap,
 		DeviceSpecific:      true,
 		Overridden:          false,
-		EventLog:            []eventinfrastructure.EventInfo{eventInfo},
+		EventLog:            []events.EventInfo{eventInfo},
 	}
 
 	return
 }
 
 func generateChangeInputByRole(role, input, room, building, generatingEvaluator, requestor string) (actions []base.ActionStructure, err error) {
-	devicesToChange, err := dbo.GetDevicesByBuildingAndRoomAndRole(building, room, role)
+	roomID := fmt.Sprintf("%v-%v", building, room)
+	devicesToChange, err := db.GetDB().GetDevicesByRoomAndRole(roomID, role)
 	if err != nil {
 		return
 	}
@@ -139,10 +142,10 @@ func generateChangeInputByRole(role, input, room, building, generatingEvaluator,
 		//Get the port mapping for the device
 		for _, curPort := range d.Ports { // Loop through the found ports
 
-			if strings.EqualFold(curPort.Source, input) {
+			if strings.EqualFold(curPort.SourceDevice, input) {
 
-				paramMap["port"] = curPort.Name
-				source = curPort.Source
+				paramMap["port"] = curPort.ID
+				source = curPort.SourceDevice
 				break
 
 			}
@@ -158,17 +161,17 @@ func generateChangeInputByRole(role, input, room, building, generatingEvaluator,
 			Device: d,
 		}
 
-		if d.HasRole("AudioOut") {
+		if structs.HasRole(d, "AudioOut") {
 			dest.AudioDevice = true
 		}
 
-		if d.HasRole("VideoOut") {
+		if structs.HasRole(d, "VideoOut") {
 			dest.Display = true
 		}
 
-		eventInfo := eventinfrastructure.EventInfo{
-			Type:           eventinfrastructure.USERACTION,
-			EventCause:     eventinfrastructure.USERINPUT,
+		eventInfo := events.EventInfo{
+			Type:           events.USERACTION,
+			EventCause:     events.USERINPUT,
 			Device:         d.Name,
 			EventInfoKey:   "input",
 			EventInfoValue: source,
@@ -183,7 +186,7 @@ func generateChangeInputByRole(role, input, room, building, generatingEvaluator,
 			Parameters:          paramMap,
 			DeviceSpecific:      false,
 			Overridden:          false,
-			EventLog:            []eventinfrastructure.EventInfo{eventInfo},
+			EventLog:            []events.EventInfo{eventInfo},
 		}
 
 		actions = append(actions, action)

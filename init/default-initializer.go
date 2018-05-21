@@ -2,7 +2,7 @@ package init
 
 import (
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/configuration-database-microservice/structs"
+	"github.com/byuoitav/common/structs"
 )
 
 //DefaultInitializer implements the Initializer interface

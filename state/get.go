@@ -9,8 +9,8 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	se "github.com/byuoitav/av-api/statusevaluators"
-	"github.com/byuoitav/configuration-database-microservice/structs"
-	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	"github.com/byuoitav/common/events"
+	"github.com/byuoitav/common/structs"
 	"github.com/fatih/color"
 )
 
@@ -25,9 +25,9 @@ func GenerateStatusCommands(room structs.Room, commandMap map[string]se.StatusEv
 
 	for _, possibleEvaluator := range room.Configuration.Evaluators {
 
-		if strings.HasPrefix(possibleEvaluator.EvaluatorKey, se.FLAG) {
+		if strings.HasPrefix(possibleEvaluator.CodeKey, se.FLAG) {
 
-			currentEvaluator := se.STATUS_EVALUATORS[possibleEvaluator.EvaluatorKey]
+			currentEvaluator := se.STATUS_EVALUATORS[possibleEvaluator.CodeKey]
 
 			//we can get the number of output devices here
 			devices, err := currentEvaluator.GetDevices(room)
@@ -101,7 +101,7 @@ func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse
 			if output.ErrorMessage != nil {
 				msg := fmt.Sprintf("problem querying status of device: %s with destination %s: %s", output.SourceDevice.Name, output.DestinationDevice.Name, *output.ErrorMessage)
 				base.Log("%s", color.HiRedString("[error] %s", msg))
-				cause := eventinfrastructure.INTERNAL
+				cause := events.INTERNAL
 				base.PublishError(msg, cause)
 			}
 			//base.Log("[state] appending status: %v of %s to output", output.Status, output.DestinationDevice.Name)
@@ -144,8 +144,8 @@ func EvaluateResponses(responses []se.StatusResponse, count int) (base.PublicRoo
 					continue
 				}
 
-				if _, ok := responsesByDestinationDevice[resp.DestinationDevice.GetFullName()]; ok {
-					responsesByDestinationDevice[resp.DestinationDevice.GetFullName()].Status[k] = v
+				if _, ok := responsesByDestinationDevice[resp.DestinationDevice.ID]; ok {
+					responsesByDestinationDevice[resp.DestinationDevice.ID].Status[k] = v
 					doneCount++
 				} else {
 					newMap := make(map[string]interface{})
@@ -154,8 +154,8 @@ func EvaluateResponses(responses []se.StatusResponse, count int) (base.PublicRoo
 						Status:            newMap,
 						DestinationDevice: resp.DestinationDevice,
 					}
-					responsesByDestinationDevice[resp.DestinationDevice.GetFullName()] = statusForDevice
-					base.Log("[state] adding device %v to the map", resp.DestinationDevice.GetFullName())
+					responsesByDestinationDevice[resp.DestinationDevice.ID] = statusForDevice
+					base.Log("[state] adding device %v to the map", resp.DestinationDevice.ID)
 					doneCount++
 				}
 			}
@@ -181,8 +181,8 @@ func EvaluateResponses(responses []se.StatusResponse, count int) (base.PublicRoo
 
 		//pull something out of the response channel
 		case val := <-returnChan:
-			if _, ok := responsesByDestinationDevice[val.Dest.GetFullName()]; ok {
-				responsesByDestinationDevice[val.Dest.GetFullName()].Status[val.Key] = val.Value
+			if _, ok := responsesByDestinationDevice[val.Dest.ID]; ok {
+				responsesByDestinationDevice[val.Dest.ID].Status[val.Key] = val.Value
 				doneCount++
 			} else {
 				newMap := make(map[string]interface{})
@@ -191,8 +191,8 @@ func EvaluateResponses(responses []se.StatusResponse, count int) (base.PublicRoo
 					Status:            newMap,
 					DestinationDevice: val.Dest,
 				}
-				responsesByDestinationDevice[val.Dest.GetFullName()] = statusForDevice
-				base.Log("[state] adding device %v to the map", val.Dest.GetFullName())
+				responsesByDestinationDevice[val.Dest.ID] = statusForDevice
+				base.Log("[state] adding device %v to the map", val.Dest.ID)
 				doneCount++
 			}
 		}
