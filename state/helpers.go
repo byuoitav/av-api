@@ -45,7 +45,7 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 		statusResponseMap := make(map[string]interface{})
 
 		//build url
-		url, err := ReplaceParameters(command.Action.Endpoint.Path, command.Parameters)
+		endpoint, err := ReplaceParameters(command.Action.Endpoint.Path, command.Parameters)
 		if err != nil {
 			msg := fmt.Sprintf("unable to replace paramaters for %s: %s", command.Action.ID, err.Error())
 			base.Log("%s", color.HiRedString("[error] %s", msg))
@@ -53,9 +53,9 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 			continue
 		}
 
-		address := fmt.Sprintf("%s%s", command.Action.Microservice.Address, url)
+		address := fmt.Sprintf("%s%s", command.Action.Microservice.Address, endpoint)
 
-		url, err = gateway.SetStatusGateway(address, command.Device)
+		url, err := gateway.SetStatusGateway(address, command.Device)
 		if err != nil {
 			msg := fmt.Sprintf("unable to set gateway for %s: %s", command.Action.ID, err.Error())
 			base.Log("%s", color.HiRedString("[error] %s", msg))
