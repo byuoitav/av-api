@@ -53,6 +53,8 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 			continue
 		}
 
+		base.Log(command.Action.Microservice.Address)
+		base.Log(endpoint)
 		address := fmt.Sprintf("%s%s", command.Action.Microservice.Address, endpoint)
 
 		url, err := gateway.SetStatusGateway(address, command.Device)
