@@ -53,7 +53,9 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 			continue
 		}
 
-		url, err = gateway.SetStatusGateway(command.Action.Microservice.Address+url, command.Device)
+		address := fmt.Sprintf("%s%s", command.Action.Microservice.Address, url)
+
+		url, err = gateway.SetStatusGateway(address, command.Device)
 		if err != nil {
 			msg := fmt.Sprintf("unable to set gateway for %s: %s", command.Action.ID, err.Error())
 			base.Log("%s", color.HiRedString("[error] %s", msg))
