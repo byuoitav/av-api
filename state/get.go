@@ -64,12 +64,12 @@ func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse
 	for _, command := range commands {
 
 		//base.Log("[state] command: %s against device %s, destination device: %s, parameters: %v", command.Action.Name, command.Device.Name, command.DestinationDevice.Device.Name, command.Parameters)
-		_, present := commandMap[command.Device.Name]
+		_, present := commandMap[command.Device.ID]
 		if !present {
-			commandMap[command.Device.Name] = []se.StatusCommand{command}
+			commandMap[command.Device.ID] = []se.StatusCommand{command}
 			//	base.Log("Device %s identified", command.Device.Name)
 		} else {
-			commandMap[command.Device.Name] = append(commandMap[command.Device.Name], command)
+			commandMap[command.Device.ID] = append(commandMap[command.Device.ID], command)
 		}
 
 	}
