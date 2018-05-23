@@ -20,9 +20,11 @@ import (
 	"github.com/fatih/color"
 )
 
+//TIMEOUT is the duration constant to wait before timing out.
 const TIMEOUT = 5
-const LOCAL_CHECK_INDEX = 21
-const GATEWAY_CHECK_INDEX = 5
+
+// const LOCAL_CHECK_INDEX = 21
+// const GATEWAY_CHECK_INDEX = 5
 
 //builds a Status object corresponding to a device and writes it to the channel
 func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse, control *sync.WaitGroup) {
@@ -207,7 +209,7 @@ func processDisplay(device se.Status) (base.Display, error) {
 	return display, nil
 }
 
-//make a GET request given a microservice and endpoint and publishes the results
+//ExecuteCommand makes a GET request given a microservice and endpoint and publishes the results
 //returns the state the microservice reports or nothing if the microservice doesn't respond
 //publishes a state event or an error
 //@pre the parameters have been filled, e.g. the endpoint does not contain ":"
@@ -293,7 +295,7 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 
 	err = json.Unmarshal(body, &status)
 	if err != nil {
-		message := fmt.Sprint("could not unmarshal response struct: %s", err.Error())
+		message := fmt.Sprintf("could not unmarshal response struct: %s", err.Error())
 		PublishError(message, action, requestor)
 	}
 	response := se.StatusResponse{
@@ -319,8 +321,8 @@ func ReplaceIPAddressEndpoint(path string, address string) string {
 
 }
 
+//ReplaceParameters replaces parameters in the command endpoint
 //@pre the endpoint's IP parameter has already been replaced
-//replaces parameters in the command endpoint
 //@post the endpoint does not contain ':'
 func ReplaceParameters(endpoint string, parameters map[string]string) (string, error) {
 
@@ -352,6 +354,7 @@ func ReplaceParameters(endpoint string, parameters map[string]string) (string, e
 	return endpoint, nil
 }
 
+//PublishError creates an Event based on the error message and ActionStructure information, and then sends it to the event messaging system.
 func PublishError(message string, action base.ActionStructure, requestor string) {
 
 	base.Log("[error] publishing error: %s...", message)

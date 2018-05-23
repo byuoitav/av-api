@@ -14,6 +14,7 @@ import (
 	"github.com/fatih/color"
 )
 
+// GenerateStatusCommands determines the status commands for the type of room that the device is in.
 func GenerateStatusCommands(room structs.Room, commandMap map[string]se.StatusEvaluator) ([]se.StatusCommand, int, error) {
 
 	color.Set(color.FgHiCyan)
@@ -48,6 +49,7 @@ func GenerateStatusCommands(room structs.Room, commandMap map[string]se.StatusEv
 	return output, count, nil
 }
 
+// RunStatusCommands maps the device names to their commands, and then puts them in a channel to be run.
 func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse, err error) {
 
 	base.Log("%s", color.HiBlueString("[state] running status commands..."))
@@ -111,14 +113,15 @@ func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse
 	return
 }
 
+// EvaluateResponses organizes the responses that are received when the commands are issued.
 func EvaluateResponses(responses []se.StatusResponse, count int) (base.PublicRoom, error) {
 
 	base.Log("%s", color.HiBlueString("[state] Evaluating responses..."))
 
 	if len(responses) == 0 { //make sure things aren't broken
 		msg := "no status responses found"
-		return base.PublicRoom{}, errors.New(msg)
 		base.Log("%s", color.HiRedString("[error] %s", msg))
+		return base.PublicRoom{}, errors.New(msg)
 	}
 
 	var AudioDevices []base.AudioDevice
@@ -162,7 +165,7 @@ func EvaluateResponses(responses []se.StatusResponse, count int) (base.PublicRoo
 		} else {
 			//we call the callback and then wait for it to come back to us
 			for key, value := range resp.Status {
-				resp.Callback(base.StatusPackage{key, value, resp.SourceDevice, resp.DestinationDevice}, returnChan)
+				resp.Callback(base.StatusPackage{Key: key, Value: value, Device: resp.SourceDevice, Dest: resp.DestinationDevice}, returnChan)
 			}
 		}
 	}

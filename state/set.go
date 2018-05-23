@@ -14,7 +14,7 @@ import (
 	"github.com/fatih/color"
 )
 
-//for each command in the configuration, evaluate and validate.
+//GenerateActions evaluates and validates each command in the configuration.
 func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 
 	base.Log("%s", color.HiBlueString("[state] generating actions..."))
@@ -66,7 +66,7 @@ func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom, requestor st
 	return batches, count, err
 }
 
-//produces a DAG
+//ReconcileActions produces a DAG
 func ReconcileActions(room structs.Room, actions []base.ActionStructure, inCount int) (batches []base.ActionStructure, count int, err error) {
 
 	base.Log("%s", color.HiBlueString("[state] reconciling actions..."))
@@ -76,7 +76,7 @@ func ReconcileActions(room structs.Room, actions []base.ActionStructure, inCount
 
 	curReconciler := reconcilers[room.Configuration.Description]
 	if curReconciler == nil {
-		err = errors.New(fmt.Sprintf("no reconciler corresponding to key: %s ", room.Configuration.Description))
+		err = fmt.Errorf("no reconciler corresponding to key: %s ", room.Configuration.Description)
 		return
 	}
 
@@ -90,8 +90,8 @@ func ReconcileActions(room structs.Room, actions []base.ActionStructure, inCount
 	return
 }
 
-//@pre TODO DestinationDevice field is populated for every action!!
 //ExecuteActions carries out the actions defined in the struct
+//@pre TODO DestinationDevice field is populated for every action!!
 func ExecuteActions(DAG []base.ActionStructure, requestor string) ([]se.StatusResponse, error) {
 
 	base.Log("%s", color.HiBlueString("[state] executing actions..."))
@@ -130,7 +130,7 @@ func ExecuteActions(DAG []base.ActionStructure, requestor string) ([]se.StatusRe
 	return output, nil
 }
 
-//builds a status response
+//ExecuteAction builds a status response
 func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusResponse, control *sync.WaitGroup, requestor string) {
 
 	base.Log("[state] Executing action %s against device %s...", action.Action, action.Device.Name)
@@ -179,6 +179,7 @@ func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusRespon
 	control.Done()
 }
 
+//SET_STATE_STATUS_EVALUATORS is the map containing the definitions of our evaluator strings.
 //this is where we decide which status evaluator is used to evalutate the resultant status of a command that sets state
 var SET_STATE_STATUS_EVALUATORS = map[string]string{
 

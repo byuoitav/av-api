@@ -9,6 +9,7 @@ import (
 	"github.com/fatih/color"
 )
 
+//GetRoomState assesses the state of the room and returns a PublicRoom object.
 func GetRoomState(building string, roomName string) (base.PublicRoom, error) {
 
 	color.Set(color.FgHiCyan, color.Bold)
@@ -47,6 +48,7 @@ func GetRoomState(building string, roomName string) (base.PublicRoom, error) {
 	return roomStatus, nil
 }
 
+//SetRoomState changes the state of the room and returns a PublicRoom object.
 func SetRoomState(target base.PublicRoom, requestor string) (base.PublicRoom, error) {
 
 	base.Log("%s", color.HiBlueString("[state] setting room state..."))
