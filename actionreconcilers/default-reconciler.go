@@ -86,28 +86,21 @@ func SortActionsByPriority(actions []base.ActionStructure) (output []base.Action
 
 	for _, action := range actions {
 
-		room, err := db.GetDB().GetRoom(action.Device.GetDeviceRoomID())
+		deviceType, err := db.GetDB().GetDeviceType(action.Device.Type.ID)
 		if err != nil {
 			errorMessage := fmt.Sprintf("Problem getting the room for %s", action.Device.ID)
 			base.Log(errorMessage)
 			return []base.ActionStructure{}, errors.New(errorMessage)
 		}
 
-		roomConfig, err := db.GetDB().GetRoomConfiguration(room.Configuration.ID)
-		if err != nil {
-			errorMessage := fmt.Sprintf("Problem getting command evaluators for %s", action.Device.GetDeviceRoomID())
-			base.Log(errorMessage)
-			return []base.ActionStructure{}, errors.New(errorMessage)
-		}
+		commands := deviceType.Commands
 
-		evaluators := roomConfig.Evaluators
+		for _, command := range commands {
 
-		for _, commandEval := range evaluators {
+			log.Printf("Command ID: %s  Priority: %v -- Action: %s", command.ID, command.Priority, action.Action)
+			if command.ID == action.Action {
 
-			log.Printf("Eval ID: %s  Priority: %v -- Action: %s", commandEval.ID, commandEval.Priority, action.Action)
-			if commandEval.ID == action.Action {
-
-				actionMap[commandEval.Priority] = append(actionMap[commandEval.Priority], action)
+				actionMap[command.Priority] = append(actionMap[command.Priority], action)
 			}
 		}
 	}
