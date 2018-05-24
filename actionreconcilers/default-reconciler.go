@@ -86,13 +86,14 @@ func SortActionsByPriority(actions []base.ActionStructure) (output []base.Action
 	for _, action := range actions {
 
 		room, err := db.GetDB().GetRoom(action.Device.GetDeviceRoomID())
+		roomConfig, err := db.GetDB().GetRoomConfiguration(room.Configuration.ID)
 		if err != nil {
 			errorMessage := fmt.Sprintf("Problem getting command evaluators for %s", action.Device.GetDeviceRoomID())
 			base.Log(errorMessage)
 			return []base.ActionStructure{}, errors.New(errorMessage)
 		}
 
-		evaluators := room.Configuration.Evaluators
+		evaluators := roomConfig.Evaluators
 
 		for _, commandEval := range evaluators {
 
