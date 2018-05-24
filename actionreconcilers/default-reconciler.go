@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"log"
 	"sort"
 
 	"github.com/byuoitav/common/db"
@@ -26,14 +27,14 @@ func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure, inCount in
 	actionMap := make(map[string][]base.ActionStructure)
 	for _, action := range actions {
 
-		buffer.WriteString(action.Device.Name + " ")
+		buffer.WriteString(action.Device.ID + " ")
 		actionMap[action.Device.ID] = append(actionMap[action.Device.ID], action) //this should work every time, right?
 	}
 
 	output := []base.ActionStructure{
 		base.ActionStructure{
 			Action:              "Start",
-			Device:              structs.Device{Name: "DefaultReconciler"},
+			Device:              structs.Device{ID: "DefaultReconciler"},
 			GeneratingEvaluator: "DefaultReconciler",
 			Overridden:          true,
 		},
@@ -86,6 +87,12 @@ func SortActionsByPriority(actions []base.ActionStructure) (output []base.Action
 	for _, action := range actions {
 
 		room, err := db.GetDB().GetRoom(action.Device.GetDeviceRoomID())
+		if err != nil {
+			errorMessage := fmt.Sprintf("Problem getting the room for %s", action.Device.ID)
+			base.Log(errorMessage)
+			return []base.ActionStructure{}, errors.New(errorMessage)
+		}
+
 		roomConfig, err := db.GetDB().GetRoomConfiguration(room.Configuration.ID)
 		if err != nil {
 			errorMessage := fmt.Sprintf("Problem getting command evaluators for %s", action.Device.GetDeviceRoomID())
@@ -97,6 +104,7 @@ func SortActionsByPriority(actions []base.ActionStructure) (output []base.Action
 
 		for _, commandEval := range evaluators {
 
+			log.Printf("Eval ID: %s  Priority: %v -- Action: %s", commandEval.ID, commandEval.Priority, action.Action)
 			if commandEval.ID == action.Action {
 
 				actionMap[commandEval.Priority] = append(actionMap[commandEval.Priority], action)
