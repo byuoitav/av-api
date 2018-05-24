@@ -1,15 +1,16 @@
 package handlers
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 	"os"
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/av-api/helpers"
 	"github.com/byuoitav/av-api/state"
+	"github.com/byuoitav/common/db"
 	"github.com/fatih/color"
 	"github.com/labstack/echo"
 )
@@ -29,7 +30,7 @@ func GetRoomState(context echo.Context) error {
 //GetRoomByNameAndBuilding is almost identical to GetRoomByName
 func GetRoomByNameAndBuilding(context echo.Context) error {
 	base.Log("Getting room...")
-	room, err := dbo.GetRoomByInfo(context.Param("building"), context.Param("room"))
+	room, err := db.GetDB().GetRoom(fmt.Sprintf("%s-%s", context.Param("building"), context.Param("room")))
 	if err != nil {
 		return context.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 	}
