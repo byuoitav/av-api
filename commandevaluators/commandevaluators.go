@@ -2,10 +2,11 @@ package commandevaluators
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/structs"
+	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/structs"
 )
 
 /*
@@ -45,7 +46,8 @@ func getDevice(devs []structs.Device, d string, room string, building string) (d
 	}
 	var device structs.Device
 
-	device, err = dbo.GetDeviceByName(building, room, d)
+	deviceID := fmt.Sprintf("%v-%v-%v", building, room, d)
+	device, err = db.GetDB().GetDevice(deviceID)
 	if err != nil {
 		return
 	}

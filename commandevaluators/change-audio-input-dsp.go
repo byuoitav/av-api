@@ -6,8 +6,9 @@ import (
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/dbo"
-	ei "github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	"github.com/byuoitav/common/db"
+	ei "github.com/byuoitav/common/events"
+	"github.com/byuoitav/common/structs"
 )
 
 /**
@@ -55,7 +56,8 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) (
 
 		actions = append(actions, generalAction)
 
-		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "AudioOut")
+		roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
+		devices, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "AudioOut")
 		if err != nil {
 			errorMessage := "Could not generate actions for room-wide \"ChangeInput\" request: " + err.Error()
 			base.Log(errorMessage)
@@ -64,7 +66,7 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) (
 
 		for _, device := range devices {
 
-			if device.Output && !device.HasRole("Microphone") {
+			if device.Type.Output && !structs.HasRole(device, "Microphone") {
 
 				base.Log("Adding device %+v", device.Name)
 
@@ -90,14 +92,15 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) (
 
 			if len(audioDevice.Input) > 0 {
 
-				device, err := dbo.GetDeviceByName(room.Building, room.Room, audioDevice.Name)
+				deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, audioDevice.Name)
+				device, err := db.GetDB().GetDevice(deviceID)
 				if err != nil {
 					errorMessage := "Could not get device: " + audioDevice.Name + " from database: " + err.Error()
 					base.Log(errorMessage)
 					return []base.ActionStructure{}, 0, errors.New(errorMessage)
 				}
 
-				if device.HasRole("DSP") {
+				if structs.HasRole(device, "DSP") {
 
 					dspAction, err := GetDSPMediaInputAction(room, eventInfo, room.AudioDevices[0].Input, true, destination)
 					if err != nil {
@@ -108,7 +111,7 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) (
 
 					actions = append(actions, dspAction)
 
-				} else if device.HasRole("AudioOut") && !device.HasRole("Microphone") {
+				} else if structs.HasRole(device, "AudioOut") && !structs.HasRole(device, "Microphone") {
 
 					mediaAction, err := generateChangeInputByDevice(audioDevice.Device, room.Room, room.Building, "ChangeAudioInputDefault", requestor)
 					if err != nil {
@@ -130,7 +133,8 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) (
 func GetDSPMediaInputAction(room base.PublicRoom, eventInfo ei.EventInfo, input string, deviceSpecific bool, destination base.DestinationDevice) (base.ActionStructure, error) {
 
 	//get DSP
-	dsp, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "DSP")
+	roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
+	dsp, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "DSP")
 	if err != nil {
 		errorMessage := "Problem getting device " + input + " from database " + err.Error()
 		base.Log(errorMessage)
@@ -145,7 +149,7 @@ func GetDSPMediaInputAction(room base.PublicRoom, eventInfo ei.EventInfo, input 
 	}
 
 	//get switcher
-	switchers, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "VideoSwitcher")
+	switchers, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "VideoSwitcher")
 	if err != nil {
 		errorMessage := "Could not get room switch in room " + room.Room + ", building " + room.Building + ": " + err.Error()
 		base.Log(errorMessage)
@@ -160,7 +164,8 @@ func GetDSPMediaInputAction(room base.PublicRoom, eventInfo ei.EventInfo, input 
 	}
 
 	//get requested device
-	device, err := dbo.GetDeviceByName(room.Building, room.Room, input)
+	deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, input)
+	device, err := db.GetDB().GetDevice(deviceID)
 	if err != nil {
 		errorMessage := "Problem getting device " + input + " from database " + err.Error()
 		base.Log(errorMessage)
@@ -170,10 +175,10 @@ func GetDSPMediaInputAction(room base.PublicRoom, eventInfo ei.EventInfo, input 
 	//find the port where the host is the switcher and the destination is the DSP
 	for _, port := range device.Ports {
 
-		if port.Host == switchers[0].Name && port.Destination == dsp[0].Name {
+		if port.DestinationDevice == dsp[0].ID {
 			//once we find the port, send the command to the switcher
 
-			switcherPorts := strings.Split(port.Name, ":")
+			switcherPorts := strings.Split(port.ID, ":")
 			if len(switcherPorts) != 2 {
 				return base.ActionStructure{}, errors.New("Invalid video switcher port")
 			}

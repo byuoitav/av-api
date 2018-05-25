@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/structs"
+	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/structs"
 )
 
 const INPUT_STATUS_VIDEO_SWITCHER_EVALUATOR = "STATUS_InputVideoSwitcher"
@@ -32,7 +32,7 @@ func (p *InputVideoSwitcher) GenerateCommands(devices []structs.Device) ([]Statu
 
 	for _, device := range devices {
 		for _, role := range device.Roles {
-			if role == "VideoSwitcher" {
+			if role.ID == "VideoSwitcher" {
 				base.Log("Found.")
 				found = true
 				break
@@ -41,8 +41,8 @@ func (p *InputVideoSwitcher) GenerateCommands(devices []structs.Device) ([]Statu
 		if found {
 			found = false
 			//check to see if it has the get input by output port command
-			for _, c := range device.Commands {
-				if c.Name == "STATUS_Input" {
+			for _, c := range device.Type.Commands {
+				if c.ID == "STATUS_Input" {
 					found = true
 					command = c
 					break
@@ -64,18 +64,18 @@ func (p *InputVideoSwitcher) GenerateCommands(devices []structs.Device) ([]Statu
 
 	//this isn't going to be standard
 	for _, device := range devices {
-		base.Log("Considering device: %v", device.GetFullName())
+		base.Log("Considering device: %v", device.ID)
 
 		cont := false
 		var destinationDevice base.DestinationDevice
 		//for now assume that everything is going through the switcher, check to make sure it's a device we care about
 		for _, role := range device.Roles {
-			if role == "AudioOut" {
+			if role.ID == "AudioOut" {
 				cont = true
 				destinationDevice.AudioDevice = true
 			}
 
-			if role == "VideoOut" {
+			if role.ID == "VideoOut" {
 				cont = true
 				destinationDevice.Display = true
 			}
@@ -94,10 +94,10 @@ func (p *InputVideoSwitcher) GenerateCommands(devices []structs.Device) ([]Statu
 
 		//find the outport for the device
 		for _, p := range switcher.Ports {
-			if p.Destination == device.Name {
-				split := strings.Split(p.Name, ":")
+			if p.DestinationDevice == device.ID {
+				split := strings.Split(p.ID, ":")
 				parameters["port"] = split[1]
-				base.Log("Found an output port on switcher %v for device %v. Port: %v", switcher.GetFullName(), device.GetFullName(), split[1])
+				base.Log("Found an output port on switcher %v for device %v. Port: %v", switcher.ID, device.ID, split[1])
 				break
 			}
 		}
@@ -126,7 +126,7 @@ func (p *InputVideoSwitcher) EvaluateResponse(label string, value interface{}, s
 	base.Log("Evaluating response: %s, %s in evaluator %v", label, value, BlankedDefaultName)
 
 	//in this case we assume that there's a single video switcher, so first we get the video switcher in the room, then we match source and dest
-	switcherList, err := dbo.GetDevicesByBuildingAndRoomAndRole(source.Building.Shortname, source.Room.Name, "VideoSwitcher")
+	switcherList, err := db.GetDB().GetDevicesByRoomAndRole(source.GetDeviceRoomID(), "VideoSwitcher")
 	if err != nil {
 		base.Log("Error getting the video switcher: %v", err.Error())
 		return "", nil, err
@@ -145,14 +145,14 @@ func (p *InputVideoSwitcher) EvaluateResponse(label string, value interface{}, s
 	}
 
 	for _, port := range switcherList[0].Ports {
-		split := strings.Split(port.Name, ":")
-		if strings.EqualFold(port.Destination, dest.Name) && bay == split[0] {
-			base.Log("Found a source device that matches the port returned: %v, %v", bay, port.Source)
-			return label, port.Source, nil
+		split := strings.Split(port.ID, ":")
+		if strings.EqualFold(port.DestinationDevice, dest.ID) && bay == split[0] {
+			base.Log("Found a source device that matches the port returned: %v, %v", bay, port.SourceDevice)
+			return label, port.SourceDevice, nil
 		}
 	}
 
-	base.Log("Couldn't find a mapping for entry port %v on video switcher %v", bay, switcherList[0].GetFullName())
+	base.Log("Couldn't find a mapping for entry port %v on video switcher %v", bay, switcherList[0].ID)
 
 	return label, value, nil
 }

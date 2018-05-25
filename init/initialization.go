@@ -2,13 +2,14 @@ package init
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/structs"
+	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/structs"
 )
 
 /*
@@ -38,18 +39,19 @@ func CheckRoomInitialization() error {
 	hostname := os.Getenv("PI_HOSTNAME")
 
 	splitValues := strings.Split(hostname, "-")
-	base.Log("Room %v-%v", splitValues[0], splitValues[1])
+	roomID := fmt.Sprintf("%v-%v", splitValues[0], splitValues[1])
+	base.Log("Room %v", roomID)
 
 	attempts := 0
 
-	room, err := dbo.GetRoomByInfo(splitValues[0], splitValues[1])
+	room, err := db.GetDB().GetRoom(roomID)
 	if err != nil {
 
 		//If there was an error we want to attempt to connect multiple times - as the
 		//configuration service may not be up.
 		for attempts < 40 {
 			base.Log("Attempting to connect to DB...")
-			room, err = dbo.GetRoomByInfo(splitValues[0], splitValues[1])
+			room, err = db.GetDB().GetRoom(roomID)
 			if err != nil {
 				base.Log("Error: %s", err.Error())
 				attempts++
@@ -65,13 +67,13 @@ func CheckRoomInitialization() error {
 	}
 
 	//There is no initializer, no need to run code
-	if len(room.Configuration.RoomInitKey) < 1 {
+	if len(room.Configuration.Description) < 1 {
 		return nil
 	}
 
 	//take our room and get the init key
 	initMap := getMap()
-	if initializor, ok := initMap[room.Configuration.RoomInitKey]; ok {
+	if initializor, ok := initMap[room.Configuration.Description]; ok {
 		initializor.Initialize(room)
 		return nil
 	}

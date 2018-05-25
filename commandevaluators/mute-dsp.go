@@ -13,11 +13,12 @@ c) room-wide requests do not affect microphones
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/structs"
-	ei "github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	"github.com/byuoitav/common/db"
+	ei "github.com/byuoitav/common/events"
+	"github.com/byuoitav/common/structs"
 )
 
 type MuteDSP struct{}
@@ -60,14 +61,15 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Actio
 				continue
 			}
 
-			device, err := dbo.GetDeviceByName(room.Building, room.Room, audioDevice.Name)
+			deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, audioDevice.Name)
+			device, err := db.GetDB().GetDevice(deviceID)
 			if err != nil {
 				base.Log("Error getting device %s from database: %s", audioDevice.Name, err.Error())
 			}
 
 			destination.Device = device //if we've made it this far, the destination device is this audio device
 
-			if device.HasRole("Microphone") {
+			if structs.HasRole(device, "Microphone") {
 
 				action, err := GetMicMuteAction(device, room, eventInfo)
 				if err != nil {
@@ -76,7 +78,7 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Actio
 
 				actions = append(actions, action)
 
-			} else if device.HasRole("DSP") {
+			} else if structs.HasRole(device, "DSP") {
 
 				dspActions, err := GetDSPMediaMuteAction(device, room, eventInfo, true)
 				if err != nil {
@@ -85,7 +87,7 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Actio
 
 				actions = append(actions, dspActions...)
 
-			} else if device.HasRole("AudioOut") {
+			} else if structs.HasRole(device, "AudioOut") {
 
 				action, err := GetDisplayMuteAction(device, room, eventInfo, true)
 				if err != nil {
@@ -126,7 +128,8 @@ func GetGeneralMuteRequestActionsDSP(room base.PublicRoom, eventInfo ei.EventInf
 
 	var actions []base.ActionStructure
 
-	dsp, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "DSP")
+	roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
+	dsp, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "DSP")
 	if err != nil {
 		base.Log("Error getting devices %s", err.Error())
 		return []base.ActionStructure{}, err
@@ -147,7 +150,7 @@ func GetGeneralMuteRequestActionsDSP(room base.PublicRoom, eventInfo ei.EventInf
 
 	actions = append(actions, dspActions...)
 
-	audioDevices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "AudioOut")
+	audioDevices, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "AudioOut")
 	if err != nil {
 		base.Log("Error getting devices %s", err.Error())
 		return []base.ActionStructure{}, err
@@ -179,7 +182,8 @@ func GetMicMuteAction(mic structs.Device, room base.PublicRoom, eventInfo ei.Eve
 	}
 
 	//get DSP
-	dsps, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "DSP")
+	roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
+	dsps, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "DSP")
 	if err != nil {
 		errorMessage := "Error getting DSP configuration in building " + room.Building + ", room " + room.Room + ": " + err.Error()
 		base.Log(errorMessage)
@@ -198,9 +202,9 @@ func GetMicMuteAction(mic structs.Device, room base.PublicRoom, eventInfo ei.Eve
 	parameters := make(map[string]string)
 	for _, port := range dsp.Ports {
 
-		if port.Source == mic.Name {
+		if port.SourceDevice == mic.ID {
 
-			parameters["input"] = port.Name
+			parameters["input"] = port.ID
 			eventInfo.Device = mic.Name
 
 			return base.ActionStructure{
@@ -228,21 +232,22 @@ func GetDSPMediaMuteAction(dsp structs.Device, room base.PublicRoom, eventInfo e
 	for _, port := range dsp.Ports {
 		parameters := make(map[string]string)
 
-		sourceDevice, err := dbo.GetDeviceByName(room.Building, room.Room, port.Source)
+		deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, port.SourceDevice)
+		sourceDevice, err := db.GetDB().GetDevice(deviceID)
 		if err != nil {
-			errorMessage := "Could not get device " + port.Source + " from database " + err.Error()
+			errorMessage := "Could not get device " + port.SourceDevice + " from database " + err.Error()
 			base.Log(errorMessage)
 			return []base.ActionStructure{}, errors.New(errorMessage)
 		}
 
-		if !sourceDevice.HasRole("Microphone") {
+		if !structs.HasRole(sourceDevice, "Microphone") {
 
 			destination := base.DestinationDevice{
 				Device:      dsp,
 				AudioDevice: true,
 			}
 
-			parameters["input"] = port.Name
+			parameters["input"] = port.ID
 			action := base.ActionStructure{
 				Action:              "Mute",
 				GeneratingEvaluator: "MuteDSP",
@@ -271,7 +276,7 @@ func GetDisplayMuteAction(device structs.Device, room base.PublicRoom, eventInfo
 		AudioDevice: true,
 	}
 
-	if device.HasRole("VideoOut") {
+	if structs.HasRole(device, "VideoOut") {
 		destination.Display = true
 	}
 

@@ -2,12 +2,13 @@ package commandevaluators
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/structs"
-	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/events"
+	"github.com/byuoitav/common/structs"
 )
 
 /*
@@ -28,7 +29,8 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor
 	actionList := []base.ActionStructure{}
 
 	if len(room.CurrentVideoInput) != 0 {
-		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "VideoOut")
+		roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
+		devices, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "VideoOut")
 		if err != nil {
 			return []base.ActionStructure{}, 0, err
 		}
@@ -50,7 +52,8 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor
 
 			// if the display has an input, create the action
 			if len(display.Input) != 0 {
-				device, err := dbo.GetDeviceByName(room.Building, room.Room, display.Name)
+				deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, display.Name)
+				device, err := db.GetDB().GetDevice(deviceID)
 				if err != nil {
 					return []base.ActionStructure{}, 0, err
 				}
@@ -70,7 +73,8 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor
 
 		for _, audioDevice := range room.AudioDevices {
 			if len(audioDevice.Input) != 0 {
-				device, err := dbo.GetDeviceByName(room.Building, room.Room, audioDevice.Name)
+				deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, audioDevice.Name)
+				device, err := db.GetDB().GetDevice(deviceID)
 				if err != nil {
 					return []base.ActionStructure{}, 0, err
 				}
@@ -105,7 +109,8 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor
 // and creates an action
 func GetSwitcherAndCreateAction(room base.PublicRoom, device structs.Device, selectedInput, generatingEvaluator, requestor string) (base.ActionStructure, error) {
 
-	switcher, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "VideoSwitcher")
+	roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
+	switcher, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "VideoSwitcher")
 	if err != nil {
 		return base.ActionStructure{}, err
 	}
@@ -114,17 +119,17 @@ func GetSwitcherAndCreateAction(room base.PublicRoom, device structs.Device, sel
 		return base.ActionStructure{}, errors.New("too many switchers/none available")
 	}
 
-	base.Log("Evaluating device %s for a port connecting %s to %s", switcher[0].GetFullName(), selectedInput, device.GetFullName())
+	base.Log("Evaluating device %s for a port connecting %s to %s", switcher[0].ID, selectedInput, device.ID)
 	for _, port := range switcher[0].Ports {
 
-		if port.Destination == device.Name && port.Source == selectedInput {
+		if port.DestinationDevice == device.ID && port.SourceDevice == selectedInput {
 
 			m := make(map[string]string)
-			m["output"] = port.Name
+			m["output"] = port.ID
 
-			eventInfo := eventinfrastructure.EventInfo{
-				Type:           eventinfrastructure.CORESTATE,
-				EventCause:     eventinfrastructure.USERINPUT,
+			eventInfo := events.EventInfo{
+				Type:           events.CORESTATE,
+				EventCause:     events.USERINPUT,
 				Device:         device.Name,
 				EventInfoKey:   "input",
 				EventInfoValue: selectedInput,
@@ -135,11 +140,11 @@ func GetSwitcherAndCreateAction(room base.PublicRoom, device structs.Device, sel
 				Device: device,
 			}
 
-			if device.HasRole("AudioOut") {
+			if structs.HasRole(device, "AudioOut") {
 				destination.AudioDevice = true
 			}
 
-			if device.HasRole("VideoOut") {
+			if structs.HasRole(device, "VideoOut") {
 				destination.Display = true
 			}
 
@@ -151,7 +156,7 @@ func GetSwitcherAndCreateAction(room base.PublicRoom, device structs.Device, sel
 				Parameters:          m,
 				DeviceSpecific:      false,
 				Overridden:          false,
-				EventLog:            []eventinfrastructure.EventInfo{eventInfo},
+				EventLog:            []events.EventInfo{eventInfo},
 			}
 
 			return tempAction, nil
@@ -166,7 +171,7 @@ func (c *ChangeVideoInputVideoSwitcher) Validate(action base.ActionStructure) er
 	base.Log("Validating action for command %v", action.Action)
 
 	// check if ChangeInput is a valid name of a command (ok is a bool)
-	ok, _ := CheckCommands(action.Device.Commands, "ChangeInput")
+	ok, _ := CheckCommands(action.Device.Type.Commands, "ChangeInput")
 
 	// returns and error if the ChangeInput command doesn't exist or if the command isn't ChangeInput
 	if !ok || action.Action != "ChangeInput" {

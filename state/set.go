@@ -10,11 +10,11 @@ import (
 	"github.com/byuoitav/av-api/base"
 	ce "github.com/byuoitav/av-api/commandevaluators"
 	se "github.com/byuoitav/av-api/statusevaluators"
-	"github.com/byuoitav/configuration-database-microservice/structs"
+	"github.com/byuoitav/common/structs"
 	"github.com/fatih/color"
 )
 
-//for each command in the configuration, evaluate and validate.
+//GenerateActions evaluates and validates each command in the configuration.
 func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 
 	base.Log("%s", color.HiBlueString("[state] generating actions..."))
@@ -24,15 +24,15 @@ func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom, requestor st
 	var output []base.ActionStructure
 	for _, evaluator := range dbRoom.Configuration.Evaluators {
 
-		if strings.Contains(evaluator.EvaluatorKey, "STATUS") {
+		if strings.Contains(evaluator.CodeKey, "STATUS") {
 			continue
 		}
 
-		//base.Log("[state] considering evaluator %s", evaluator.EvaluatorKey)
+		//base.Log("[state] considering evaluator %s", evaluator.CodeKey)
 
-		curEvaluator := ce.EVALUATORS[evaluator.EvaluatorKey]
+		curEvaluator := ce.EVALUATORS[evaluator.CodeKey]
 		if curEvaluator == nil {
-			msg := fmt.Sprintf("no evaluator corresponding to key: %s", evaluator.EvaluatorKey)
+			msg := fmt.Sprintf("no evaluator corresponding to key: %s", evaluator.CodeKey)
 			base.Log("%s", color.HiRedString("[error] %s", msg))
 			return []base.ActionStructure{}, 0, errors.New(msg)
 		}
@@ -45,14 +45,14 @@ func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom, requestor st
 		for _, action := range actions {
 			err := curEvaluator.Validate(action)
 			if err != nil {
-				msg := fmt.Sprintf("action %s not valid with evaluator %s: %s", action.Action, evaluator.EvaluatorKey, err.Error())
+				msg := fmt.Sprintf("action %s not valid with evaluator %s: %s", action.Action, evaluator.CodeKey, err.Error())
 				base.Log("%s", color.HiRedString("[error] %s", msg))
 				return []base.ActionStructure{}, 0, errors.New(msg)
 			}
 
 			// Provide a map from the generating evaluator to the generated action in
 			// case they want to use the Incompatable actions in the reconcilers.
-			action.GeneratingEvaluator = evaluator.EvaluatorKey
+			action.GeneratingEvaluator = evaluator.CodeKey
 		}
 
 		output = append(output, actions...)
@@ -66,7 +66,7 @@ func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom, requestor st
 	return batches, count, err
 }
 
-//produces a DAG
+//ReconcileActions produces a DAG
 func ReconcileActions(room structs.Room, actions []base.ActionStructure, inCount int) (batches []base.ActionStructure, count int, err error) {
 
 	base.Log("%s", color.HiBlueString("[state] reconciling actions..."))
@@ -74,9 +74,9 @@ func ReconcileActions(room structs.Room, actions []base.ActionStructure, inCount
 	//Initialize map of strings to commandevaluators
 	reconcilers := actionreconcilers.Init()
 
-	curReconciler := reconcilers[room.Configuration.RoomKey]
+	curReconciler := reconcilers[room.Configuration.Description]
 	if curReconciler == nil {
-		err = errors.New(fmt.Sprintf("no reconciler corresponding to key: %s ", room.Configuration.RoomKey))
+		err = fmt.Errorf("no reconciler corresponding to key: %s ", room.Configuration.Description)
 		return
 	}
 
@@ -90,8 +90,8 @@ func ReconcileActions(room structs.Room, actions []base.ActionStructure, inCount
 	return
 }
 
-//@pre TODO DestinationDevice field is populated for every action!!
 //ExecuteActions carries out the actions defined in the struct
+//@pre TODO DestinationDevice field is populated for every action!!
 func ExecuteActions(DAG []base.ActionStructure, requestor string) ([]se.StatusResponse, error) {
 
 	base.Log("%s", color.HiBlueString("[state] executing actions..."))
@@ -130,7 +130,7 @@ func ExecuteActions(DAG []base.ActionStructure, requestor string) ([]se.StatusRe
 	return output, nil
 }
 
-//builds a status response
+//ExecuteAction builds a status response
 func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusResponse, control *sync.WaitGroup, requestor string) {
 
 	base.Log("[state] Executing action %s against device %s...", action.Action, action.Device.Name)
@@ -142,9 +142,9 @@ func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusRespon
 		return
 	}
 
-	has, cmd := ce.CheckCommands(action.Device.Commands, action.Action)
+	has, cmd := ce.CheckCommands(action.Device.Type.Commands, action.Action)
 	if !has {
-		errorStr := fmt.Sprintf("[state] Error retrieving the command %s for device %s.", action.Action, action.Device.GetFullName())
+		errorStr := fmt.Sprintf("[state] Error retrieving the command %s for device %s.", action.Action, action.Device.ID)
 		base.Log(errorStr)
 		PublishError(errorStr, action, requestor)
 		control.Done()
@@ -154,7 +154,7 @@ func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusRespon
 	endpoint := ReplaceIPAddressEndpoint(cmd.Endpoint.Path, action.Device.Address)
 	endpoint, err := ReplaceParameters(endpoint, action.Parameters)
 	if err != nil {
-		msg := fmt.Sprintf("Error building endpoint for command %s against device %s: %s", action.Action, action.Device.GetFullName(), err.Error())
+		msg := fmt.Sprintf("Error building endpoint for command %s against device %s: %s", action.Action, action.Device.ID, err.Error())
 		base.Log("%s", color.HiRedString("[state] %s", msg))
 		PublishError(msg, action, requestor)
 		control.Done()
@@ -179,6 +179,7 @@ func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusRespon
 	control.Done()
 }
 
+//SET_STATE_STATUS_EVALUATORS is the map containing the definitions of our evaluator strings.
 //this is where we decide which status evaluator is used to evalutate the resultant status of a command that sets state
 var SET_STATE_STATUS_EVALUATORS = map[string]string{
 

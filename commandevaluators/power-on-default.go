@@ -2,12 +2,13 @@ package commandevaluators
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/structs"
-	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/events"
+	"github.com/byuoitav/common/structs"
 	"github.com/fatih/color"
 )
 
@@ -24,9 +25,9 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 	base.Log("requestor: %s", requestor)
 	color.Unset()
 
-	eventInfo := eventinfrastructure.EventInfo{
-		Type:           eventinfrastructure.CORESTATE,
-		EventCause:     eventinfrastructure.USERINPUT,
+	eventInfo := events.EventInfo{
+		Type:           events.CORESTATE,
+		EventCause:     events.USERINPUT,
 		EventInfoKey:   "power",
 		EventInfoValue: "on",
 		Requestor:      requestor,
@@ -37,7 +38,8 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 
 		base.Log("Room-wide PowerOn request received. Retrieving all devices.")
 
-		devices, err = dbo.GetDevicesByRoom(room.Building, room.Room)
+		roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
+		devices, err = db.GetDB().GetDevicesByRoom(roomID)
 		if err != nil {
 			return
 		}
@@ -46,17 +48,17 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 
 		for _, device := range devices {
 
-			if device.Output {
+			if device.Type.Output {
 
 				destination := base.DestinationDevice{
 					Device: device,
 				}
 
-				if device.HasRole("AudioOut") {
+				if structs.HasRole(device, "AudioOut") {
 					destination.AudioDevice = true
 				}
 
-				if device.HasRole("VideoOut") {
+				if structs.HasRole(device, "VideoOut") {
 					destination.Display = true
 				}
 
@@ -69,7 +71,7 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 					DestinationDevice:   destination,
 					GeneratingEvaluator: "PowerOnDefault",
 					DeviceSpecific:      false,
-					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
+					EventLog:            []events.EventInfo{eventInfo},
 				})
 			}
 		}
@@ -107,7 +109,7 @@ func (p *PowerOnDefault) Validate(action base.ActionStructure) (err error) {
 
 	base.Log("Validating action for comand PowerOn")
 
-	ok, _ := CheckCommands(action.Device.Commands, "PowerOn")
+	ok, _ := CheckCommands(action.Device.Type.Commands, "PowerOn")
 	if !ok || !strings.EqualFold(action.Action, "PowerOn") {
 		base.Log("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
 		return errors.New(action.Action + " is an invalid command for" + action.Device.Name)
@@ -132,7 +134,7 @@ func (p *PowerOnDefault) evaluateDevice(device base.Device,
 	devices []structs.Device,
 	room string,
 	building string,
-	eventInfo eventinfrastructure.EventInfo) ([]base.ActionStructure, error) {
+	eventInfo events.EventInfo) ([]base.ActionStructure, error) {
 
 	// Check if we even need to start anything
 	if strings.EqualFold(device.Power, "on") {
@@ -150,11 +152,11 @@ func (p *PowerOnDefault) evaluateDevice(device base.Device,
 				Device: dev,
 			}
 
-			if dev.HasRole("AudioOut") {
+			if structs.HasRole(dev, "AudioOut") {
 				destination.AudioDevice = true
 			}
 
-			if dev.HasRole("VideoOut") {
+			if structs.HasRole(dev, "VideoOut") {
 				destination.Display = true
 			}
 
@@ -167,7 +169,7 @@ func (p *PowerOnDefault) evaluateDevice(device base.Device,
 				DestinationDevice:   destination,
 				GeneratingEvaluator: "PowerOnDefault",
 				DeviceSpecific:      true,
-				EventLog:            []eventinfrastructure.EventInfo{eventInfo},
+				EventLog:            []events.EventInfo{eventInfo},
 			})
 		}
 	}

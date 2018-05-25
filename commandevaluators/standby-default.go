@@ -2,12 +2,13 @@ package commandevaluators
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/structs"
-	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/events"
+	"github.com/byuoitav/common/structs"
 )
 
 // Standby is struct that implements the CommandEvaluation struct
@@ -20,9 +21,9 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 	base.Log("Evaluating for Standby Command.")
 
 	var devices []structs.Device
-	eventInfo := eventinfrastructure.EventInfo{
-		Type:           eventinfrastructure.CORESTATE,
-		EventCause:     eventinfrastructure.USERINPUT,
+	eventInfo := events.EventInfo{
+		Type:           events.CORESTATE,
+		EventCause:     events.USERINPUT,
 		EventInfoKey:   "power",
 		EventInfoValue: "standby",
 		Requestor:      requestor,
@@ -31,7 +32,8 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 	if strings.EqualFold(room.Power, "standby") {
 
 		base.Log("Room-wide power set. Retrieving all devices.")
-		devices, err = dbo.GetDevicesByRoom(room.Building, room.Room)
+		roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
+		devices, err = db.GetDB().GetDevicesByRoom(roomID)
 		if err != nil {
 			return
 		}
@@ -40,14 +42,14 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 		for _, device := range devices {
 
 			containsStandby := false
-			for _, ps := range device.PowerStates {
-				if strings.EqualFold(ps, "Standby") {
+			for _, ps := range device.Type.PowerStates {
+				if strings.EqualFold(ps.ID, "Standby") {
 					containsStandby = true
 					break
 				}
 			}
 
-			if containsStandby && device.Output {
+			if containsStandby && device.Type.Output {
 
 				base.Log("Adding device %+v", device.Name)
 
@@ -55,11 +57,11 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 					Device: device,
 				}
 
-				if device.HasRole("AudioOut") {
+				if structs.HasRole(device, "AudioOut") {
 					dest.AudioDevice = true
 				}
 
-				if device.HasRole("VideoOut") {
+				if structs.HasRole(device, "VideoOut") {
 					dest.AudioDevice = true
 				}
 
@@ -70,7 +72,7 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 					DestinationDevice:   dest,
 					GeneratingEvaluator: "StandbyDefault",
 					DeviceSpecific:      false,
-					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
+					EventLog:            []events.EventInfo{eventInfo},
 				})
 			}
 		}
@@ -105,10 +107,10 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 func (s *StandbyDefault) Validate(action base.ActionStructure) (err error) {
 	base.Log("Validating action for command Standby.")
 
-	ok, _ := CheckCommands(action.Device.Commands, "Standby")
+	ok, _ := CheckCommands(action.Device.Type.Commands, "Standby")
 	if !ok || !strings.EqualFold(action.Action, "Standby") {
-		base.Log("ERROR. %s is an invalid command for %s", action.Action, action.Device.GetFullName())
-		return errors.New(action.Action + " is an invalid command for" + action.Device.GetFullName())
+		base.Log("ERROR. %s is an invalid command for %s", action.Action, action.Device.ID)
+		return errors.New(action.Action + " is an invalid command for" + action.Device.ID)
 	}
 
 	base.Log("Done.")
@@ -125,7 +127,7 @@ func (s *StandbyDefault) GetIncompatibleCommands() (incompatableActions []string
 }
 
 // Evaluate devices just pulls out the process we do with the audio-devices and displays into one function.
-func (s *StandbyDefault) evaluateDevice(device base.Device, destination base.DestinationDevice, actions []base.ActionStructure, devices []structs.Device, room string, building string, eventInfo eventinfrastructure.EventInfo) ([]base.ActionStructure, error) {
+func (s *StandbyDefault) evaluateDevice(device base.Device, destination base.DestinationDevice, actions []base.ActionStructure, devices []structs.Device, room string, building string, eventInfo events.EventInfo) ([]base.ActionStructure, error) {
 	// Check if we even need to start anything
 	if strings.EqualFold(device.Power, "standby") {
 		// check if we already added it
@@ -147,7 +149,7 @@ func (s *StandbyDefault) evaluateDevice(device base.Device, destination base.Des
 				Device:              dev,
 				GeneratingEvaluator: "StandbyDefault",
 				DeviceSpecific:      true,
-				EventLog:            []eventinfrastructure.EventInfo{eventInfo},
+				EventLog:            []events.EventInfo{eventInfo},
 			})
 		}
 	}

@@ -17,10 +17,10 @@ import (
 	"strconv"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/structs"
+	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/structs"
 
-	ei "github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	ei "github.com/byuoitav/common/events"
 )
 
 type SetVolumeDSP struct{}
@@ -62,12 +62,13 @@ func (p *SetVolumeDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.
 
 				eventInfo.EventInfoValue = strconv.Itoa(*audioDevice.Volume)
 
-				device, err := dbo.GetDeviceByName(room.Building, room.Room, audioDevice.Name)
+				deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, audioDevice.Name)
+				device, err := db.GetDB().GetDevice(deviceID)
 				if err != nil {
 					base.Log("Error getting device %s from database: %s", audioDevice.Name, err.Error())
 				}
 
-				if device.HasRole("Microphone") {
+				if structs.HasRole(device, "Microphone") {
 
 					action, err := GetMicVolumeAction(device, room, eventInfo, *audioDevice.Volume)
 					if err != nil {
@@ -76,7 +77,7 @@ func (p *SetVolumeDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.
 
 					actions = append(actions, action)
 
-				} else if device.HasRole("DSP") {
+				} else if structs.HasRole(device, "DSP") {
 
 					dspActions, err := GetDSPMediaVolumeAction(device, room, eventInfo, *audioDevice.Volume)
 					if err != nil {
@@ -85,7 +86,7 @@ func (p *SetVolumeDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.
 
 					actions = append(actions, dspActions...)
 
-				} else if device.HasRole("AudioOut") {
+				} else if structs.HasRole(device, "AudioOut") {
 
 					action, err := GetDisplayVolumeAction(device, room, eventInfo, *audioDevice.Volume)
 					if err != nil {
@@ -141,7 +142,8 @@ func GetGeneralVolumeRequestActionsDSP(room base.PublicRoom, eventInfo ei.EventI
 
 	var actions []base.ActionStructure
 
-	dsp, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "DSP")
+	roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
+	dsp, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "DSP")
 	if err != nil {
 		base.Log("Error getting devices %s", err.Error)
 		return []base.ActionStructure{}, err
@@ -163,14 +165,14 @@ func GetGeneralVolumeRequestActionsDSP(room base.PublicRoom, eventInfo ei.EventI
 
 	actions = append(actions, dspActions...)
 
-	audioDevices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "AudioOut")
+	audioDevices, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "AudioOut")
 	if err != nil {
 		base.Log("Error getting devices %s", err.Error())
 		return []base.ActionStructure{}, err
 	}
 
 	for _, device := range audioDevices {
-		if device.HasRole("DSP") {
+		if structs.HasRole(device, "DSP") {
 			continue
 		}
 
@@ -199,7 +201,8 @@ func GetMicVolumeAction(mic structs.Device, room base.PublicRoom, eventInfo ei.E
 	}
 
 	//get DSP
-	dsps, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "DSP")
+	roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
+	dsps, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "DSP")
 	if err != nil {
 		errorMessage := "Error getting DSP configuration for building " + room.Building + ", room " + room.Room + ": " + err.Error()
 		base.Log(errorMessage)
@@ -224,12 +227,12 @@ func GetMicVolumeAction(mic structs.Device, room base.PublicRoom, eventInfo ei.E
 
 	for _, port := range dsp.Ports {
 
-		if port.Source == mic.Name {
+		if port.SourceDevice == mic.ID {
 
 			eventInfo.EventInfoValue = strconv.Itoa(volume)
 			eventInfo.Device = mic.Name
 			parameters["level"] = strconv.Itoa(volume)
-			parameters["input"] = port.Name
+			parameters["input"] = port.ID
 
 			return base.ActionStructure{
 				Action:              "SetVolume",
@@ -259,21 +262,22 @@ func GetDSPMediaVolumeAction(dsp structs.Device, room base.PublicRoom, eventInfo
 		eventInfo.EventInfoValue = fmt.Sprintf("%v", volume)
 		eventInfo.Device = dsp.Name
 
-		sourceDevice, err := dbo.GetDeviceByName(room.Building, room.Room, port.Source)
+		deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, port.SourceDevice)
+		sourceDevice, err := db.GetDB().GetDevice(deviceID)
 		if err != nil {
-			errorMessage := "Could not get device " + port.Source + " from database: " + err.Error()
+			errorMessage := "Could not get device " + port.SourceDevice + " from database: " + err.Error()
 			base.Log(errorMessage)
 			return []base.ActionStructure{}, errors.New(errorMessage)
 		}
 
-		if !(sourceDevice.HasRole("Microphone")) {
+		if !(structs.HasRole(sourceDevice, "Microphone")) {
 
 			destination := base.DestinationDevice{
 				Device:      dsp,
 				AudioDevice: true,
 			}
 
-			parameters["input"] = port.Name
+			parameters["input"] = port.ID
 			action := base.ActionStructure{
 				Action:              "SetVolume",
 				GeneratingEvaluator: "SetVolumeDSP",
@@ -303,7 +307,7 @@ func GetDisplayVolumeAction(device structs.Device, room base.PublicRoom, eventIn
 		AudioDevice: true,
 	}
 
-	if device.HasRole("VideoOut") {
+	if structs.HasRole(device, "VideoOut") {
 		destination.Display = true
 	}
 

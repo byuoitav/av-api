@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/structs"
+	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/structs"
 )
 
 const INPUT_DSP = "STATUS_InputDSP"
@@ -24,12 +24,12 @@ func (p *InputDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand, 
 	var audioDevices, dsps []structs.Device
 	for _, device := range devices {
 
-		if device.HasRole("AudioOut") {
+		if structs.HasRole(device, "AudioOut") {
 
 			audioDevices = append(audioDevices, device)
 		}
 
-		if device.HasRole("DSP") {
+		if structs.HasRole(device, "DSP") {
 
 			dsps = append(dsps, device)
 		}
@@ -52,9 +52,9 @@ func (p *InputDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand, 
 
 	//get switcher associated with DSP
 
-	switchers, err := dbo.GetDevicesByBuildingAndRoomAndRole(dsp.Building.Shortname, dsp.Room.Name, "VideoSwitcher")
+	switchers, err := db.GetDB().GetDevicesByRoomAndRole(dsp.GetDeviceRoomID(), "VideoSwitcher")
 	if err != nil {
-		errorMessage := "Could not get video switcher in building: " + dsp.Building.Shortname + ", room: " + dsp.Room.Name + "" + err.Error()
+		errorMessage := "Could not get video switcher in building: " + dsp.GetDeviceRoomID() + " " + err.Error()
 		base.Log(errorMessage)
 		return []StatusCommand{}, 0, errors.New(errorMessage)
 	}
@@ -66,12 +66,12 @@ func (p *InputDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand, 
 
 	for _, port := range switchers[0].Ports {
 
-		if port.Destination == dsp.Name { //found port configuration, issue command to switcher
+		if port.DestinationDevice == dsp.ID { //found port configuration, issue command to switcher
 
 			parameters := make(map[string]string)
 			parameters["address"] = switchers[0].Address
 			//split on ':' and take the second field
-			realPorts := strings.Split(port.Name, ":")
+			realPorts := strings.Split(port.ID, ":")
 			parameters["port"] = realPorts[1]
 
 			destinationDevice := base.DestinationDevice{
@@ -97,12 +97,12 @@ func (p *InputDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand, 
 	return commands, count, nil
 }
 
-func (p *InputDSP) EvaluateResponse(label string, value interface{}, source structs.Device, destination base.DestinationDevice) (string, interface{}, error) {
-	for _, port := range destination.Ports {
+func (p *InputDSP) EvaluateResponse(label string, value interface{}, source structs.Device, DestinationDevice base.DestinationDevice) (string, interface{}, error) {
+	for _, port := range DestinationDevice.Ports {
 
 		valueString, ok := value.(string)
-		if ok && port.Name == valueString {
-			value = port.Source
+		if ok && port.ID == valueString {
+			value = port.SourceDevice
 		}
 	}
 

@@ -6,7 +6,7 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/statusevaluators/pathfinder"
-	"github.com/byuoitav/configuration-database-microservice/structs"
+	"github.com/byuoitav/common/structs"
 	"github.com/fatih/color"
 )
 
@@ -32,15 +32,15 @@ func (p *InputTieredSwitcher) GenerateCommands(devs []structs.Device) ([]StatusC
 	for _, d := range devs {
 		isVS := structs.HasRole(d, "VideoSwitcher")
 		cmd := d.GetCommandByName("STATUS_Input")
-		if len(cmd.Name) == 0 {
+		if len(cmd.ID) == 0 {
 			continue
 		}
-		if (!d.Output && !isVS) || structs.HasRole(d, "Microphone") || structs.HasRole(d, "DSP") { //we don't care about it
+		if (!d.Type.Output && !isVS) || structs.HasRole(d, "Microphone") || structs.HasRole(d, "DSP") { //we don't care about it
 			continue
 		}
 
 		//validate it has the command
-		if len(cmd.Name) == 0 {
+		if len(cmd.ID) == 0 {
 			base.Log(color.HiRedString("[error] no input command for device %v...", d.Name))
 			continue
 		}
@@ -51,10 +51,10 @@ func (p *InputTieredSwitcher) GenerateCommands(devs []structs.Device) ([]StatusC
 
 			for _, p := range d.Ports {
 				//if it's an OUT port
-				if strings.Contains(p.Name, "OUT") {
+				if strings.Contains(p.ID, "OUT") {
 					//we need to strip the value
 
-					name := strings.Replace(p.Name, "OUT", "", -1)
+					name := strings.Replace(p.ID, "OUT", "", -1)
 
 					params := make(map[string]string)
 					params["address"] = d.Address
@@ -123,8 +123,8 @@ type TieredSwitcherCallback struct {
 
 func (p *TieredSwitcherCallback) Callback(sp base.StatusPackage, c chan<- base.StatusPackage) error {
 	base.Log(color.HiYellowString("[callback] calling"))
-	base.Log(color.HiYellowString("[callback] Device: %v", sp.Device.GetFullName()))
-	base.Log(color.HiYellowString("[callback] Dest Device: %v", sp.Dest.GetFullName()))
+	base.Log(color.HiYellowString("[callback] Device: %v", sp.Device.ID))
+	base.Log(color.HiYellowString("[callback] Dest Device: %v", sp.Dest.ID))
 	base.Log(color.HiYellowString("[callback] Key: %v", sp.Key))
 	base.Log(color.HiYellowString("[callback] Value: %v", sp.Value))
 
@@ -166,8 +166,8 @@ func (p *TieredSwitcherCallback) GetInputPaths(pathfinder pathfinder.SignalPathf
 
 		destDev := base.DestinationDevice{
 			Device:      outDev,
-			AudioDevice: outDev.HasRole("AudioOut"),
-			Display:     outDev.HasRole("VideoOut"),
+			AudioDevice: structs.HasRole(outDev, "AudioOut"),
+			Display:     structs.HasRole(outDev, "VideoOut"),
 		}
 		base.Log(color.HiYellowString("[callback] Sending input %v -> %v", v.Name, k))
 

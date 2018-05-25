@@ -5,8 +5,8 @@ import (
 	"strconv"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/structs"
+	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/structs"
 	"github.com/fatih/color"
 )
 
@@ -37,13 +37,13 @@ func (p *MutedDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand, 
 
 		base.Log("Considering device: %s", device.Name)
 
-		if device.HasRole("Microphone") {
+		if structs.HasRole(device, "Microphone") {
 
 			mics = append(mics, device)
-		} else if device.HasRole("DSP") {
+		} else if structs.HasRole(device, "DSP") {
 
 			dsp = append(dsp, device)
-		} else if device.HasRole("AudioOut") {
+		} else if structs.HasRole(device, "AudioOut") {
 
 			audioDevices = append(audioDevices, device)
 		} else {
@@ -109,7 +109,7 @@ func generateMicStatusCommands(mics []structs.Device, evaluator string, command 
 		return []StatusCommand{}, 0, nil
 	}
 
-	dsp, err := dbo.GetDevicesByBuildingAndRoomAndRole(mics[0].Building.Shortname, mics[0].Room.Name, "DSP")
+	dsp, err := db.GetDB().GetDevicesByRoomAndRole(mics[0].GetDeviceRoomID(), "DSP")
 	if err != nil {
 		return []StatusCommand{}, 0, err
 	}
@@ -129,7 +129,7 @@ func generateMicStatusCommands(mics []structs.Device, evaluator string, command 
 
 		for _, port := range dsp[0].Ports {
 
-			if port.Source == mic.Name {
+			if port.SourceDevice == mic.ID {
 				base.Log("Port configuration identified for mic %s and DSP %s", mic.Name, dsp[0].Name)
 				destinationDevice := base.DestinationDevice{
 					Device:      mic,
@@ -139,7 +139,7 @@ func generateMicStatusCommands(mics []structs.Device, evaluator string, command 
 				statusCommand := dsp[0].GetCommandByName(command)
 
 				parameters := make(map[string]string)
-				parameters["input"] = port.Name
+				parameters["input"] = port.ID
 				parameters["address"] = dsp[0].Address
 
 				//issue status command to DSP
@@ -165,7 +165,7 @@ func generateDSPStatusCommands(dsp []structs.Device, evaluator string, command s
 
 	//validate the correct number of dsps
 	if dsp == nil || len(dsp) != 1 {
-		errorMessage := "Invalide number of DSP devices found in room: " + strconv.Itoa(len(dsp))
+		errorMessage := "Invalid number of DSP devices found in room: " + strconv.Itoa(len(dsp))
 		return []StatusCommand{}, 0, errors.New(errorMessage)
 	}
 
@@ -185,14 +185,14 @@ func generateDSPStatusCommands(dsp []structs.Device, evaluator string, command s
 	//one command for each port that's not a mic
 	for _, port := range dsp[0].Ports {
 
-		device, err := dbo.GetDeviceByName(dsp[0].Building.Shortname, dsp[0].Room.Name, port.Source)
+		device, err := db.GetDB().GetDevice(dsp[0].ID)
 		if err != nil {
 			return []StatusCommand{}, 0, err
 		}
 
-		if !device.HasRole("Microphone") {
+		if !structs.HasRole(device, "Microphone") {
 
-			parameters["input"] = port.Name
+			parameters["input"] = port.ID
 			commands = append(commands, StatusCommand{
 				Action:            statusCommand,
 				Device:            dsp[0],

@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/configuration-database-microservice/structs"
+	"github.com/byuoitav/common/structs"
 )
 
 type StatusEvaluator interface {
@@ -45,8 +45,8 @@ func generateStandardStatusCommand(devices []structs.Device, evaluatorName strin
 
 		base.Log("Considering device: %s", device.Name)
 
-		for _, command := range device.Commands {
-			if strings.HasPrefix(command.Name, FLAG) && strings.Contains(command.Name, commandName) {
+		for _, command := range device.Type.Commands {
+			if strings.HasPrefix(command.ID, FLAG) && strings.Contains(command.ID, commandName) {
 				base.Log("Command found")
 
 				//every power command needs an address parameter
@@ -57,11 +57,11 @@ func generateStandardStatusCommand(devices []structs.Device, evaluatorName strin
 				var destinationDevice base.DestinationDevice
 				for _, role := range device.Roles {
 
-					if role == "AudioOut" {
+					if role.ID == "AudioOut" {
 						destinationDevice.AudioDevice = true
 					}
 
-					if role == "VideoOut" {
+					if role.ID == "VideoOut" {
 						destinationDevice.Display = true
 					}
 
@@ -69,7 +69,7 @@ func generateStandardStatusCommand(devices []structs.Device, evaluatorName strin
 
 				destinationDevice.Device = device
 
-				base.Log("Adding command: %s to action list with device %s", command.Name, device.Name)
+				base.Log("Adding command: %s to action list with device %s", command.ID, device.ID)
 				output = append(output, StatusCommand{
 					Action:            command,
 					Device:            device,

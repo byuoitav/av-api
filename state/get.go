@@ -9,11 +9,12 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	se "github.com/byuoitav/av-api/statusevaluators"
-	"github.com/byuoitav/configuration-database-microservice/structs"
-	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	"github.com/byuoitav/common/events"
+	"github.com/byuoitav/common/structs"
 	"github.com/fatih/color"
 )
 
+// GenerateStatusCommands determines the status commands for the type of room that the device is in.
 func GenerateStatusCommands(room structs.Room, commandMap map[string]se.StatusEvaluator) ([]se.StatusCommand, int, error) {
 
 	color.Set(color.FgHiCyan)
@@ -25,9 +26,9 @@ func GenerateStatusCommands(room structs.Room, commandMap map[string]se.StatusEv
 
 	for _, possibleEvaluator := range room.Configuration.Evaluators {
 
-		if strings.HasPrefix(possibleEvaluator.EvaluatorKey, se.FLAG) {
+		if strings.HasPrefix(possibleEvaluator.CodeKey, se.FLAG) {
 
-			currentEvaluator := se.STATUS_EVALUATORS[possibleEvaluator.EvaluatorKey]
+			currentEvaluator := se.STATUS_EVALUATORS[possibleEvaluator.CodeKey]
 
 			//we can get the number of output devices here
 			devices, err := currentEvaluator.GetDevices(room)
@@ -48,6 +49,7 @@ func GenerateStatusCommands(room structs.Room, commandMap map[string]se.StatusEv
 	return output, count, nil
 }
 
+// RunStatusCommands maps the device names to their commands, and then puts them in a channel to be run.
 func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse, err error) {
 
 	base.Log("%s", color.HiBlueString("[state] running status commands..."))
@@ -64,12 +66,12 @@ func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse
 	for _, command := range commands {
 
 		//base.Log("[state] command: %s against device %s, destination device: %s, parameters: %v", command.Action.Name, command.Device.Name, command.DestinationDevice.Device.Name, command.Parameters)
-		_, present := commandMap[command.Device.Name]
+		_, present := commandMap[command.Device.ID]
 		if !present {
-			commandMap[command.Device.Name] = []se.StatusCommand{command}
+			commandMap[command.Device.ID] = []se.StatusCommand{command}
 			//	base.Log("Device %s identified", command.Device.Name)
 		} else {
-			commandMap[command.Device.Name] = append(commandMap[command.Device.Name], command)
+			commandMap[command.Device.ID] = append(commandMap[command.Device.ID], command)
 		}
 
 	}
@@ -101,7 +103,7 @@ func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse
 			if output.ErrorMessage != nil {
 				msg := fmt.Sprintf("problem querying status of device: %s with destination %s: %s", output.SourceDevice.Name, output.DestinationDevice.Name, *output.ErrorMessage)
 				base.Log("%s", color.HiRedString("[error] %s", msg))
-				cause := eventinfrastructure.INTERNAL
+				cause := events.INTERNAL
 				base.PublishError(msg, cause)
 			}
 			//base.Log("[state] appending status: %v of %s to output", output.Status, output.DestinationDevice.Name)
@@ -111,14 +113,15 @@ func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse
 	return
 }
 
+// EvaluateResponses organizes the responses that are received when the commands are issued.
 func EvaluateResponses(responses []se.StatusResponse, count int) (base.PublicRoom, error) {
 
 	base.Log("%s", color.HiBlueString("[state] Evaluating responses..."))
 
 	if len(responses) == 0 { //make sure things aren't broken
 		msg := "no status responses found"
-		return base.PublicRoom{}, errors.New(msg)
 		base.Log("%s", color.HiRedString("[error] %s", msg))
+		return base.PublicRoom{}, errors.New(msg)
 	}
 
 	var AudioDevices []base.AudioDevice
@@ -144,8 +147,8 @@ func EvaluateResponses(responses []se.StatusResponse, count int) (base.PublicRoo
 					continue
 				}
 
-				if _, ok := responsesByDestinationDevice[resp.DestinationDevice.GetFullName()]; ok {
-					responsesByDestinationDevice[resp.DestinationDevice.GetFullName()].Status[k] = v
+				if _, ok := responsesByDestinationDevice[resp.DestinationDevice.ID]; ok {
+					responsesByDestinationDevice[resp.DestinationDevice.ID].Status[k] = v
 					doneCount++
 				} else {
 					newMap := make(map[string]interface{})
@@ -154,15 +157,15 @@ func EvaluateResponses(responses []se.StatusResponse, count int) (base.PublicRoo
 						Status:            newMap,
 						DestinationDevice: resp.DestinationDevice,
 					}
-					responsesByDestinationDevice[resp.DestinationDevice.GetFullName()] = statusForDevice
-					base.Log("[state] adding device %v to the map", resp.DestinationDevice.GetFullName())
+					responsesByDestinationDevice[resp.DestinationDevice.ID] = statusForDevice
+					base.Log("[state] adding device %v to the map", resp.DestinationDevice.ID)
 					doneCount++
 				}
 			}
 		} else {
 			//we call the callback and then wait for it to come back to us
 			for key, value := range resp.Status {
-				resp.Callback(base.StatusPackage{key, value, resp.SourceDevice, resp.DestinationDevice}, returnChan)
+				resp.Callback(base.StatusPackage{Key: key, Value: value, Device: resp.SourceDevice, Dest: resp.DestinationDevice}, returnChan)
 			}
 		}
 	}
@@ -181,8 +184,8 @@ func EvaluateResponses(responses []se.StatusResponse, count int) (base.PublicRoo
 
 		//pull something out of the response channel
 		case val := <-returnChan:
-			if _, ok := responsesByDestinationDevice[val.Dest.GetFullName()]; ok {
-				responsesByDestinationDevice[val.Dest.GetFullName()].Status[val.Key] = val.Value
+			if _, ok := responsesByDestinationDevice[val.Dest.ID]; ok {
+				responsesByDestinationDevice[val.Dest.ID].Status[val.Key] = val.Value
 				doneCount++
 			} else {
 				newMap := make(map[string]interface{})
@@ -191,8 +194,8 @@ func EvaluateResponses(responses []se.StatusResponse, count int) (base.PublicRoo
 					Status:            newMap,
 					DestinationDevice: val.Dest,
 				}
-				responsesByDestinationDevice[val.Dest.GetFullName()] = statusForDevice
-				base.Log("[state] adding device %v to the map", val.Dest.GetFullName())
+				responsesByDestinationDevice[val.Dest.ID] = statusForDevice
+				base.Log("[state] adding device %v to the map", val.Dest.ID)
 				doneCount++
 			}
 		}

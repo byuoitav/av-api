@@ -1,19 +1,23 @@
 package state
 
 import (
+	"fmt"
+
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/av-api/statusevaluators"
+	"github.com/byuoitav/common/db"
 	"github.com/fatih/color"
 )
 
+//GetRoomState assesses the state of the room and returns a PublicRoom object.
 func GetRoomState(building string, roomName string) (base.PublicRoom, error) {
 
 	color.Set(color.FgHiCyan, color.Bold)
 	base.Log("[state] getting room state...")
 	color.Unset()
 
-	room, err := dbo.GetRoomByInfo(building, roomName)
+	roomID := fmt.Sprintf("%v-%v", building, roomName)
+	room, err := db.GetDB().GetRoom(roomID)
 	if err != nil {
 		return base.PublicRoom{}, err
 	}
@@ -44,11 +48,13 @@ func GetRoomState(building string, roomName string) (base.PublicRoom, error) {
 	return roomStatus, nil
 }
 
+//SetRoomState changes the state of the room and returns a PublicRoom object.
 func SetRoomState(target base.PublicRoom, requestor string) (base.PublicRoom, error) {
 
 	base.Log("%s", color.HiBlueString("[state] setting room state..."))
 
-	room, err := dbo.GetRoomByInfo(target.Building, target.Room)
+	roomID := fmt.Sprintf("%v-%v", target.Building, target.Room)
+	room, err := db.GetDB().GetRoom(roomID)
 	if err != nil {
 		return base.PublicRoom{}, err
 	}

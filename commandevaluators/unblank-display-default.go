@@ -2,11 +2,13 @@ package commandevaluators
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/events"
+	"github.com/byuoitav/common/structs"
 )
 
 type UnBlankDisplayDefault struct {
@@ -17,9 +19,9 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 
 	var actions []base.ActionStructure
 
-	eventInfo := eventinfrastructure.EventInfo{
-		Type:           eventinfrastructure.CORESTATE,
-		EventCause:     eventinfrastructure.USERINPUT,
+	eventInfo := events.EventInfo{
+		Type:           events.CORESTATE,
+		EventCause:     events.USERINPUT,
 		EventInfoKey:   "blanked",
 		EventInfoValue: "false",
 		Requestor:      requestor,
@@ -31,7 +33,8 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 
 		base.Log("Room-wide UnBlank request received. Retrieving all devices.")
 
-		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "VideoOut")
+		roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
+		devices, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "VideoOut")
 		if err != nil {
 			return []base.ActionStructure{}, 0, err
 		}
@@ -40,14 +43,14 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 
 		for _, device := range devices {
 
-			if device.Output {
+			if device.Type.Output {
 
 				base.Log("Adding Device %+v", device.Name)
 
 				eventInfo.Device = device.Name
 				destination.Device = device
 
-				if device.HasRole("AudioOut") {
+				if structs.HasRole(device, "AudioOut") {
 					destination.AudioDevice = true
 				}
 
@@ -57,7 +60,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 					Device:              device,
 					DestinationDevice:   destination,
 					DeviceSpecific:      false,
-					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
+					EventLog:            []events.EventInfo{eventInfo},
 				})
 			}
 
@@ -73,7 +76,8 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 
 		if display.Blanked != nil && !*display.Blanked {
 
-			device, err := dbo.GetDeviceByName(room.Building, room.Room, display.Name)
+			deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, display.Name)
+			device, err := db.GetDB().GetDevice(deviceID)
 			if err != nil {
 				return []base.ActionStructure{}, 0, err
 			}
@@ -81,7 +85,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 			eventInfo.Device = device.Name
 			destination.Device = device
 
-			if device.HasRole("AudioOut") {
+			if structs.HasRole(device, "AudioOut") {
 				destination.AudioDevice = true
 			}
 
@@ -91,7 +95,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 				Device:              device,
 				DestinationDevice:   destination,
 				DeviceSpecific:      true,
-				EventLog:            []eventinfrastructure.EventInfo{eventInfo},
+				EventLog:            []events.EventInfo{eventInfo},
 			})
 
 		}
@@ -106,7 +110,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 func (p *UnBlankDisplayDefault) Validate(action base.ActionStructure) error {
 	base.Log("Validating action for command \"UnBlank\"")
 
-	ok, _ := CheckCommands(action.Device.Commands, "UnblankDisplay")
+	ok, _ := CheckCommands(action.Device.Type.Commands, "UnblankDisplay")
 
 	if !ok || !strings.EqualFold(action.Action, "UnblankDisplay") {
 		base.Log("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)

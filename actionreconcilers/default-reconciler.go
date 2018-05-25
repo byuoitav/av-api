@@ -2,10 +2,15 @@ package actionreconcilers
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
+	"log"
 	"sort"
 
+	"github.com/byuoitav/common/db"
+
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/configuration-database-microservice/structs"
+	"github.com/byuoitav/common/structs"
 	"github.com/fatih/color"
 )
 
@@ -19,17 +24,17 @@ func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure, inCount in
 	base.Log("[reconciler] Removing incompatible actions...")
 	var buffer bytes.Buffer
 
-	actionMap := make(map[int][]base.ActionStructure)
+	actionMap := make(map[string][]base.ActionStructure)
 	for _, action := range actions {
 
-		buffer.WriteString(action.Device.Name + " ")
+		buffer.WriteString(action.Device.ID + " ")
 		actionMap[action.Device.ID] = append(actionMap[action.Device.ID], action) //this should work every time, right?
 	}
 
 	output := []base.ActionStructure{
 		base.ActionStructure{
 			Action:              "Start",
-			Device:              structs.Device{Name: "DefaultReconciler"},
+			Device:              structs.Device{ID: "DefaultReconciler"},
 			GeneratingEvaluator: "DefaultReconciler",
 			Overridden:          true,
 		},
@@ -81,9 +86,19 @@ func SortActionsByPriority(actions []base.ActionStructure) (output []base.Action
 
 	for _, action := range actions {
 
-		for _, command := range action.Device.Commands {
+		deviceType, err := db.GetDB().GetDeviceType(action.Device.Type.ID)
+		if err != nil {
+			errorMessage := fmt.Sprintf("Problem getting the room for %s", action.Device.ID)
+			base.Log(errorMessage)
+			return []base.ActionStructure{}, errors.New(errorMessage)
+		}
 
-			if command.Name == action.Action {
+		commands := deviceType.Commands
+
+		for _, command := range commands {
+
+			log.Printf("Command ID: %s  Priority: %v -- Action: %s", command.ID, command.Priority, action.Action)
+			if command.ID == action.Action {
 
 				actionMap[command.Priority] = append(actionMap[command.Priority], action)
 			}

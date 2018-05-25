@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/configuration-database-microservice/structs"
+	"github.com/byuoitav/common/structs"
 	"github.com/fatih/color"
 )
 
@@ -31,8 +31,8 @@ func InitializeSignalPathfinder(devices []structs.Device, expected int) SignalPa
 	}
 
 	for _, dev := range devices {
-		if _, ok := sf.Devices[dev.Name]; !ok {
-			sf.Devices[dev.Name] = dev
+		if _, ok := sf.Devices[dev.ID]; !ok {
+			sf.Devices[dev.ID] = dev
 		}
 	}
 	return sf
@@ -41,47 +41,46 @@ func InitializeSignalPathfinder(devices []structs.Device, expected int) SignalPa
 //we need to store the state so that we can later use it to trace the value
 func (sp *SignalPathfinder) AddEdge(Device structs.Device, port string) bool {
 
-	base.Log(color.HiCyanString("[Pathfinder] Adding edge :%v %v", Device.Name, port))
+	base.Log(color.HiCyanString("[Pathfinder] Adding edge :%v %v", Device.ID, port))
 	//we need to get the port from the list of devices
 
 	//go through the ports
 	realPort := structs.Port{}
 
-	if Device.HasRole("VideoSwitcher") {
+	if structs.HasRole(Device, "VideoSwitcher") {
 		split := strings.Split(port, ":")
 		//do the OUT port
 		outPort := "OUT" + split[1]
 		inPort := "IN" + split[0]
 
-		realPort.Name = port
+		realPort.ID = port
 
 		//we have to build the port based on the in and out ports.
 		for _, p := range Device.Ports {
-			if p.Name == outPort {
-				realPort.Destination = p.Destination
+			if p.ID == outPort {
+				realPort.DestinationDevice = p.DestinationDevice
 			}
-			if p.Name == inPort {
-				realPort.Source = p.Source
-				realPort.Host = p.Host
+			if p.ID == inPort {
+				realPort.SourceDevice = p.SourceDevice
 			}
 		}
 	} else {
 		//we can just use the port itself
 		for _, p := range Device.Ports {
-			if p.Name == port {
+			if p.ID == port {
 				realPort = p
 			}
 		}
 	}
 
-	if _, ok := sp.Pending[Device.Name]; !ok {
-		sp.Pending[Device.Name] = []structs.Port{realPort}
+	if _, ok := sp.Pending[Device.ID]; !ok {
+		sp.Pending[Device.ID] = []structs.Port{realPort}
 	} else {
 		//TODO: we should check for a duplicate edge
 		duplicate := false
 
-		for _, edge := range sp.Pending[Device.Name] {
-			if edge.Name == realPort.Name && edge.Host == realPort.Host && edge.Source == realPort.Source && edge.Destination == realPort.Destination {
+		for _, edge := range sp.Pending[Device.ID] {
+			if edge.ID == realPort.ID && edge.SourceDevice == realPort.SourceDevice && edge.DestinationDevice == realPort.DestinationDevice {
 
 				//it's a duplicate port
 				duplicate = true
@@ -89,7 +88,7 @@ func (sp *SignalPathfinder) AddEdge(Device structs.Device, port string) bool {
 			}
 		}
 		if !duplicate {
-			sp.Pending[Device.Name] = append(sp.Pending[Device.Name], realPort)
+			sp.Pending[Device.ID] = append(sp.Pending[Device.ID], realPort)
 		}
 	}
 
@@ -112,7 +111,7 @@ func (sp *SignalPathfinder) GetInputs() (map[string]structs.Device, error) {
 	//we need to go through and find all of our output devices - then
 	for k, v := range sp.Devices {
 		_, ok := sp.Pending[k]
-		if !v.Output || !ok {
+		if !v.Type.Output || !ok {
 			continue
 		}
 		base.Log(color.HiCyanString("[Pathfinder] Tracing input for %v", k))
@@ -121,7 +120,7 @@ func (sp *SignalPathfinder) GetInputs() (map[string]structs.Device, error) {
 		curDevice := k
 		prevDevice := ""
 
-		for !sp.Devices[curDevice].Input && curDevice != prevDevice {
+		for !sp.Devices[curDevice].Type.Input && curDevice != prevDevice {
 			next, err := sp.getNextDeviceInPath(curDevice, prevDevice)
 			if err != nil {
 				return toReturn, err
@@ -151,13 +150,13 @@ func (sp *SignalPathfinder) getNextDeviceInPath(curDevice string, lastDevice str
 	}
 	if len(array) == 1 {
 		//we can just return the device
-		return array[0].Source, nil
+		return array[0].SourceDevice, nil
 	}
 
 	dev := sp.Devices[curDevice]
 
 	//we have multiple entries for the device, check if it's a vs, if not it's an error
-	if !dev.HasRole("VideoSwitcher") {
+	if !structs.HasRole(dev, "VideoSwitcher") {
 		base.Log(color.HiRedString("Non video switcher has multiple entries in the table, invalid state."))
 		return "", errors.New("Non video switcher has multiple entries in the table, invalid state.")
 	}
@@ -169,9 +168,9 @@ func (sp *SignalPathfinder) getNextDeviceInPath(curDevice string, lastDevice str
 
 	//it's a video switcher - so we need to figure out which of the pending ports we're talking about
 	for _, v := range array {
-		if v.Destination == lastDevice {
-			//we return the source
-			return v.Source, nil
+		if v.DestinationDevice == lastDevice {
+			//we return the SourceDevice
+			return v.SourceDevice, nil
 		}
 	}
 

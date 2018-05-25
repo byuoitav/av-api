@@ -15,14 +15,16 @@ import (
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/gateway"
 	se "github.com/byuoitav/av-api/statusevaluators"
-	"github.com/byuoitav/configuration-database-microservice/structs"
-	ei "github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	ei "github.com/byuoitav/common/events"
+	"github.com/byuoitav/common/structs"
 	"github.com/fatih/color"
 )
 
+//TIMEOUT is the duration constant to wait before timing out.
 const TIMEOUT = 5
-const LOCAL_CHECK_INDEX = 21
-const GATEWAY_CHECK_INDEX = 5
+
+// const LOCAL_CHECK_INDEX = 21
+// const GATEWAY_CHECK_INDEX = 5
 
 //builds a Status object corresponding to a device and writes it to the channel
 func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse, control *sync.WaitGroup) {
@@ -34,7 +36,7 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 	//TODO:make sure devices can handle rapid-fire API requests
 	for _, command := range commands {
 
-		base.Log("[state] issuing command: %s against device %s, destination device: %s, parameters: %v", command.Action.Name, command.Device.Name, command.DestinationDevice.Device.Name, command.Parameters)
+		base.Log("[state] issuing command: %s against device %s, destination device: %s, parameters: %v", command.Action.ID, command.Device.ID, command.DestinationDevice.Device.ID, command.Parameters)
 
 		output := se.StatusResponse{
 			Callback:          command.Callback,
@@ -45,17 +47,19 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 		statusResponseMap := make(map[string]interface{})
 
 		//build url
-		url, err := ReplaceParameters(command.Action.Endpoint.Path, command.Parameters)
+		endpoint, err := ReplaceParameters(command.Action.Endpoint.Path, command.Parameters)
 		if err != nil {
-			msg := fmt.Sprintf("unable to replace paramaters for %s: %s", command.Action.Name, err.Error())
+			msg := fmt.Sprintf("unable to replace paramaters for %s: %s", command.Action.ID, err.Error())
 			base.Log("%s", color.HiRedString("[error] %s", msg))
 			base.PublishError(msg, ei.INTERNAL)
 			continue
 		}
 
-		url, err = gateway.SetStatusGateway(command.Action.Microservice+url, command.Device)
+		address := fmt.Sprintf("%s%s", command.Action.Microservice.Address, endpoint)
+
+		url, err := gateway.SetStatusGateway(address, command.Device)
 		if err != nil {
-			msg := fmt.Sprintf("unable to set gateway for %s: %s", command.Action.Name, err.Error())
+			msg := fmt.Sprintf("unable to set gateway for %s: %s", command.Action.ID, err.Error())
 			base.Log("%s", color.HiRedString("[error] %s", msg))
 			base.PublishError(msg, ei.INTERNAL)
 			continue
@@ -92,7 +96,7 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 			continue
 		}
 
-		base.Log("[state] microservice returned: %s for action %s against device %s", string(body), command.Action.Name, command.Device.Name, string(body))
+		base.Log("[state] microservice returned: %s for action %s against device %s", string(body), command.Action.ID, command.Device.ID, string(body))
 
 		var status map[string]interface{}
 		err = json.Unmarshal(body, &status)
@@ -118,14 +122,14 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 	//write output to channel
 	base.Log("[state] writing output to channel...")
 	for _, output := range outputs {
-		base.Log("outputs from device %v", output.SourceDevice.GetFullName())
+		base.Log("outputs from device %v", output.SourceDevice.ID)
 		for key, value := range output.Status {
 			base.Log("%s maps to %v", key, value)
 		}
 	}
 
 	channel <- outputs
-	base.Log("%s", color.HiBlueString("[state] done acquiring statuses from  %s", commands[0].Device.GetFullName()))
+	base.Log("%s", color.HiBlueString("[state] done acquiring statuses from  %s", commands[0].Device.ID))
 	control.Done()
 }
 
@@ -205,7 +209,7 @@ func processDisplay(device se.Status) (base.Display, error) {
 	return display, nil
 }
 
-//make a GET request given a microservice and endpoint and publishes the results
+//ExecuteCommand makes a GET request given a microservice and endpoint and publishes the results
 //returns the state the microservice reports or nothing if the microservice doesn't respond
 //publishes a state event or an error
 //@pre the parameters have been filled, e.g. the endpoint does not contain ":"
@@ -215,7 +219,7 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 		Timeout: TIMEOUT * time.Second,
 	}
 	//set the gateway
-	url, err := gateway.SetGateway(command.Microservice+endpoint, action.Device)
+	url, err := gateway.SetGateway(command.Microservice.Address+endpoint, action.Device)
 	if err != nil {
 		msg := fmt.Sprintf("unable to reach gated device: %s: %s", action.Device.Name, err.Error())
 		return se.StatusResponse{ErrorMessage: &msg}
@@ -265,14 +269,15 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 
 	//TODO: we need to find some way to check against the correct response value, just as a further validation
 
+	roomID := strings.Split(action.Device.GetDeviceRoomID(), "-")
 	for _, event := range action.EventLog {
 
 		base.SendEvent(
 			event.Type,
 			event.EventCause,
 			event.Device,
-			action.Device.Room.Name,
-			action.Device.Building.Shortname,
+			roomID[1],
+			roomID[0],
 			event.EventInfoKey,
 			event.EventInfoValue,
 			event.Requestor,
@@ -290,7 +295,7 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 
 	err = json.Unmarshal(body, &status)
 	if err != nil {
-		message := fmt.Sprint("could not unmarshal response struct: %s", err.Error())
+		message := fmt.Sprintf("could not unmarshal response struct: %s", err.Error())
 		PublishError(message, action, requestor)
 	}
 	response := se.StatusResponse{
@@ -316,8 +321,8 @@ func ReplaceIPAddressEndpoint(path string, address string) string {
 
 }
 
+//ReplaceParameters replaces parameters in the command endpoint
 //@pre the endpoint's IP parameter has already been replaced
-//replaces parameters in the command endpoint
 //@post the endpoint does not contain ':'
 func ReplaceParameters(endpoint string, parameters map[string]string) (string, error) {
 
@@ -349,15 +354,19 @@ func ReplaceParameters(endpoint string, parameters map[string]string) (string, e
 	return endpoint, nil
 }
 
+//PublishError creates an Event based on the error message and ActionStructure information, and then sends it to the event messaging system.
 func PublishError(message string, action base.ActionStructure, requestor string) {
 
 	base.Log("[error] publishing error: %s...", message)
+
+	roomID := strings.Split(action.Device.GetDeviceRoomID(), "-")
+
 	base.SendEvent(
 		ei.ERROR,
 		ei.USERINPUT,
-		action.Device.GetFullName(),
-		action.Device.Room.Name,
-		action.Device.Building.Shortname,
+		action.Device.ID,
+		roomID[1],
+		roomID[0],
 		action.Action,
 		message,
 		requestor,

@@ -1,8 +1,8 @@
 package base
 
 import (
-	"github.com/byuoitav/configuration-database-microservice/structs"
-	ei "github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	ei "github.com/byuoitav/common/events"
+	"github.com/byuoitav/common/structs"
 )
 
 //PublicRoom is the struct that is returned (or put) as part of the public API

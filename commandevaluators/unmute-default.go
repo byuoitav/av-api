@@ -2,11 +2,13 @@ package commandevaluators
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/events"
+	"github.com/byuoitav/common/structs"
 )
 
 type UnMuteDefault struct {
@@ -16,9 +18,9 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 	base.Log("Evaluating UnMute command.")
 
 	var actions []base.ActionStructure
-	eventInfo := eventinfrastructure.EventInfo{
-		Type:           eventinfrastructure.CORESTATE,
-		EventCause:     eventinfrastructure.USERINPUT,
+	eventInfo := events.EventInfo{
+		Type:           events.CORESTATE,
+		EventCause:     events.USERINPUT,
 		EventInfoKey:   "muted",
 		EventInfoValue: "false",
 		Requestor:      requestor,
@@ -31,7 +33,8 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 
 		base.Log("Room-wide UnMute request recieved. Retrieving all devices")
 
-		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "AudioOut")
+		roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
+		devices, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "AudioOut")
 		if err != nil {
 			return []base.ActionStructure{}, 0, err
 		}
@@ -40,14 +43,14 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 
 		for _, device := range devices {
 
-			if device.Output {
+			if device.Type.Output {
 
 				base.Log("Adding device %+v", device.Name)
 
 				eventInfo.Device = device.Name
 				destination.Device = device
 
-				if device.HasRole("VideoOut") {
+				if structs.HasRole(device, "VideoOut") {
 					destination.Display = true
 				}
 
@@ -57,7 +60,7 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 					Device:              device,
 					DestinationDevice:   destination,
 					DeviceSpecific:      false,
-					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
+					EventLog:            []events.EventInfo{eventInfo},
 				})
 
 			}
@@ -75,7 +78,8 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 
 		if audioDevice.Muted != nil && !*audioDevice.Muted {
 
-			device, err := dbo.GetDeviceByName(room.Building, room.Room, audioDevice.Name)
+			deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, audioDevice.Name)
+			device, err := db.GetDB().GetDevice(deviceID)
 			if err != nil {
 				return []base.ActionStructure{}, 0, err
 			}
@@ -83,7 +87,7 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 			eventInfo.Device = device.Name
 			destination.Device = device
 
-			if device.HasRole("VideoOut") {
+			if structs.HasRole(device, "VideoOut") {
 				destination.Display = true
 			}
 
@@ -93,7 +97,7 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 				Device:              device,
 				DestinationDevice:   destination,
 				DeviceSpecific:      true,
-				EventLog:            []eventinfrastructure.EventInfo{eventInfo},
+				EventLog:            []events.EventInfo{eventInfo},
 			})
 
 		}
@@ -111,7 +115,7 @@ func (p *UnMuteDefault) Validate(action base.ActionStructure) error {
 
 	base.Log("Validating action for command \"UnMute\"")
 
-	ok, _ := CheckCommands(action.Device.Commands, "UnMute")
+	ok, _ := CheckCommands(action.Device.Type.Commands, "UnMute")
 
 	if !ok || !strings.EqualFold(action.Action, "UnMute") {
 		base.Log("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)

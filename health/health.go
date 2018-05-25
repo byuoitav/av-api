@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/event-router-microservice/healthinfrastructure"
+	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/health"
 	"github.com/labstack/echo"
 )
 
@@ -21,7 +21,7 @@ func GetHealth() map[string]string {
 	healthReport["Web Server Status"] = "ok"
 	//	healthReport["Version"] = version
 
-	vals, err := dbo.GetBuildings()
+	vals, err := db.GetDB().GetAllBuildings()
 
 	if len(vals) < 1 || err != nil {
 		healthReport["Configuration Database Microservice Connectivity"] = "ERROR"
@@ -45,5 +45,5 @@ func Status(context echo.Context) error {
 }
 
 func StartupCheckAndReport() {
-	healthinfrastructure.SendSuccessfulStartup(GetHealth, "AV-API", base.PublishHealth)
+	health.SendSuccessfulStartup(GetHealth, "AV-API", base.PublishHealth)
 }
