@@ -1,9 +1,10 @@
 package commandevaluators
 
 import (
-	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/byuoitav/common/log"
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/common/db"
@@ -89,7 +90,7 @@ func generateChangeInputByDevice(dev base.Device, room, building, generatingEval
 	}
 
 	if len(paramMap) == 0 {
-		err = errors.New("No port found for input.")
+		log.L.Error("[command_evaluators] No port found for input.")
 		return
 	}
 
@@ -153,7 +154,7 @@ func generateChangeInputByRole(role, input, room, building, generatingEvaluator,
 		}
 
 		if len(paramMap) == 0 {
-			err = errors.New("No port found for input.")
+			log.L.Error("[command_evaluators] No port found for input.")
 			return
 		}
 

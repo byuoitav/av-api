@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/byuoitav/common/log"
+
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/common/db"
 	"github.com/byuoitav/common/events"
@@ -20,11 +22,11 @@ import (
 
 */
 
-//ChangeVideoInputVideoswitcher the struct that implements the CommandEvaluation struct
+// ChangeVideoInputVideoSwitcher implements the CommandEvaluation struct.
 type ChangeVideoInputVideoSwitcher struct {
 }
 
-//Evaluate fulfills the CommmandEvaluation evaluate requirement
+//Evaluate generates a list of actions based on the information given.
 func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 	actionList := []base.ActionStructure{}
 
@@ -96,7 +98,7 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor
 		splitP := strings.Split(p, ":")
 
 		if len(splitP) != 2 {
-			return actionList, 0, errors.New("Invalid port for a video switcher")
+			return actionList, 0, errors.New("[command_evaluators] Invalid port for a video switcher")
 		}
 
 		action.Parameters["input"] = splitP[0]
@@ -116,10 +118,10 @@ func GetSwitcherAndCreateAction(room base.PublicRoom, device structs.Device, sel
 	}
 
 	if len(switcher) != 1 {
-		return base.ActionStructure{}, errors.New("too many switchers/none available")
+		return base.ActionStructure{}, errors.New("[command_evaluators] Too many switchers/none available")
 	}
 
-	base.Log("Evaluating device %s for a port connecting %s to %s", switcher[0].ID, selectedInput, device.ID)
+	log.L.Infof("[commandevaluators] Evaluating device %s for a port connecting %s to %s", switcher[0].ID, selectedInput, device.ID)
 	for _, port := range switcher[0].Ports {
 
 		if port.DestinationDevice == device.ID && port.SourceDevice == selectedInput {
@@ -163,23 +165,24 @@ func GetSwitcherAndCreateAction(room base.PublicRoom, device structs.Device, sel
 		}
 	}
 
-	return base.ActionStructure{}, errors.New("no switcher found with the matching port")
+	return base.ActionStructure{}, errors.New("[command_evaluators] No switcher found with the matching port")
 }
 
-//Validate f
+//Validate veries that the action that was created has correct information.
 func (c *ChangeVideoInputVideoSwitcher) Validate(action base.ActionStructure) error {
-	base.Log("Validating action for command %v", action.Action)
+	log.L.Infof("[commandevaluators] Validating action for command %v", action.Action)
 
 	// check if ChangeInput is a valid name of a command (ok is a bool)
 	ok, _ := CheckCommands(action.Device.Type.Commands, "ChangeInput")
 
 	// returns and error if the ChangeInput command doesn't exist or if the command isn't ChangeInput
 	if !ok || action.Action != "ChangeInput" {
-		base.Log("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
-		return errors.New(action.Action + "is not an invalid command for " + action.Device.Name)
+		msg := fmt.Sprintf("[command_evaluators] ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
+		log.L.Error(msg)
+		return errors.New(msg)
 	}
 
-	base.Log("done.")
+	log.L.Info("[commandevaluators] Done.")
 	return nil
 }
 

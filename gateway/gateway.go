@@ -7,41 +7,41 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/log"
 	"github.com/byuoitav/common/structs"
 	"github.com/fatih/color"
 )
 
 /*
-	SetGateway will set a gateway for the device in question. It will also recursively assign gateways
-	We make the assumption that there will only be one gateway per device.
+SetGateway will set a gateway for the device in question. It will also recursively assign gateways
+We make the assumption that there will only be one gateway per device.
 
-	TODO: Figure out how to assign gateways to specific commands
+TODO: Figure out how to assign gateways to specific commands
 */
 func SetGateway(url string, device structs.Device) (string, error) {
 	if structs.HasRole(device, "GatedDevice") { //we need to add a gateway parameter to the action
-		base.Log(color.BlueString("[gateway-processing]Device %v is a gated device, looking for gateway", device.ID))
+		log.L.Infof(color.BlueString("[gateway-processing] Device %v is a gated device, looking for gateway", device.ID))
 		parseString := `http:\/\/(.+?)\/(.*)`
 
 		gateway, port, err := getDeviceGateway(device)
 		if err != nil {
 			return "", err
 		}
-		base.Log(color.BlueString("[gateway-processing]Found a gateway %v connectd via port %v", gateway.ID, port))
+		log.L.Infof(color.BlueString("[gateway-processing] Found a gateway %v connectd via port %v", gateway.ID, port))
 
 		newpath, err := processPort(gateway, port)
 		if err != nil {
 			return "", err
 		}
-		base.Log(color.BlueString("[gateway-processing] Generated a new path: %v", newpath))
+		log.L.Infof(color.BlueString("[gateway-processing] Generated a new path: %v", newpath))
 
 		//now we need to parse the url and plug the values into the new string
 		regex := regexp.MustCompile(parseString)
 		vals := regex.FindAllStringSubmatch(url, -1)
 		if len(vals) == 0 {
-			msg := fmt.Sprintf("[gateway-processing]Invalid path, could not parse path for gateway replacement %v", url)
-			base.Log(color.HiRedString(msg))
+			msg := fmt.Sprintf("[gateway-processing] Invalid path, could not parse path for gateway replacement %v", url)
+			log.L.Error(color.HiRedString(msg))
 			return "", errors.New(msg)
 		}
 
@@ -50,13 +50,15 @@ func SetGateway(url string, device structs.Device) (string, error) {
 		newpath = strings.Replace(newpath, ":path", vals[0][2], -1)
 		newpath = strings.Replace(newpath, ":gateway", gateway.Address, -1)
 
-		base.Log(color.BlueString("[gateway-processing] Processed path: %v", newpath))
+		log.L.Infof(color.BlueString("[gateway-processing] Processed path: %v", newpath))
 
 		return SetGateway(newpath, gateway)
 	}
 
 	return url, nil
 }
+
+// SetStatusGateway calls SetGateway...
 func SetStatusGateway(url string, device structs.Device) (string, error) {
 	return SetGateway(url, device)
 }
@@ -72,7 +74,8 @@ func getDeviceGateway(d structs.Device) (structs.Device, string, error) {
 	}
 
 	if len(devices) == 0 {
-		return structs.Device{}, "", errors.New(fmt.Sprintf("no gateway devices found in room %s", roomID))
+		msg := fmt.Sprintf("[gateway-processing] No gateway devices found in room %s", roomID)
+		return structs.Device{}, "", errors.New(msg)
 	}
 
 	for _, device := range devices {
@@ -86,7 +89,7 @@ func getDeviceGateway(d structs.Device) (structs.Device, string, error) {
 		}
 	}
 
-	return structs.Device{}, "", errors.New("gateway not found")
+	return structs.Device{}, "", errors.New("[gateway-processing] Gateway not found")
 }
 
 func processPort(gateway structs.Device, port string) (string, error) {
@@ -110,8 +113,8 @@ func processPort(gateway structs.Device, port string) (string, error) {
 
 	if len(command.ID) == 0 {
 		//there was an error
-		msg := fmt.Sprintf("There was no command for the gateway device %v that corresponds to port %v", gateway.ID, port)
-		base.Log(color.HiRedString(msg))
+		msg := fmt.Sprintf("[gateway-processing] There was no command for the gateway device %v that corresponds to port %v", gateway.ID, port)
+		log.L.Error(color.HiRedString(msg))
 		return "", errors.New(msg)
 	}
 	//for now we assume that those numbered parameters are only valid for the endpoint, otherwise we run into port issues

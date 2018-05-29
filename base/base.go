@@ -55,12 +55,14 @@ type ActionStructure struct {
 	Callback            func(StatusPackage, chan<- StatusPackage) error
 }
 
+// DestinationDevice represents the device that is being acted upon.
 type DestinationDevice struct {
 	structs.Device
 	AudioDevice bool `json:"audio"`
 	Display     bool `json:"video"`
 }
 
+// StatusPackage contains the callback information for the action.
 type StatusPackage struct {
 	Key    string
 	Value  interface{}

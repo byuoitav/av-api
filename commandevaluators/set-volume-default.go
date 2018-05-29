@@ -5,16 +5,19 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/byuoitav/common/log"
+
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/common/db"
 	"github.com/byuoitav/common/events"
 	"github.com/byuoitav/common/structs"
 )
 
+// SetVolumeDefault implements the CommandEvaluation struct.
 type SetVolumeDefault struct {
 }
 
-//Validate checks for a volume for the entire room or the volume of a specific device
+//Evaluate checks for a volume for the entire room or the volume of a specific device
 func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 
 	var actions []base.ActionStructure
@@ -33,7 +36,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 	// general room volume
 	if room.Volume != nil {
 
-		base.Log("General volume request detected.")
+		log.L.Info("[command_evaluators] General volume request detected.")
 
 		roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
 		devices, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "AudioOut")
@@ -75,13 +78,13 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 	//identify devices in request body
 	if len(room.AudioDevices) != 0 {
 
-		base.Log("Device specific request detected. Scanning devices")
+		log.L.Info("[command_evaluators] Device specific request detected. Scanning devices")
 
 		for _, audioDevice := range room.AudioDevices {
 			// create actions based on request
 
 			if audioDevice.Volume != nil {
-				base.Log("Adding device %+v", audioDevice.Name)
+				log.L.Info("[command_evaluators] Adding device %+v", audioDevice.Name)
 
 				deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, audioDevice.Name)
 				device, err := db.GetDB().GetDevice(deviceID)
@@ -91,7 +94,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 
 				parameters := make(map[string]string)
 				parameters["level"] = fmt.Sprintf("%v", *audioDevice.Volume)
-				base.Log("%+v", parameters)
+				log.L.Info("[command_evaluators] %+v", parameters)
 
 				eventInfo.EventInfoValue = fmt.Sprintf("%v", *audioDevice.Volume)
 				eventInfo.Device = device.Name
@@ -117,8 +120,8 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 
 	}
 
-	base.Log("%v actions generated.", len(actions))
-	base.Log("Evaluation complete.")
+	log.L.Infof("[command_evaluators] %v actions generated.", len(actions))
+	log.L.Info("[command_evaluators] Evaluation complete.")
 
 	return actions, len(actions), nil
 }
@@ -130,13 +133,14 @@ func validateSetVolumeMaxMin(action base.ActionStructure, maximum int, minimum i
 	}
 
 	if level > maximum || level < minimum {
-		base.Log("ERROR. %v is an invalid volume level for %s", action.Parameters["level"], action.Device.Name)
-		return errors.New(action.Action + " is an invalid command for " + action.Device.Name)
+		msg := fmt.Sprintf("[command_evaluators] ERROR. %v is an invalid volume level for %s", action.Parameters["level"], action.Device.Name)
+		log.L.Error(msg)
+		return errors.New(msg)
 	}
 	return nil
 }
 
-//Evaluate returns an error if the volume is greater than 100 or less than 0
+//Validate returns an error if the volume is greater than 100 or less than 0
 func (p *SetVolumeDefault) Validate(action base.ActionStructure) error {
 	maximum := 100
 	minimum := 0

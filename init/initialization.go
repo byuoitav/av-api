@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/log"
 	"github.com/byuoitav/common/structs"
 )
 
@@ -19,16 +19,16 @@ init code.
 */
 func CheckRoomInitialization() error {
 
-	base.Log("Initializing.")
+	log.L.Info("[init] Initializing.")
 
 	//Check if local
 	if len(os.Getenv("LOCAL_ENVIRONMENT")) < 1 {
-		base.Log("Not a local instance of the API.")
-		base.Log("Done.")
+		log.L.Info("[init] Not a local instance of the API.")
+		log.L.Info("[init] Done.")
 		return nil
 	}
 
-	base.Log("Getting room information.")
+	log.L.Info("[init] Getting room information.")
 
 	/*
 	  It's not local, parse the hostname for the building room
@@ -40,7 +40,7 @@ func CheckRoomInitialization() error {
 
 	splitValues := strings.Split(hostname, "-")
 	roomID := fmt.Sprintf("%v-%v", splitValues[0], splitValues[1])
-	base.Log("Room %v", roomID)
+	log.L.Info("[init] Room %v", roomID)
 
 	attempts := 0
 
@@ -50,10 +50,10 @@ func CheckRoomInitialization() error {
 		//If there was an error we want to attempt to connect multiple times - as the
 		//configuration service may not be up.
 		for attempts < 40 {
-			base.Log("Attempting to connect to DB...")
+			log.L.Info("[init] Attempting to connect to DB...")
 			room, err = db.GetDB().GetRoom(roomID)
 			if err != nil {
-				base.Log("Error: %s", err.Error())
+				log.L.Errorf("[init] Error: %s", err.Error())
 				attempts++
 				time.Sleep(2 * time.Second)
 			} else {
@@ -61,7 +61,7 @@ func CheckRoomInitialization() error {
 			}
 		}
 		if attempts > 30 && err != nil {
-			base.Log("Error Retrieving room information.")
+			log.L.Error("[init] Error Retrieving room information.")
 			return err
 		}
 	}
@@ -78,7 +78,9 @@ func CheckRoomInitialization() error {
 		return nil
 	}
 
-	return errors.New("No initializer for the key in configuration")
+	msg := fmt.Sprintf("[init] No initializer for the key in configuration")
+	log.L.Error(msg)
+	return errors.New(msg)
 }
 
 //RoomInitializer is the interface programmed against to build a new roomInitializer

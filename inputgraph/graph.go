@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/byuoitav/av-api/base"
+	"github.com/byuoitav/common/log"
 	"github.com/byuoitav/common/structs"
 	"github.com/fatih/color"
 )
@@ -39,7 +39,7 @@ func BuildGraph(devs []structs.Device) (InputGraph, error) {
 		}
 
 		for _, port := range device.Ports { // add entry in adjacency map
-			base.Log("[tiered-switcher-eval] addding %v to the adjecency for %v based on port %v", port.SourceDevice, port.DestinationDevice, port.ID)
+			log.L.Infof("[inputgraph] Addding %v to the adjecency for %v based on port %v", port.SourceDevice, port.DestinationDevice, port.ID)
 
 			if _, ok := ig.AdjacencyMap[port.DestinationDevice]; ok {
 				ig.AdjacencyMap[port.DestinationDevice] = append(ig.AdjacencyMap[port.DestinationDevice], port.SourceDevice)
@@ -56,22 +56,22 @@ func BuildGraph(devs []structs.Device) (InputGraph, error) {
 
 //where deviceA is the sink and deviceB is the SourceDevice
 func CheckReachability(deviceA, deviceB string, ig InputGraph) (bool, []Node, error) {
-	base.Log("looking for a path from %v to %v", deviceA, deviceB)
+	log.L.Info("[inputgraph] Looking for a path from %v to %v", deviceA, deviceB)
 
 	//check and make sure that both of the devices are actually a part of the graph
 
 	if _, ok := ig.DeviceMap[deviceA]; !ok {
-		msg := fmt.Sprintf("device %v is not part of the graph", deviceA)
+		msg := fmt.Sprintf("[inputgraph] Device %v is not part of the graph", deviceA)
 
-		base.Log(color.HiRedString(msg))
+		log.L.Error(color.HiRedString(msg))
 
 		return false, []Node{}, errors.New(msg)
 	}
 
 	if _, ok := ig.DeviceMap[deviceB]; !ok {
-		msg := fmt.Sprintf("device %v is not part of the graph", deviceA)
+		msg := fmt.Sprintf("[inputgraph] Device %v is not part of the graph", deviceA)
 
-		base.Log(color.HiRedString(msg))
+		log.L.Error(color.HiRedString(msg))
 
 		return false, []Node{}, errors.New(msg)
 	}
@@ -89,26 +89,26 @@ func CheckReachability(deviceA, deviceB string, ig InputGraph) (bool, []Node, er
 	for {
 		select {
 		case cur := <-frontier:
-			base.Log("Evaluating %v", cur)
+			log.L.Infof("[inputgraph] Evaluating %v", cur)
 			if cur == deviceB {
-				base.Log("DestinationDevice reached.", cur)
+				log.L.Info("[inputgraph] DestinationDevice reached.")
 				dev := cur
 
 				toReturn := []Node{}
 				toReturn = append(toReturn, *ig.DeviceMap[dev])
-				base.Log("First Hop: %v -> %v", dev, path[dev])
+				log.L.Infof("[inputgraph] First Hop: %v -> %v", dev, path[dev])
 
 				dev, ok := path[dev]
 
 				count := 0
 				for ok {
 					if count > len(path) {
-						msg := "Circular path detected: returnin"
-						base.Log(color.HiRedString(msg))
+						msg := "[inputgraph] Circular path detected: returnin"
+						log.L.Error(color.HiRedString(msg))
 
 						return false, []Node{}, errors.New(msg)
 					}
-					base.Log("Next hop: %v -> %v", dev, path[dev])
+					log.L.Infof("[inputgraph] Next hop: %v -> %v", dev, path[dev])
 
 					toReturn = append(toReturn, *ig.DeviceMap[dev])
 
@@ -127,20 +127,20 @@ func CheckReachability(deviceA, deviceB string, ig InputGraph) (bool, []Node, er
 
 				path[next] = cur
 
-				base.Log("Path from %v to %v, adding %v to frontier", cur, next, next)
-				base.Log("Path as it stands is: ")
+				log.L.Infof("[inputgraph] Path from %v to %v, adding %v to frontier", cur, next, next)
+				log.L.Infof("[inputgraph] Path as it stands is: ")
 
 				curDev := next
 				dev, ok := path[curDev]
 				for ok {
-					base.Log("%v -> %v", curDev, dev)
+					log.L.Infof("[inputgraph] %v -> %v", curDev, dev)
 					curDev = dev
 					dev, ok = path[curDev]
 				}
 				frontier <- next
 			}
 		default:
-			base.Log("No path found")
+			log.L.Info("[inputgraph] No path found")
 			return false, []Node{}, nil
 		}
 	}

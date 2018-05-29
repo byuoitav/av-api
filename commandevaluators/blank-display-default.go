@@ -8,6 +8,7 @@ import (
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/common/db"
 	"github.com/byuoitav/common/events"
+	"github.com/byuoitav/common/log"
 	"github.com/byuoitav/common/structs"
 )
 
@@ -15,10 +16,10 @@ import (
 type BlankDisplayDefault struct {
 }
 
-// Evaluate takes a PublicRoom and builds a slice of ActionStructures
+// Evaluate verifies the information for a BlankDisplayDefault object and generates a list of actions based on the command.
 func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 
-	base.Log("[command_evaluators] evaluating BlankDisplay commands...")
+	log.L.Info("[command_evaluators] Evaluating BlankDisplay commands...")
 
 	var actions []base.ActionStructure
 
@@ -33,7 +34,7 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 
 	// Check for room-wide blanking
 	if room.Blanked != nil && *room.Blanked {
-		base.Log("[command_evaluators] room-wide blank request received. Retrieving all devices...")
+		log.L.Info("[command_evaluators] Room-wide blank request received. Retrieving all devices...")
 
 		// Get all devices
 		roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
@@ -42,15 +43,15 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 			return []base.ActionStructure{}, 0, err
 		}
 
-		fmt.Printf("VideoOut devices: %+v\n", devices)
+		log.L.Infof("[command_evaluators] VideoOut devices: %+v\n", devices)
 
-		base.Log("[command_evaluators] assigning BlankDisplay commands...")
+		log.L.Info("[command_evaluators] Assigning BlankDisplay commands...")
 		// Currently we only check for output devices
 		for _, device := range devices {
 
 			if device.Type.Output {
 
-				base.Log("[command_evaluators]Adding device %+v", device.Name)
+				log.L.Infof("[command_evaluators] Adding device %+v", device.Name)
 
 				destination := base.DestinationDevice{
 					Device:  device,
@@ -74,12 +75,14 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 		}
 	}
 
-	base.Log("[command_evaluators]Evaluating individual displays for blanking.")
+	log.L.Info("[command_evaluators] Evaluating individual displays for blanking.")
 
 	for _, display := range room.Displays {
-		base.Log("[command_evaluators]Adding device %+v", display.Name)
+		log.L.Infof("[command_evaluators] Adding device %+v", display.Name)
 
 		if display.Blanked != nil && *display.Blanked {
+
+			// Retrieve device information from the database.
 			deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, display.Name)
 			device, err := db.GetDB().GetDevice(deviceID)
 			if err != nil {
@@ -107,25 +110,26 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 		}
 	}
 
-	base.Log("[command_evaluators]%v actions generated.", len(actions))
-	base.Log("[command_evaluators]Evaluation complete.")
+	log.L.Infof("[command_evaluators] %v actions generated.", len(actions))
+	log.L.Info("[command_evaluators] Evaluation complete.")
 
 	return actions, len(actions), nil
 }
 
 // Validate fulfills the Fulfill requirement on the command interface
 func (p *BlankDisplayDefault) Validate(action base.ActionStructure) (err error) {
-	base.Log("[command_evaluators] validating action for command %v", action.Action)
+	log.L.Infof("[command_evaluators] Validating action for command %v", action.Action)
 
 	// Check if the BlankDisplay command is a valid name of a command
 	ok, _ := CheckCommands(action.Device.Type.Commands, "BlankDisplay")
+
 	// Return an error if the BlankDisplay command doesn't exist or the command in question isn't a BlankDisplay command
 	if !ok || !strings.EqualFold(action.Action, "BlankDisplay") {
-		base.Log("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
+		log.L.Errorf("[command_evaluators] ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
 		return errors.New(action.Action + " is an invalid command for" + action.Device.Name)
 	}
 
-	base.Log("[command_evaluators] Done.")
+	log.L.Info("[command_evaluators] Done.")
 	return
 }
 

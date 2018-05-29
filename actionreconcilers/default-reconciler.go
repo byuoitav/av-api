@@ -4,12 +4,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"log"
 	"sort"
 
-	"github.com/byuoitav/common/db"
-
 	"github.com/byuoitav/av-api/base"
+	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/log"
 	"github.com/byuoitav/common/structs"
 	"github.com/fatih/color"
 )
@@ -18,19 +17,21 @@ import (
 //Sorts by device, then by priority
 type DefaultReconciler struct{}
 
-//Reconcile fulfills the requirement to be a Reconciler.
+//Reconcile sorts through the list of actions to determine the execution order.
 func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure, inCount int) ([]base.ActionStructure, int, error) {
 
-	base.Log("[reconciler] Removing incompatible actions...")
+	log.L.Info("[reconciler] Removing incompatible actions...")
 	var buffer bytes.Buffer
 
+	// First we will map device IDs to the action related to them.
 	actionMap := make(map[string][]base.ActionStructure)
-	for _, action := range actions {
 
+	for _, action := range actions {
 		buffer.WriteString(action.Device.ID + " ")
-		actionMap[action.Device.ID] = append(actionMap[action.Device.ID], action) //this should work every time, right?
+		actionMap[action.Device.ID] = append(actionMap[action.Device.ID], action)
 	}
 
+	// Next we will make a list of actions to output.
 	output := []base.ActionStructure{
 		base.ActionStructure{
 			Action:              "Start",
@@ -39,8 +40,10 @@ func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure, inCount in
 			Overridden:          true,
 		},
 	}
+
 	var count int
 
+	// As we iterate through the actionMap, we will sort the actions by device and priority.
 	for device, actionList := range actionMap {
 
 		actionList, c, err := StandardReconcile(device, inCount, actionList)
@@ -53,35 +56,35 @@ func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure, inCount in
 			return []base.ActionStructure{}, 0, err
 		}
 
-		//		actionList, err = CreateChildRelationships(actionList)
-		//		if err != nil {
-		//			return []base.ActionStructure{}, err
-		//		}
-
+		// Some actions are dependent on others, so we will map that relationship as well.
 		for i := range actionList {
 
 			if i != len(actionList)-1 {
 
-				base.Log("[reconciler] creating relationship %s, %s -> %s, %s", actionList[i].Action, actionList[i].Device.Name, actionList[i+1].Action, actionList[i+1].Device.Name)
+				log.L.Infof("[reconciler] creating relationship %s, %s -> %s, %s", actionList[i].Action, actionList[i].Device.Name, actionList[i+1].Action, actionList[i+1].Device.Name)
 
 				actionList[i].Children = append(actionList[i].Children, &actionList[i+1])
 			}
 		}
 
+		// After sorting, we add the sorted actions and their children to the output.
 		output[0].Children = append(output[0].Children, &actionList[0])
 		output = append(output, actionList...)
 		count = c
 	}
 
+	// Finally, we return the sorted list of actions.
 	return output, count, nil
 }
 
+// SortActionsByPriority sorts the list of actions by their priority integer value.
 func SortActionsByPriority(actions []base.ActionStructure) (output []base.ActionStructure, err error) {
 
 	color.Set(color.FgHiMagenta)
-	base.Log("[reconciler] sorting actions by priority...")
+	log.L.Info("[reconciler] sorting actions by priority...")
 	color.Unset()
 
+	// Map priority values to actions.
 	actionMap := make(map[int][]base.ActionStructure)
 
 	for _, action := range actions {
@@ -89,15 +92,15 @@ func SortActionsByPriority(actions []base.ActionStructure) (output []base.Action
 		deviceType, err := db.GetDB().GetDeviceType(action.Device.Type.ID)
 		if err != nil {
 			errorMessage := fmt.Sprintf("Problem getting the room for %s", action.Device.ID)
-			base.Log(errorMessage)
+			log.L.Error(errorMessage)
 			return []base.ActionStructure{}, errors.New(errorMessage)
 		}
 
+		// Obtain the list of commands for this type of device.
 		commands := deviceType.Commands
 
 		for _, command := range commands {
 
-			log.Printf("Command ID: %s  Priority: %v -- Action: %s", command.ID, command.Priority, action.Action)
 			if command.ID == action.Action {
 
 				actionMap[command.Priority] = append(actionMap[command.Priority], action)
@@ -105,12 +108,16 @@ func SortActionsByPriority(actions []base.ActionStructure) (output []base.Action
 		}
 	}
 
+	// Create a list of the priority keys.
 	var keys []int
 	for key := range actionMap {
 		keys = append(keys, key)
 	}
 
+	// Sort the list of priority keys.
 	sort.Ints(keys)
+
+	// Append the actions to the output in order of highest priority first. (1 being the highest possible)
 	output = append(output, actionMap[keys[0]]...) //parents of everything
 	marker := len(output) - 1
 	delete(actionMap, keys[0])
@@ -136,19 +143,19 @@ func SortActionsByPriority(actions []base.ActionStructure) (output []base.Action
 	return output, nil
 }
 
-//since we've already sorted by priority and device, so the first element's child is the second and so on
+// CreateChildRelationships establishes the relationship hierarchy between any actions that are dependent on others.
 func CreateChildRelationships(actions []base.ActionStructure) ([]base.ActionStructure, error) {
 
 	color.Set(color.FgHiMagenta)
-	base.Log("[reconciler] creating child relationships...")
+	log.L.Info("[reconciler] creating child relationships...")
 
 	for i, action := range actions {
 
-		base.Log("[reconciler] considering action %s against device %s...", action.Action, action.Device.Name)
+		log.L.Infof("[reconciler] considering action %s against device %s...", action.Action, action.Device.Name)
 
 		if i != len(actions)-1 {
 
-			base.Log("[reconciler] creating relationship %s, %s -> %s, %s", action.Action, action.Device.Name, actions[i+1].Action, actions[i+1].Device.Name)
+			log.L.Infof("[reconciler] creating relationship %s, %s -> %s, %s", action.Action, action.Device.Name, actions[i+1].Action, actions[i+1].Device.Name)
 
 			action.Children = append(action.Children, &actions[i+1])
 		}
