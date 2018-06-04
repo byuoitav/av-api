@@ -56,19 +56,19 @@ func SetRoomState(context echo.Context) error {
 	hn, err := net.LookupAddr(context.RealIP())
 	color.Set(color.FgYellow, color.Bold)
 	if err != nil {
-		log.L.Errorf("err %s", err)
-		log.L.Errorf("REQUESTOR: %s", context.RealIP())
+		log.L.Debugf("REQUESTOR: %s", context.RealIP())
 		color.Unset()
 		report, err = state.SetRoomState(roomInQuestion, context.RealIP())
 	} else if strings.Contains(hn[0], "localhost") {
-		log.L.Errorf("REQUESTOR: %s", os.Getenv("PI_HOSTNAME"))
+		log.L.Debugf("REQUESTOR: %s", os.Getenv("PI_HOSTNAME"))
 		color.Unset()
 		report, err = state.SetRoomState(roomInQuestion, os.Getenv("PI_HOSTNAME"))
 	} else {
-		log.L.Errorf("REQUESTOR: %s", hn[0])
+		log.L.Debugf("REQUESTOR: %s", hn[0])
 		color.Unset()
 		report, err = state.SetRoomState(roomInQuestion, hn[0])
 	}
+
 	if err != nil {
 		log.L.Errorf("Error: %s", err.Error())
 		return context.JSON(http.StatusInternalServerError, helpers.ReturnError(err))
