@@ -251,7 +251,6 @@ func GetBuildings() ([]structs.Building, error) {
 }
 
 func GetRooms() ([]structs.Room, error) {
-
 	url := fmt.Sprintf("%s/rooms", os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS"))
 	var rooms []structs.Room
 	err := GetData(url, &rooms)

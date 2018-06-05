@@ -144,7 +144,7 @@ func (p *TieredSwitcherCallback) Callback(sp base.StatusPackage, c chan<- base.S
 	return nil
 }
 
-func (p *TieredSwitcherCallback) getDeviceByName(dev string) structs.Device {
+func (p *TieredSwitcherCallback) getDeviceByID(dev string) structs.Device {
 	for d := range p.Devices {
 		if p.Devices[d].Name == dev {
 			return p.Devices[d]
@@ -166,8 +166,8 @@ func (p *TieredSwitcherCallback) GetInputPaths(pathfinder pathfinder.SignalPathf
 	}
 
 	for k, v := range inputMap {
-		outDev := p.getDeviceByName(k)
-		if len(outDev.Name) == 0 {
+		outDev := p.getDeviceByID(k)
+		if len(outDev.ID) == 0 {
 			log.L.Warnf("No device by name %v in the device list for the callback", k)
 		}
 
