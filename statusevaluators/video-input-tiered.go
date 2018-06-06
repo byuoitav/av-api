@@ -146,7 +146,7 @@ func (p *TieredSwitcherCallback) Callback(sp base.StatusPackage, c chan<- base.S
 
 func (p *TieredSwitcherCallback) getDeviceByID(dev string) structs.Device {
 	for d := range p.Devices {
-		if p.Devices[d].Name == dev {
+		if p.Devices[d].ID == dev {
 			return p.Devices[d]
 		}
 	}

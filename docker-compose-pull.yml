@@ -133,3 +133,29 @@ services:
             - PI_HOSTNAME=$PI_HOSTNAME
             - EVENT_ROUTER_ADDRESS=$EVENT_ROUTER_ADDRESS
         network_mode: "host"
+        #    couch-db:
+        #        image: treehouses/rpi-couchdb:2.1.1
+        #        ports:
+        #            - "5984:5984"
+        #        environment:
+        #            - COUCHDB_USER=$COUCH_USER
+        #            - COUCHDB_PASSWORD=$COUCH_PASS
+        #        network_mode: "host"
+        #        restart: always
+        #        tty: true
+        #    couch-db-repl:
+        #        image: byuoitav/rpi-couch-db-repl:development
+        #        ports:
+        #            - "7012:7012"
+        #        environment:
+        #            - PI_HOSTNAME=$PI_HOSTNAME
+        #            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+        #            - COUCH_ADDR=$COUCH_ADDR
+        #            - COUCH_USER=$COUCH_USER
+        #            - COUCH_PASS=$COUCH_PASS
+        #            - COUCH_REPL_ADDR=$COUCH_REPL_ADDR
+        #            - COUCH_REPL_USER=$COUCH_REPL_USER
+        #            - COUCH_REPL_PASS=$COUCH_REPL_PASS
+        #        network_mode: "host"
+        #        restart: always
+        #        tty: true
