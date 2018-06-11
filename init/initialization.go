@@ -37,6 +37,9 @@ func CheckRoomInitialization() error {
 	*/
 
 	hostname := os.Getenv("PI_HOSTNAME")
+	if len(hostname) == 0 {
+		log.L.Fatal("PI_HOSTNAME is not set.")
+	}
 
 	splitValues := strings.Split(hostname, "-")
 	roomID := fmt.Sprintf("%v-%v", splitValues[0], splitValues[1])

@@ -1,7 +1,6 @@
 package actionreconcilers
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"sort"
@@ -21,13 +20,11 @@ type DefaultReconciler struct{}
 func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure, inCount int) ([]base.ActionStructure, int, error) {
 
 	log.L.Info("[reconciler] Removing incompatible actions...")
-	var buffer bytes.Buffer
 
 	// First we will map device IDs to the action related to them.
 	actionMap := make(map[string][]base.ActionStructure)
 
 	for _, action := range actions {
-		buffer.WriteString(action.Device.ID + " ")
 		actionMap[action.Device.ID] = append(actionMap[action.Device.ID], action)
 	}
 
@@ -45,7 +42,6 @@ func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure, inCount in
 
 	// As we iterate through the actionMap, we will sort the actions by device and priority.
 	for device, actionList := range actionMap {
-
 		actionList, c, err := StandardReconcile(device, inCount, actionList)
 		if err != nil {
 			return []base.ActionStructure{}, 0, err
@@ -58,11 +54,8 @@ func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure, inCount in
 
 		// Some actions are dependent on others, so we will map that relationship as well.
 		for i := range actionList {
-
 			if i != len(actionList)-1 {
-
 				log.L.Infof("[reconciler] creating relationship %s, %s -> %s, %s", actionList[i].Action, actionList[i].Device.Name, actionList[i+1].Action, actionList[i+1].Device.Name)
-
 				actionList[i].Children = append(actionList[i].Children, &actionList[i+1])
 			}
 		}
@@ -119,7 +112,6 @@ func SortActionsByPriority(actions []base.ActionStructure) (output []base.Action
 
 	// Append the actions to the output in order of highest priority first. (1 being the highest possible)
 	output = append(output, actionMap[keys[0]]...) //parents of everything
-	marker := len(output) - 1
 	delete(actionMap, keys[0])
 
 	for len(actionMap) != 0 {
@@ -130,11 +122,6 @@ func SortActionsByPriority(actions []base.ActionStructure) (output []base.Action
 			}
 
 			output = append(output, actionMap[key]...)
-			marker = len(output) - 1
-			for _, action := range actionMap[key] {
-
-				output[marker].Children = append(output[marker].Children, &action)
-			}
 
 			delete(actionMap, key)
 		}

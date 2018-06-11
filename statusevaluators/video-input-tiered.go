@@ -209,10 +209,11 @@ func (p *TieredSwitcherCallback) StartAggregator() {
 			log.L.Info(color.HiYellowString("[callback] Received Information, adding an edge: %v %v", val.Device.Name, val.Value))
 			//start our timeout
 			if !started {
-				log.L.Infof("%v", val)
+				log.L.Info("[callback] Started aggregator timeout")
 				started = true
 				t.Reset(500 * time.Millisecond)
 			}
+
 			//we need to start our graph, then check if we have any completed paths
 			ready := pathfinder.AddEdge(val.Device, val.Value.(string))
 			if ready {
