@@ -1,6 +1,7 @@
 package commandevaluators
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -69,12 +70,25 @@ func (p *ChangeVideoInputDefault) GetIncompatibleCommands() (incompatableActions
 }
 
 func generateChangeInputByDevice(dev base.Device, room, building, generatingEvaluator, requestor string) (action base.ActionStructure, err error) {
-
 	var curDevice structs.Device
 
-	deviceID := fmt.Sprintf("%v-%v-%v", building, room, dev.Name)
-	curDevice, err = db.GetDB().GetDevice(deviceID)
+	roomID := fmt.Sprintf("%v-%v", building, room)
+	devices, err := db.GetDB().GetDevicesByRoom(roomID)
 	if err != nil {
+		return
+	}
+
+	inputID := getDeviceIDFromShortname(dev.Input, devices)
+
+	for _, device := range devices {
+		if strings.EqualFold(device.Name, dev.Name) {
+			curDevice = device
+			break
+		}
+	}
+
+	if len(curDevice.ID) == 0 {
+		err = errors.New(fmt.Sprintf("unable to find a device in the room matching the name: %s", dev.Name))
 		return
 	}
 
@@ -82,7 +96,7 @@ func generateChangeInputByDevice(dev base.Device, room, building, generatingEval
 	var portSource string
 
 	for _, port := range curDevice.Ports {
-		if strings.EqualFold(port.SourceDevice, dev.Input) {
+		if strings.EqualFold(port.SourceDevice, inputID) {
 			paramMap["port"] = port.ID
 			portSource = port.SourceDevice
 			break
