@@ -213,7 +213,6 @@ func processDisplay(device se.Status) (base.Display, error) {
 //publishes a state event or an error
 //@pre the parameters have been filled, e.g. the endpoint does not contain ":"
 func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoint, requestor string) se.StatusResponse {
-
 	client := &http.Client{
 		Timeout: TIMEOUT * time.Second,
 	}

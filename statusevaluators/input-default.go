@@ -34,7 +34,7 @@ func (p *InputDefault) GenerateCommands(devices []structs.Device) ([]StatusComma
 
 // EvaluateResponse processes the response information that is given.
 func (p *InputDefault) EvaluateResponse(label string, value interface{}, source structs.Device, dest base.DestinationDevice) (string, interface{}, error) {
-	log.L.Infof("\n\n\n[statusevals] Evaluating response: %s, %s in evaluator %v", label, value, DefaultInputEvaluator)
+	log.L.Infof("[statusevals] Evaluating response: %s, %s in evaluator %v", label, value, DefaultInputEvaluator)
 
 	//we need to remap the port value to the device name, for this case, that's just the device plugged into that port, as defined in the port mapping
 	valueString, ok := value.(string)
@@ -49,6 +49,10 @@ func (p *InputDefault) EvaluateResponse(label string, value interface{}, source 
 			inputID = port.SourceDevice
 			break
 		}
+	}
+
+	if len(inputID) == 0 {
+		return "", nil, errors.New(fmt.Sprintf("missing port of device: %s", valueString))
 	}
 
 	// match the inputID from the port to a device in the db, and return that devices' name
