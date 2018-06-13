@@ -111,7 +111,7 @@ func StandardReconcile(device string, inCount int, actions []base.ActionStructur
 			}
 		}
 	}
-	log.L.Debugf("[reconciler] actions after standard reconcile: %s", buffer.String())
+	log.L.Debugf("[reconciler] actions after standard reconcile: %s", len(actions))
 
 	return actions, inCount, nil
 }

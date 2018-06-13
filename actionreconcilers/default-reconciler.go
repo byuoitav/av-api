@@ -10,7 +10,9 @@ import (
 )
 
 //DefaultReconciler is the Default Reconciler
-//Sorts by device, then by priority type DefaultReconciler struct{}
+//Sorts by device, then by priority
+type DefaultReconciler struct{}
+
 //Reconcile sorts through the list of actions to determine the execution order.
 func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure, inCount int) ([]base.ActionStructure, int, error) {
 
@@ -40,7 +42,7 @@ func (d *DefaultReconciler) Reconcile(actions []base.ActionStructure, inCount in
 			return []base.ActionStructure{}, 0, err
 		}
 
-		sort.Sort(ActionByPriority(actionList))
+		sort.Sort(base.ActionByPriority(actionList))
 		if err != nil {
 			return []base.ActionStructure{}, 0, err
 		}
