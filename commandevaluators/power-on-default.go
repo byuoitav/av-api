@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/byuoitav/common/log"
+
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/common/db"
 	"github.com/byuoitav/common/events"
@@ -12,7 +14,7 @@ import (
 	"github.com/fatih/color"
 )
 
-// PowerOn is struct that implements the CommandEvaluation struct
+// PowerOnDefault implements the CommandEvaluation struct.
 type PowerOnDefault struct {
 }
 
@@ -20,9 +22,9 @@ type PowerOnDefault struct {
 func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actions []base.ActionStructure, count int, err error) {
 	count = 0
 
-	base.Log("Evaluating for PowerOn command.")
+	log.L.Info("[command_evaluators] Evaluating for PowerOn command.")
 	color.Set(color.FgYellow, color.Bold)
-	base.Log("requestor: %s", requestor)
+	log.L.Infof("[command_evaluators] Requestor: %s", requestor)
 	color.Unset()
 
 	eventInfo := events.EventInfo{
@@ -36,7 +38,7 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 	var devices []structs.Device
 	if strings.EqualFold(room.Power, "on") {
 
-		base.Log("Room-wide PowerOn request received. Retrieving all devices.")
+		log.L.Info("[command_evaluators] Room-wide PowerOn request received. Retrieving all devices.")
 
 		roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
 		devices, err = db.GetDB().GetDevicesByRoom(roomID)
@@ -44,7 +46,7 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 			return
 		}
 
-		base.Log("Setting power 'on' state for all output devices.")
+		log.L.Info("[command_evaluators] Setting power 'on' state for all output devices.")
 
 		for _, device := range devices {
 
@@ -62,7 +64,7 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 					destination.Display = true
 				}
 
-				base.Log("Adding device %+v", device.Name)
+				log.L.Info("[command_evaluators] Adding device %+v", device.Name)
 
 				eventInfo.Device = device.Name
 				actions = append(actions, base.ActionStructure{
@@ -78,7 +80,7 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 	}
 
 	// Now we go through and check if power 'on' was set for any other device.
-	base.Log("Evaluating displays for power on command.")
+	log.L.Info("[command_evaluators] Evaluating displays for power on command.")
 	for _, device := range room.Displays {
 
 		actions, err = p.evaluateDevice(device.Device, actions, devices, room.Room, room.Building, eventInfo)
@@ -89,7 +91,7 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 
 	for _, device := range room.AudioDevices {
 
-		base.Log("Evaluating audio devices for command power on. ")
+		log.L.Info("[command_evaluators] Evaluating audio devices for command power on. ")
 
 		actions, err = p.evaluateDevice(device.Device, actions, devices, room.Room, room.Building, eventInfo)
 		if err != nil {
@@ -97,8 +99,8 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 		}
 	}
 
-	base.Log("%v actions generated.", len(actions))
-	base.Log("Evaluation complete.")
+	log.L.Infof("[command_evaluators] %v actions generated.", len(actions))
+	log.L.Info("[command_evaluators] Evaluation complete.")
 
 	count = len(actions)
 	return
@@ -107,15 +109,16 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 // Validate fulfills the Fulfill requirement on the command interface
 func (p *PowerOnDefault) Validate(action base.ActionStructure) (err error) {
 
-	base.Log("Validating action for comand PowerOn")
+	log.L.Info("[command_evaluators] Validating action for comand PowerOn")
 
 	ok, _ := CheckCommands(action.Device.Type.Commands, "PowerOn")
 	if !ok || !strings.EqualFold(action.Action, "PowerOn") {
-		base.Log("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
-		return errors.New(action.Action + " is an invalid command for" + action.Device.Name)
+		msg := fmt.Sprintf("[command_evaluators] ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
+		log.L.Error(msg)
+		return errors.New(msg)
 	}
 
-	base.Log("Done.")
+	log.L.Info("[command_evaluators] Done.")
 	return
 }
 

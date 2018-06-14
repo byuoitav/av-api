@@ -6,6 +6,7 @@ import (
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/log"
 	"github.com/fatih/color"
 )
 
@@ -13,7 +14,7 @@ import (
 func GetRoomState(building string, roomName string) (base.PublicRoom, error) {
 
 	color.Set(color.FgHiCyan, color.Bold)
-	base.Log("[state] getting room state...")
+	log.L.Info("[state] getting room state...")
 	color.Unset()
 
 	roomID := fmt.Sprintf("%v-%v", building, roomName)
@@ -23,7 +24,7 @@ func GetRoomState(building string, roomName string) (base.PublicRoom, error) {
 	}
 
 	//we get the number of actions generated
-	commands, count, err := GenerateStatusCommands(room, statusevaluators.STATUS_EVALUATORS)
+	commands, count, err := GenerateStatusCommands(room, statusevaluators.StatusEvaluatorMap)
 	if err != nil {
 		return base.PublicRoom{}, err
 	}
@@ -42,7 +43,7 @@ func GetRoomState(building string, roomName string) (base.PublicRoom, error) {
 	roomStatus.Room = roomName
 
 	color.Set(color.FgHiGreen, color.Bold)
-	base.Log("[state] successfully retrieved room state")
+	log.L.Info("[state] successfully retrieved room state")
 	color.Unset()
 
 	return roomStatus, nil
@@ -51,7 +52,7 @@ func GetRoomState(building string, roomName string) (base.PublicRoom, error) {
 //SetRoomState changes the state of the room and returns a PublicRoom object.
 func SetRoomState(target base.PublicRoom, requestor string) (base.PublicRoom, error) {
 
-	base.Log("%s", color.HiBlueString("[state] setting room state..."))
+	log.L.Infof("%s", color.HiBlueString("[state] setting room state..."))
 
 	roomID := fmt.Sprintf("%v-%v", target.Building, target.Room)
 	room, err := db.GetDB().GetRoom(roomID)
@@ -80,7 +81,7 @@ func SetRoomState(target base.PublicRoom, requestor string) (base.PublicRoom, er
 	report.Room = target.Room
 
 	color.Set(color.FgHiGreen, color.Bold)
-	base.Log("[state] successfully set room state")
+	log.L.Info("[state] successfully set room state")
 	color.Unset()
 
 	return report, nil

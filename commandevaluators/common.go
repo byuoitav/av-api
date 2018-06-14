@@ -27,6 +27,8 @@ func checkDevicesEqual(dev structs.Device, name string, room string, building st
 		strings.EqualFold(splits[0], building)
 }
 
+// CheckCommands searches a list of Commands to see if it contains any command by the name given.
+// returns T/F, as well as the command if true.
 func CheckCommands(commands []structs.Command, commandName string) (bool, structs.Command) {
 	for _, c := range commands {
 		if strings.EqualFold(c.ID, commandName) {

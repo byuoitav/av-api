@@ -8,15 +8,19 @@ import (
 	"github.com/byuoitav/common/events"
 )
 
+// EventNode is the event node used through the AV-API package to send events.
 var EventNode *events.EventNode
 
+// PublishHealth is a wrapper function to publish an Event that is not an error.
 func PublishHealth(e events.Event) {
 	Publish(e, false)
 }
 
+// Publish sends a pre-made Event to the event router and tags it as a Success or an Error.
 func Publish(e events.Event, Error bool) error {
 	var err error
 
+	// Add some more information to the Event, such as hostname and a timestamp.
 	e.Timestamp = time.Now().Format(time.RFC3339)
 	if len(os.Getenv("LOCAL_ENVIRONMENT")) > 0 {
 		e.Hostname = os.Getenv("PI_HOSTNAME")
@@ -42,6 +46,7 @@ func Publish(e events.Event, Error bool) error {
 	return err
 }
 
+// SendEvent builds and then sends the Event to the event router.
 func SendEvent(Type events.EventType,
 	Cause events.EventCause,
 	Device string,
@@ -70,6 +75,7 @@ func SendEvent(Type events.EventType,
 	return err
 }
 
+// PublishError takes an error message and cause for the error, and then builds an Event to send to the event router.
 func PublishError(errorStr string, cause events.EventCause) {
 	e := events.EventInfo{
 		Type:           events.ERROR,

@@ -55,12 +55,14 @@ type ActionStructure struct {
 	Callback            func(StatusPackage, chan<- StatusPackage) error
 }
 
+// DestinationDevice represents the device that is being acted upon.
 type DestinationDevice struct {
 	structs.Device
 	AudioDevice bool `json:"audio"`
 	Display     bool `json:"video"`
 }
 
+// StatusPackage contains the callback information for the action.
 type StatusPackage struct {
 	Key    string
 	Value  interface{}
@@ -75,6 +77,32 @@ func (a *ActionStructure) Equals(b ActionStructure) bool {
 		a.Device.Address == b.Device.Address &&
 		a.DeviceSpecific == b.DeviceSpecific &&
 		a.Overridden == b.Overridden && CheckStringMapsEqual(a.Parameters, b.Parameters)
+}
+
+//ActionByPriority implements the sort.Interface for []ActionStructure
+type ActionByPriority []ActionStructure
+
+func (abp ActionByPriority) Len() int { return len(abp) }
+
+func (abp ActionByPriority) Swap(i, j int) { abp[i], abp[j] = abp[j], abp[i] }
+
+func (abp ActionByPriority) Less(i, j int) bool {
+	var ipri int
+	var jpri int
+	//we've gotta go through and get the priorities
+	for _, command := range abp[i].Device.Type.Commands {
+		if command.ID == abp[i].Action {
+			ipri = command.Priority
+			break
+		}
+	}
+	for _, command := range abp[j].Device.Type.Commands {
+		if command.ID == abp[j].Action {
+			jpri = command.Priority
+			break
+		}
+	}
+	return ipri < jpri
 }
 
 //CheckStringMapsEqual just takes two map[string]string and compares them.

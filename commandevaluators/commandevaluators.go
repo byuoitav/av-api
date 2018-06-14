@@ -78,7 +78,7 @@ func getKeyValueFromCommmand(action base.ActionStructure) []string {
 	return []string{}
 }
 
-//soft singleton command map
+//EVALUATORS is the soft singleton command map
 var EVALUATORS = map[string]CommandEvaluator{
 	"PowerOnDefault":                 &PowerOnDefault{},
 	"StandbyDefault":                 &StandbyDefault{},

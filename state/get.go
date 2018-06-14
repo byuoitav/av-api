@@ -10,6 +10,7 @@ import (
 	"github.com/byuoitav/av-api/base"
 	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/common/events"
+	"github.com/byuoitav/common/log"
 	"github.com/byuoitav/common/structs"
 	"github.com/fatih/color"
 )
@@ -18,7 +19,7 @@ import (
 func GenerateStatusCommands(room structs.Room, commandMap map[string]se.StatusEvaluator) ([]se.StatusCommand, int, error) {
 
 	color.Set(color.FgHiCyan)
-	base.Log("[state] generating status commands...")
+	log.L.Info("[state] generating status commands...")
 	color.Unset()
 
 	var output []se.StatusCommand
@@ -28,7 +29,7 @@ func GenerateStatusCommands(room structs.Room, commandMap map[string]se.StatusEv
 
 		if strings.HasPrefix(possibleEvaluator.CodeKey, se.FLAG) {
 
-			currentEvaluator := se.STATUS_EVALUATORS[possibleEvaluator.CodeKey]
+			currentEvaluator := se.StatusEvaluatorMap[possibleEvaluator.CodeKey]
 
 			//we can get the number of output devices here
 			devices, err := currentEvaluator.GetDevices(room)
@@ -52,7 +53,7 @@ func GenerateStatusCommands(room structs.Room, commandMap map[string]se.StatusEv
 // RunStatusCommands maps the device names to their commands, and then puts them in a channel to be run.
 func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse, err error) {
 
-	base.Log("%s", color.HiBlueString("[state] running status commands..."))
+	log.L.Infof("%s", color.HiBlueString("[state] running status commands..."))
 
 	if len(commands) == 0 {
 		err = errors.New("no commands")
@@ -62,7 +63,7 @@ func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse
 	//map device names to commands
 	commandMap := make(map[string][]se.StatusCommand)
 
-	base.Log("%s", color.HiBlueString("[state] building device map..."))
+	log.L.Infof("%s", color.HiBlueString("[state] building device map..."))
 	for _, command := range commands {
 
 		//base.Log("[state] command: %s against device %s, destination device: %s, parameters: %v", command.Action.Name, command.Device.Name, command.DestinationDevice.Device.Name, command.Parameters)
@@ -76,7 +77,7 @@ func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse
 
 	}
 
-	base.Log("[state] creating channel")
+	log.L.Info("[state] creating channel")
 	channel := make(chan []se.StatusResponse, len(commandMap))
 	var group sync.WaitGroup
 
@@ -84,7 +85,7 @@ func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse
 		group.Add(1)
 		go issueCommands(deviceCommands, channel, &group)
 
-		base.Log("%s", color.HiBlueString("[state] commands to issue:"))
+		log.L.Infof("%s", color.HiBlueString("[state] commands to issue:"))
 
 		/*
 			for _, command := range deviceCommands {
@@ -93,16 +94,16 @@ func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse
 		*/
 	}
 
-	base.Log("[state] waiting for commands to issue...")
+	log.L.Info("[state] waiting for commands to issue...")
 	group.Wait()
-	base.Log("[state] Done. Closing channel...")
+	log.L.Info("[state] Done. Closing channel...")
 	close(channel)
 
 	for outputList := range channel {
 		for _, output := range outputList {
 			if output.ErrorMessage != nil {
 				msg := fmt.Sprintf("problem querying status of device: %s with destination %s: %s", output.SourceDevice.Name, output.DestinationDevice.Name, *output.ErrorMessage)
-				base.Log("%s", color.HiRedString("[error] %s", msg))
+				log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
 				cause := events.INTERNAL
 				base.PublishError(msg, cause)
 			}
@@ -116,11 +117,11 @@ func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse
 // EvaluateResponses organizes the responses that are received when the commands are issued.
 func EvaluateResponses(responses []se.StatusResponse, count int) (base.PublicRoom, error) {
 
-	base.Log("%s", color.HiBlueString("[state] Evaluating responses..."))
+	log.L.Infof("%s", color.HiBlueString("[state] Evaluating responses..."))
 
 	if len(responses) == 0 { //make sure things aren't broken
 		msg := "no status responses found"
-		base.Log("%s", color.HiRedString("[error] %s", msg))
+		log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
 		return base.PublicRoom{}, errors.New(msg)
 	}
 
@@ -134,15 +135,14 @@ func EvaluateResponses(responses []se.StatusResponse, count int) (base.PublicRoo
 	//make our array of Statuses by device
 	responsesByDestinationDevice := make(map[string]se.Status)
 	for _, resp := range responses {
-
 		//we do thing the old fashioned way
 		if resp.Callback == nil {
 			for key, value := range resp.Status {
-				base.Log("[state] Checking generator: %s", resp.Generator)
-				k, v, err := se.STATUS_EVALUATORS[resp.Generator].EvaluateResponse(key, value, resp.SourceDevice, resp.DestinationDevice)
+				log.L.Infof("[state] Checking generator: %s", resp.Generator)
+				k, v, err := se.StatusEvaluatorMap[resp.Generator].EvaluateResponse(key, value, resp.SourceDevice, resp.DestinationDevice)
 				if err != nil {
 
-					base.Log("%s", color.HiRedString("[state] problem procesing the response %v - %v with evaluator %v: %s",
+					log.L.Errorf("%s", color.HiRedString("[state] problem procesing the response %v - %v with evaluator %v: %s",
 						key, value, resp.Generator, err.Error()))
 					continue
 				}
@@ -158,7 +158,7 @@ func EvaluateResponses(responses []se.StatusResponse, count int) (base.PublicRoo
 						DestinationDevice: resp.DestinationDevice,
 					}
 					responsesByDestinationDevice[resp.DestinationDevice.ID] = statusForDevice
-					base.Log("[state] adding device %v to the map", resp.DestinationDevice.ID)
+					log.L.Infof("[state] adding device %v to the map", resp.DestinationDevice.ID)
 					doneCount++
 				}
 			}
@@ -195,7 +195,7 @@ func EvaluateResponses(responses []se.StatusResponse, count int) (base.PublicRoo
 					DestinationDevice: val.Dest,
 				}
 				responsesByDestinationDevice[val.Dest.ID] = statusForDevice
-				base.Log("[state] adding device %v to the map", val.Dest.ID)
+				log.L.Infof("[state] adding device %v to the map", val.Dest.ID)
 				doneCount++
 			}
 		}

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 
@@ -13,6 +12,7 @@ import (
 	avapi "github.com/byuoitav/av-api/init"
 	"github.com/byuoitav/common/db"
 	ei "github.com/byuoitav/common/events"
+	"github.com/byuoitav/common/log"
 	si "github.com/byuoitav/device-monitoring-microservice/statusinfrastructure"
 	jh "github.com/jessemillar/health"
 	"github.com/labstack/echo"
@@ -26,7 +26,7 @@ func main() {
 		err := avapi.CheckRoomInitialization()
 		if err != nil {
 			base.PublishError("Fail to run init script. Terminating. ERROR:"+err.Error(), ei.INTERNAL)
-			log.Fatalf("Could not initialize room. Error: %v\n", err.Error())
+			log.L.Errorf("Could not initialize room. Error: %v\n", err.Error())
 		}
 	}()
 
@@ -78,7 +78,7 @@ func GetStatus(context echo.Context) error {
 		s.Status = si.StatusOK
 		s.StatusInfo = ""
 	}
-	base.Log("Getting Mstatus")
+	log.L.Info("Getting Mstatus")
 
 	return context.JSON(http.StatusOK, s)
 }

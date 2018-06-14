@@ -2,11 +2,11 @@ package commandevaluators
 
 import "github.com/byuoitav/av-api/base"
 
-//ChangeAudioInputDefault f
+//ChangeAudioInputDefault implements the CommandEvaluation struct.
 type ChangeAudioInputDefault struct {
 }
 
-//Evaluate f
+//Evaluate verifies the information for a ChangeAudioInputDefault object and generates a list of actions based on the command.
 func (p *ChangeAudioInputDefault) Evaluate(room base.PublicRoom, requestor string) (actions []base.ActionStructure, count int, err error) {
 	count = 0
 

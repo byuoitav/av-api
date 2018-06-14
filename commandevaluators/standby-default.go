@@ -5,20 +5,22 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/byuoitav/common/log"
+
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/common/db"
 	"github.com/byuoitav/common/events"
 	"github.com/byuoitav/common/structs"
 )
 
-// Standby is struct that implements the CommandEvaluation struct
+// StandbyDefault implements the CommandEvaluator struct.
 type StandbyDefault struct {
 }
 
 // Evaluate fulfills the CommmandEvaluation evaluate requirement.
 func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actions []base.ActionStructure, count int, err error) {
 
-	base.Log("Evaluating for Standby Command.")
+	log.L.Info("[command_evaluators] Evaluating for Standby Command.")
 
 	var devices []structs.Device
 	eventInfo := events.EventInfo{
@@ -31,14 +33,14 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 
 	if strings.EqualFold(room.Power, "standby") {
 
-		base.Log("Room-wide power set. Retrieving all devices.")
+		log.L.Info("[command_evaluators] Room-wide power set. Retrieving all devices.")
 		roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
 		devices, err = db.GetDB().GetDevicesByRoom(roomID)
 		if err != nil {
 			return
 		}
 
-		base.Log("Setting power to 'standby' state for all devices with a 'standby' power state, that are also output devices.")
+		log.L.Info("[command_evaluators] Setting power to 'standby' state for all devices with a 'standby' power state, that are also output devices.")
 		for _, device := range devices {
 
 			containsStandby := false
@@ -51,7 +53,7 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 
 			if containsStandby && device.Type.Output {
 
-				base.Log("Adding device %+v", device.Name)
+				log.L.Infof("[command_evaluators] Adding device %+v", device.Name)
 
 				dest := base.DestinationDevice{
 					Device: device,
@@ -80,7 +82,7 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 
 	// now we go through and check if power 'standby' was set for any other device.
 	for _, device := range room.Displays {
-		base.Log("Evaluating displays for command power standby. ")
+		log.L.Info("[command_evaluators] Evaluating displays for command power standby. ")
 		destination := base.DestinationDevice{AudioDevice: true}
 		actions, err = s.evaluateDevice(device.Device, destination, actions, devices, room.Room, room.Building, eventInfo)
 		if err != nil {
@@ -89,15 +91,15 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 	}
 
 	for _, device := range room.AudioDevices {
-		base.Log("Evaluating audio devices for command power on. ")
+		log.L.Info("[command_evaluators] Evaluating audio devices for command power on. ")
 		destination := base.DestinationDevice{AudioDevice: true}
 		actions, err = s.evaluateDevice(device.Device, destination, actions, devices, room.Room, room.Building, eventInfo)
 		if err != nil {
 			return
 		}
 	}
-	base.Log("%v actions generated.", len(actions))
-	base.Log("Evaluation complete.")
+	log.L.Infof("[command_evaluators] %v actions generated.", len(actions))
+	log.L.Info("[command_evaluators] Evaluation complete.")
 
 	count = len(actions)
 	return
@@ -105,15 +107,16 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 
 // Validate fulfills the Fulfill requirement on the command interface
 func (s *StandbyDefault) Validate(action base.ActionStructure) (err error) {
-	base.Log("Validating action for command Standby.")
+	log.L.Info("[command_evaluators] Validating action for command Standby.")
 
 	ok, _ := CheckCommands(action.Device.Type.Commands, "Standby")
 	if !ok || !strings.EqualFold(action.Action, "Standby") {
-		base.Log("ERROR. %s is an invalid command for %s", action.Action, action.Device.ID)
-		return errors.New(action.Action + " is an invalid command for" + action.Device.ID)
+		msg := fmt.Sprintf("[command_evaluators] ERROR. %s is an invalid command for %s", action.Action, action.Device.ID)
+		log.L.Error(msg)
+		return errors.New(msg)
 	}
 
-	base.Log("Done.")
+	log.L.Info("[command_evaluators] Done.")
 	return
 }
 
