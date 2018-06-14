@@ -82,7 +82,7 @@ func getDeviceGateway(d structs.Device) (structs.Device, string, error) {
 
 		for _, port := range device.Ports {
 
-			if port.DestinationDevice == d.Name {
+			if port.DestinationDevice == d.ID {
 
 				return device, port.ID, nil
 			}
