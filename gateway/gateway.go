@@ -26,6 +26,7 @@ func SetGateway(url string, device structs.Device) (string, error) {
 
 		gateway, port, err := getDeviceGateway(device)
 		if err != nil {
+			log.L.Warnf("Couldn't find gateway %v", err.Error())
 			return "", err
 		}
 		log.L.Infof(color.BlueString("[gateway-processing] Found a gateway %v connectd via port %v", gateway.ID, port))

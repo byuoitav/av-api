@@ -219,6 +219,7 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 	//set the gateway
 	url, err := gateway.SetGateway(command.Microservice.Address+endpoint, action.Device)
 	if err != nil {
+		log.L.Warnf("Couldn't find gated device: %v", err.Error())
 		msg := fmt.Sprintf("unable to reach gated device: %s: %s", action.Device.Name, err.Error())
 		return se.StatusResponse{ErrorMessage: &msg}
 	}
