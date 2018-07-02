@@ -28,9 +28,6 @@ type ChangeVideoInputTieredSwitchers struct {
 func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 	//so first we need to go through and see if anyone even wants a piece of us, is there an 'input' field that isn't empty.
 
-	//count is the number of outputs generated
-	count := 0
-
 	has := (len(room.CurrentVideoInput) > 0)
 	for d := range room.Displays {
 		if len(room.Displays[d].Input) != 0 {
@@ -56,7 +53,7 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 
 	callbackEngine := &statusevaluators.TieredSwitcherCallback{}
 
-	//build the graph
+	/* build the graph */
 	if (len(room.CurrentVideoInput) > 0) && (len(room.CurrentVideoInput) > 0) && (room.CurrentVideoInput != room.CurrentAudioInput) {
 		return []base.ActionStructure{}, 0, errors.New("[command_evaluators] Cannot change room wide video and audio input with the same request")
 	}
@@ -83,7 +80,7 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 
 	//if we have a room wide input we need to validate that we can reach all of the outputs with the indicated input.
 	if len(room.CurrentVideoInput) > 0 {
-		actions, count, err = c.ChangeAll(room.CurrentVideoInput, devices, graph, callbackEngine, requestor)
+		actions, _, err = c.ChangeAll(room.CurrentVideoInput, devices, graph, callbackEngine, requestor)
 		if err != nil {
 			return []base.ActionStructure{}, 0, err
 		}
@@ -91,52 +88,68 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 
 	log.L.Infof(color.HiBlueString("[command_evaluators] Found %v displays in room", len(room.Displays)))
 
-	if len(room.Displays) > 0 {
-		log.L.Info(color.HiBlueString("[command_evaluators] Evaluating individual device input."))
-		//go through each display and set the input
-		for d := range room.Displays {
-			if len(room.Displays[d].Input) > 0 {
-				tempActions, err := c.RoutePath(room.Displays[d].Input, room.Displays[d].Name, graph, callbackEngine, requestor)
-				if err != nil {
-					return []base.ActionStructure{}, 0, err
-				}
-				actions = append(actions, tempActions...)
-				//we don't want to expect another output here, as we already expect one for every device in the room
-				if len(room.CurrentVideoInput) == 0 {
-					count++
-				}
-			}
-		}
+	// check if the input has been changed on any displays,
+	// and create actions if it has
+	for _, d := range room.Displays {
+		if len(d.Input) > 0 {
+			// get id's of from names of devices
+			outputID := getDeviceIDFromShortname(d.Name, devices)
+			inputID := getDeviceIDFromShortname(d.Input, devices)
 
+			// validate those devices existed
+			if len(inputID) == 0 || len(outputID) == 0 {
+				return []base.ActionStructure{}, 0, errors.New(fmt.Sprintf("[command_evaluators] no device name mathing '%s' or '%s' found in the room.", d.Name, d.Input))
+			}
+
+			tmpActions, err := c.RoutePath(inputID, outputID, graph, callbackEngine, requestor)
+			if err != nil {
+				return []base.ActionStructure{}, 0, err
+			}
+
+			log.L.Infof("%v ChangeInput actions generated to change input on %s to %s", len(tmpActions), outputID, inputID)
+			actions = append(actions, tmpActions...)
+		}
 	}
 
-	if len(room.AudioDevices) > 0 {
-		log.L.Info(color.HiBlueString("[command_evaluators] Evaluating individual device input."))
-		//go through each display and set the input
-		for d := range room.AudioDevices {
-			if len(room.AudioDevices[d].Input) > 0 {
-				tempActions, err := c.RoutePath(room.AudioDevices[d].Input, room.AudioDevices[d].Name, graph, callbackEngine, requestor)
-				if err != nil {
-					return []base.ActionStructure{}, 0, err
-				}
-				actions = append(actions, tempActions...)
-				count++
-			}
-		}
+	// do the same for the audiodevices
+	for _, d := range room.AudioDevices {
+		if len(d.Input) > 0 {
+			outputID := getDeviceIDFromShortname(d.Name, devices)
+			inputID := getDeviceIDFromShortname(d.Input, devices)
 
+			if len(inputID) == 0 || len(outputID) == 0 {
+				return []base.ActionStructure{}, 0, errors.New(fmt.Sprintf("[command_evaluators] no device name mathing '%s' or '%s' found in the room.", d.Name, d.Input))
+			}
+
+			tmpActions, err := c.RoutePath(inputID, outputID, graph, callbackEngine, requestor)
+			if err != nil {
+				return []base.ActionStructure{}, 0, err
+			}
+
+			log.L.Infof("%v ChangeInput actions generated to change input on %s to %s", len(tmpActions), outputID, inputID)
+			actions = append(actions, tmpActions...)
+		}
 	}
 
 	callbackEngine.InChan = make(chan base.StatusPackage, len(actions))
-	callbackEngine.ExpectedCount = count
+	callbackEngine.ExpectedCount = len(actions)
 	callbackEngine.ExpectedActionCount = len(actions)
 	callbackEngine.Devices = devices
 
 	go callbackEngine.StartAggregator()
 
-	//otherwise we go thoguh the list of devices, if there's an 'input' command we check the reachability graph and then build the actions necessary.
+	return actions, len(actions), nil
 
-	return actions, count, nil
+}
 
+func getDeviceIDFromShortname(shortname string, devices []structs.Device) string {
+	for _, device := range devices {
+		if strings.EqualFold(shortname, device.Name) {
+			return device.ID
+		}
+	}
+
+	return ""
 }
 
 //Validate f
@@ -164,7 +177,6 @@ func (c *ChangeVideoInputTieredSwitchers) GetIncompatibleCommands() []string {
 
 // RoutePath makes a path through the graph to determine the actions necessary.
 func (c *ChangeVideoInputTieredSwitchers) RoutePath(input, output string, graph inputgraph.InputGraph, callbackEngine *statusevaluators.TieredSwitcherCallback, requestor string) ([]base.ActionStructure, error) {
-
 	var ok bool
 	var inDev, outDev *inputgraph.Node
 
@@ -194,20 +206,21 @@ func (c *ChangeVideoInputTieredSwitchers) RoutePath(input, output string, graph 
 		return []base.ActionStructure{}, errors.New(msg)
 	}
 
-	//find path
-	ok, p, err := inputgraph.CheckReachability(output, input, graph)
+	// find path
+	ok, p, err := inputgraph.CheckReachability(outDev.Device.ID, inDev.Device.ID, graph)
 	if err != nil {
 		log.L.Errorf(color.HiRedString("[error] %v", err.Error()))
 		return []base.ActionStructure{}, err
 	}
 
-	log.L.Infof(color.HiBlueString("[command_evaluators] Found path for %v to %v.", inDev.ID, outDev.ID))
+	log.L.Infof(color.HiBlueString("[command_evaluators] Found path for %s to %s.", inDev.ID, outDev.ID))
 
 	if !ok {
 		msg := fmt.Sprintf("[command_evaluators] Cannot set input %v; no signal path from %v to %v", input, input, output)
 		log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
 		return []base.ActionStructure{}, errors.New(msg)
 	}
+
 	as, err := c.GenerateActionsFromPath(p, callbackEngine, requestor)
 	if err != nil {
 		return []base.ActionStructure{}, err
@@ -269,7 +282,7 @@ func (c *ChangeVideoInputTieredSwitchers) ChangeAll(input string, devices []stru
 		}
 
 		toReturn = append(toReturn, as...)
-		count++
+		count += len(as)
 	}
 
 	return toReturn, count, nil

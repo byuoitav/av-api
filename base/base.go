@@ -79,6 +79,32 @@ func (a *ActionStructure) Equals(b ActionStructure) bool {
 		a.Overridden == b.Overridden && CheckStringMapsEqual(a.Parameters, b.Parameters)
 }
 
+//ActionByPriority implements the sort.Interface for []ActionStructure
+type ActionByPriority []ActionStructure
+
+func (abp ActionByPriority) Len() int { return len(abp) }
+
+func (abp ActionByPriority) Swap(i, j int) { abp[i], abp[j] = abp[j], abp[i] }
+
+func (abp ActionByPriority) Less(i, j int) bool {
+	var ipri int
+	var jpri int
+	//we've gotta go through and get the priorities
+	for _, command := range abp[i].Device.Type.Commands {
+		if command.ID == abp[i].Action {
+			ipri = command.Priority
+			break
+		}
+	}
+	for _, command := range abp[j].Device.Type.Commands {
+		if command.ID == abp[j].Action {
+			jpri = command.Priority
+			break
+		}
+	}
+	return ipri < jpri
+}
+
 //CheckStringMapsEqual just takes two map[string]string and compares them.
 func CheckStringMapsEqual(a map[string]string, b map[string]string) bool {
 	if len(a) != len(b) {

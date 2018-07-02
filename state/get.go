@@ -135,7 +135,6 @@ func EvaluateResponses(responses []se.StatusResponse, count int) (base.PublicRoo
 	//make our array of Statuses by device
 	responsesByDestinationDevice := make(map[string]se.Status)
 	for _, resp := range responses {
-
 		//we do thing the old fashioned way
 		if resp.Callback == nil {
 			for key, value := range resp.Status {

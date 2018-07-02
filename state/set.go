@@ -29,8 +29,6 @@ func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom, requestor st
 			continue
 		}
 
-		//base.Log("[state] considering evaluator %s", evaluator.CodeKey)
-
 		curEvaluator := ce.EVALUATORS[evaluator.CodeKey]
 		if curEvaluator == nil {
 			msg := fmt.Sprintf("no evaluator corresponding to key: %s", evaluator.CodeKey)
@@ -94,7 +92,7 @@ func ReconcileActions(room structs.Room, actions []base.ActionStructure, inCount
 //ExecuteActions carries out the actions defined in the struct
 //@pre TODO DestinationDevice field is populated for every action!!
 func ExecuteActions(DAG []base.ActionStructure, requestor string) ([]se.StatusResponse, error) {
-
+	// get total number of actions in dag
 	log.L.Infof("%s", color.HiBlueString("[state] executing actions..."))
 
 	if len(DAG) == 0 {
@@ -107,7 +105,6 @@ func ExecuteActions(DAG []base.ActionStructure, requestor string) ([]se.StatusRe
 	var done sync.WaitGroup
 
 	for _, child := range DAG[0].Children {
-
 		done.Add(1)
 		go ExecuteAction(*child, responses, &done, requestor)
 	}
@@ -170,9 +167,7 @@ func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusRespon
 	log.L.Infof("[state] microservice reported status: %v", status.Status)
 
 	for _, child := range action.Children {
-
 		log.L.Infof("[state] found child: %s. Executing...", child.Action)
-
 		control.Add(1)
 		go ExecuteAction(*child, responses, control, requestor)
 	}
@@ -183,7 +178,6 @@ func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusRespon
 //SET_STATE_STATUS_EVALUATORS is the map containing the definitions of our evaluator strings.
 //this is where we decide which status evaluator is used to evalutate the resultant status of a command that sets state
 var SET_STATE_STATUS_EVALUATORS = map[string]string{
-
 	"PowerOnDefault":                 "STATUS_PowerDefault",
 	"StandbyDefault":                 "STATUS_PowerDefault",
 	"ChangeVideoInputDefault":        "STATUS_InputDefault",

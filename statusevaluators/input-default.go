@@ -1,7 +1,13 @@
 package statusevaluators
 
 import (
+	"errors"
+	"fmt"
+	"reflect"
+	"strings"
+
 	"github.com/byuoitav/av-api/base"
+	"github.com/byuoitav/common/db"
 	"github.com/byuoitav/common/log"
 	"github.com/byuoitav/common/structs"
 )
@@ -31,17 +37,25 @@ func (p *InputDefault) EvaluateResponse(label string, value interface{}, source 
 	log.L.Infof("[statusevals] Evaluating response: %s, %s in evaluator %v", label, value, DefaultInputEvaluator)
 
 	//we need to remap the port value to the device name, for this case, that's just the device plugged into that port, as defined in the port mapping
-
-	for _, port := range dest.Ports {
-
-		valueString, ok := value.(string)
-		if ok && port.ID == valueString {
-
-			value = port.SourceDevice
-
-		}
-
+	valueString, ok := value.(string)
+	if !ok {
+		return "", nil, errors.New(fmt.Sprintf("incorrect type of response (%v). Expected %s; but got %s", valueString, reflect.TypeOf(""), reflect.TypeOf(value)))
 	}
 
-	return label, value, nil
+	var inputID string
+
+	for _, port := range dest.Ports {
+		if strings.EqualFold(port.ID, valueString) {
+			inputID = port.SourceDevice
+			break
+		}
+	}
+
+	if len(inputID) == 0 {
+		return "", nil, errors.New(fmt.Sprintf("missing port of device: %s", valueString))
+	}
+
+	// match the inputID from the port to a device in the db, and return that devices' name
+	device, err := db.GetDB().GetDevice(inputID)
+	return label, device.Name, err
 }

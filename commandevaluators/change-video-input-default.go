@@ -1,6 +1,7 @@
 package commandevaluators
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -69,22 +70,39 @@ func (p *ChangeVideoInputDefault) GetIncompatibleCommands() (incompatableActions
 }
 
 func generateChangeInputByDevice(dev base.Device, room, building, generatingEvaluator, requestor string) (action base.ActionStructure, err error) {
+	var output structs.Device
+	var input structs.Device
 
-	var curDevice structs.Device
-
-	deviceID := fmt.Sprintf("%v-%v-%v", building, room, dev.Name)
-	curDevice, err = db.GetDB().GetDevice(deviceID)
+	roomID := fmt.Sprintf("%v-%v", building, room)
+	devices, err := db.GetDB().GetDevicesByRoom(roomID)
 	if err != nil {
 		return
 	}
 
-	paramMap := make(map[string]string)
-	var portSource string
+	// get the input/output devices
+	for _, device := range devices {
+		if strings.EqualFold(device.Name, dev.Name) {
+			output = device
+		} else if strings.EqualFold(device.Name, dev.Input) {
+			input = device
+		}
+	}
 
-	for _, port := range curDevice.Ports {
-		if strings.EqualFold(port.SourceDevice, dev.Input) {
+	if len(output.ID) == 0 {
+		err = errors.New(fmt.Sprintf("unable to find a device in the room matching the name %s", dev.Name))
+		return
+	}
+
+	if len(input.ID) == 0 {
+		err = errors.New(fmt.Sprintf("unable to find a device in the room matching the name %s", dev.Input))
+		return
+	}
+
+	paramMap := make(map[string]string)
+
+	for _, port := range output.Ports {
+		if strings.EqualFold(port.SourceDevice, input.ID) {
 			paramMap["port"] = port.ID
-			portSource = port.SourceDevice
 			break
 		}
 	}
@@ -95,14 +113,14 @@ func generateChangeInputByDevice(dev base.Device, room, building, generatingEval
 	}
 
 	destination := base.DestinationDevice{
-		Device: curDevice,
+		Device: output,
 	}
 
-	if structs.HasRole(curDevice, "AudioOut") {
+	if structs.HasRole(output, "AudioOut") {
 		destination.AudioDevice = true
 	}
 
-	if structs.HasRole(curDevice, "VideoOut") {
+	if structs.HasRole(output, "VideoOut") {
 		destination.Display = true
 	}
 
@@ -111,14 +129,15 @@ func generateChangeInputByDevice(dev base.Device, room, building, generatingEval
 		EventCause:     events.USERINPUT,
 		Device:         dev.Name,
 		EventInfoKey:   "input",
-		EventInfoValue: portSource,
+		EventInfoValue: input.Name,
 		Requestor:      requestor,
 	}
 
 	action = base.ActionStructure{
 		Action:              "ChangeInput",
 		GeneratingEvaluator: generatingEvaluator,
-		Device:              curDevice,
+		Device:              output,
+		DestinationDevice:   destination,
 		Parameters:          paramMap,
 		DeviceSpecific:      true,
 		Overridden:          false,
@@ -135,22 +154,21 @@ func generateChangeInputByRole(role, input, room, building, generatingEvaluator,
 		return
 	}
 
-	var source string
+	// get the input device
+	inputDevice, err := db.GetDB().GetDevice(input)
+	if err != nil {
+		return
+	}
 
 	for _, d := range devicesToChange { // Loop through the devices in the room
 		paramMap := make(map[string]string) // Start building parameter map
 
 		//Get the port mapping for the device
 		for _, curPort := range d.Ports { // Loop through the found ports
-
-			if strings.EqualFold(curPort.SourceDevice, input) {
-
+			if strings.EqualFold(curPort.SourceDevice, inputDevice.ID) {
 				paramMap["port"] = curPort.ID
-				source = curPort.SourceDevice
 				break
-
 			}
-
 		}
 
 		if len(paramMap) == 0 {
@@ -175,7 +193,7 @@ func generateChangeInputByRole(role, input, room, building, generatingEvaluator,
 			EventCause:     events.USERINPUT,
 			Device:         d.Name,
 			EventInfoKey:   "input",
-			EventInfoValue: source,
+			EventInfoValue: inputDevice.Name,
 			Requestor:      requestor,
 		}
 

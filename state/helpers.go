@@ -29,7 +29,6 @@ const TIMEOUT = 5
 
 //builds a Status object corresponding to a device and writes it to the channel
 func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse, control *sync.WaitGroup) {
-
 	//final output
 	outputs := []se.StatusResponse{}
 
@@ -135,7 +134,6 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 }
 
 func processAudioDevice(device se.Status) (base.AudioDevice, error) {
-
 	log.L.Infof("Adding audio device: %s", device.DestinationDevice.Name)
 	log.L.Infof("Status map: %v", device.Status)
 
@@ -215,7 +213,6 @@ func processDisplay(device se.Status) (base.Display, error) {
 //publishes a state event or an error
 //@pre the parameters have been filled, e.g. the endpoint does not contain ":"
 func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoint, requestor string) se.StatusResponse {
-
 	client := &http.Client{
 		Timeout: TIMEOUT * time.Second,
 	}
@@ -273,7 +270,6 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 
 	roomID := strings.Split(action.Device.GetDeviceRoomID(), "-")
 	for _, event := range action.EventLog {
-
 		base.SendEvent(
 			event.Type,
 			event.EventCause,

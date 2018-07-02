@@ -1,14 +1,12 @@
 package actionreconcilers
 
 import (
-	"bytes"
 	"errors"
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
 	ce "github.com/byuoitav/av-api/commandevaluators"
 	"github.com/byuoitav/common/log"
-	"github.com/fatih/color"
 )
 
 /*
@@ -51,9 +49,7 @@ func Init() map[string]ActionReconciler {
 // StandardReconcile determines the set of compatible actions, and then sorts them by device and priority.
 func StandardReconcile(device string, inCount int, actions []base.ActionStructure) ([]base.ActionStructure, int, error) {
 
-	color.Set(color.FgHiMagenta)
-	log.L.Info("[reconciler] performing standard reconcile...")
-	color.Unset()
+	log.L.Debug("[reconciler] performing standard reconcile...")
 
 	//for each device, construct set of actions
 	actionsForEvaluation := make(map[string]base.ActionStructure)
@@ -66,9 +62,7 @@ func StandardReconcile(device string, inCount int, actions []base.ActionStructur
 		evaluator := ce.EVALUATORS[action.GeneratingEvaluator]
 
 		if evaluator == nil {
-			color.Set(color.FgHiRed)
 			log.L.Errorf("Alert! Nil pointer for evaluator: %s", action.GeneratingEvaluator)
-			color.Unset()
 			continue
 		}
 
@@ -94,11 +88,11 @@ func StandardReconcile(device string, inCount int, actions []base.ActionStructur
 			}
 
 			if strings.EqualFold(curAction, incompatibleAction) { //we've found an incompatible action
-				log.L.Infof("%s is incompatible with %s.", incompatibleAction, incompatibleBaseAction.Action)
+				log.L.Debugf("%s is incompatible with %s.", incompatibleAction, incompatibleBaseAction.Action)
 				// if one of them is room wide and the other is not override the room-wide action.
 
 				if !baseAction.DeviceSpecific && incompatibleBaseAction.DeviceSpecific {
-					log.L.Infof("%s is a device specific command. Overriding %s in favor of device-specific command %s.",
+					log.L.Debugf("%s is a device specific command. Overriding %s in favor of device-specific command %s.",
 						incompatibleBaseAction.Action, baseAction.Action, incompatibleBaseAction.Action)
 					inCount--
 					baseAction.Overridden = true
@@ -117,18 +111,7 @@ func StandardReconcile(device string, inCount int, actions []base.ActionStructur
 			}
 		}
 	}
-	//DEBUG ==============================================================================================================================================
-
-	var buffer bytes.Buffer
-	for i, a := range actions {
-
-		buffer.WriteString(a.Action)
-		if i != len(actions)-1 {
-			buffer.WriteString(", ")
-		}
-	}
-	log.L.Info("[reconciler] actions after standard reconcile: %s", buffer.String())
-	//=====================================================================================================================================================
+	log.L.Debugf("[reconciler] actions after standard reconcile: %s", len(actions))
 
 	return actions, inCount, nil
 }

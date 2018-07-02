@@ -3,6 +3,7 @@ package inputgraph
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/byuoitav/common/log"
 	"github.com/byuoitav/common/structs"
@@ -23,33 +24,44 @@ type Node struct {
 var debug = true
 
 func BuildGraph(devs []structs.Device) (InputGraph, error) {
-
 	ig := InputGraph{
 		AdjacencyMap: make(map[string][]string),
 		DeviceMap:    make(map[string]*Node),
 		Nodes:        []*Node{},
 	}
 
-	for _, device := range devs { //build graph
+	// build graph
+	for _, device := range devs {
 
-		if _, ok := ig.DeviceMap[device.Name]; !ok {
-			newNode := Node{ID: device.Name, Device: device}
+		// if the device doesn't already exist in the graph, add it
+		if _, ok := ig.DeviceMap[device.ID]; !ok {
+			newNode := Node{ID: device.ID, Device: device}
 			ig.Nodes = append(ig.Nodes, &newNode)
-			ig.DeviceMap[device.Name] = &newNode
+			ig.DeviceMap[device.ID] = &newNode
 		}
 
-		for _, port := range device.Ports { // add entry in adjacency map
+		// add each entry in the adjancy map
+		for _, port := range device.Ports {
 			log.L.Infof("[inputgraph] Addding %v to the adjecency for %v based on port %v", port.SourceDevice, port.DestinationDevice, port.ID)
 
 			if _, ok := ig.AdjacencyMap[port.DestinationDevice]; ok {
-				ig.AdjacencyMap[port.DestinationDevice] = append(ig.AdjacencyMap[port.DestinationDevice], port.SourceDevice)
+				// only insert source device if it doesn't already exist
+				exists := false
+				for _, source := range ig.AdjacencyMap[port.DestinationDevice] {
+					if strings.EqualFold(source, port.SourceDevice) {
+						exists = true
+						break
+					}
+				}
+
+				if !exists {
+					ig.AdjacencyMap[port.DestinationDevice] = append(ig.AdjacencyMap[port.DestinationDevice], port.SourceDevice)
+				}
 			} else {
 				ig.AdjacencyMap[port.DestinationDevice] = []string{port.SourceDevice}
 			}
 		}
 	}
-
-	//TODO: do we need to go through and check the Adjecency maps for duplicates?
 
 	return ig, nil
 }

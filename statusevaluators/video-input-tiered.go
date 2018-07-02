@@ -144,9 +144,9 @@ func (p *TieredSwitcherCallback) Callback(sp base.StatusPackage, c chan<- base.S
 	return nil
 }
 
-func (p *TieredSwitcherCallback) getDeviceByName(dev string) structs.Device {
+func (p *TieredSwitcherCallback) getDeviceByID(dev string) structs.Device {
 	for d := range p.Devices {
-		if p.Devices[d].Name == dev {
+		if p.Devices[d].ID == dev {
 			return p.Devices[d]
 		}
 	}
@@ -166,8 +166,8 @@ func (p *TieredSwitcherCallback) GetInputPaths(pathfinder pathfinder.SignalPathf
 	}
 
 	for k, v := range inputMap {
-		outDev := p.getDeviceByName(k)
-		if len(outDev.Name) == 0 {
+		outDev := p.getDeviceByID(k)
+		if len(outDev.ID) == 0 {
 			log.L.Warnf("No device by name %v in the device list for the callback", k)
 		}
 
@@ -209,10 +209,11 @@ func (p *TieredSwitcherCallback) StartAggregator() {
 			log.L.Info(color.HiYellowString("[callback] Received Information, adding an edge: %v %v", val.Device.Name, val.Value))
 			//start our timeout
 			if !started {
-				log.L.Infof("%v", val)
+				log.L.Info("[callback] Started aggregator timeout")
 				started = true
 				t.Reset(500 * time.Millisecond)
 			}
+
 			//we need to start our graph, then check if we have any completed paths
 			ready := pathfinder.AddEdge(val.Device, val.Value.(string))
 			if ready {
