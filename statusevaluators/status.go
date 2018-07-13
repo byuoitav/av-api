@@ -2,17 +2,18 @@ package statusevaluators
 
 import (
 	"github.com/byuoitav/av-api/base"
+	"github.com/byuoitav/common/status"
 	"github.com/byuoitav/common/structs"
 )
 
 // AudioList is a base evaluator struct.
 type AudioList struct {
-	Inputs []structs.InputStatus `json:"inputs"`
+	Inputs []status.Input `json:"inputs"`
 }
 
 // VideoList is a base evaluator struct.
 type VideoList struct {
-	Inputs []structs.InputStatus `json:"inputs"`
+	Inputs []status.Input `json:"inputs"`
 }
 
 // Battery is a base evaluator struct.
