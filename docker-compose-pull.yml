@@ -27,7 +27,7 @@ services:
         restart: always
         tty: true
     configuration-database-microservice:
-        image: byuoitav/common:${DOCKER_HUB_TAG}
+        image: byuoitav/configuration-database-microservice:${DOCKER_HUB_TAG}
         ports:
             - "8006:8006"
         environment:
