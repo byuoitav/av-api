@@ -5,39 +5,14 @@ import (
 	"github.com/byuoitav/common/structs"
 )
 
-// PowerStatus is a base evaluator struct.
-type PowerStatus struct {
-	Power string `json:"power"`
-}
-
-// BlankedStatus is a base evaluator struct.
-type BlankedStatus struct {
-	Blanked bool `json:"blanked"`
-}
-
-// MuteStatus is a base evaluator struct.
-type MuteStatus struct {
-	Muted bool `json:"muted"`
-}
-
-// Input is a base evaluator struct.
-type Input struct {
-	Input string `json:"input,omitempty"`
-}
-
 // AudioList is a base evaluator struct.
 type AudioList struct {
-	Inputs []Input `json:"inputs"`
+	Inputs []structs.InputStatus `json:"inputs"`
 }
 
 // VideoList is a base evaluator struct.
 type VideoList struct {
-	Inputs []Input `json:"inputs"`
-}
-
-// Volume is a base evaluator struct.
-type Volume struct {
-	Volume int `json:"volume"`
+	Inputs []structs.InputStatus `json:"inputs"`
 }
 
 // Battery is a base evaluator struct.
