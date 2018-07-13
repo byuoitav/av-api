@@ -9,6 +9,7 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/helpers"
+	"github.com/byuoitav/av-api/inputgraph"
 	"github.com/byuoitav/av-api/state"
 	"github.com/byuoitav/common/db"
 	"github.com/byuoitav/common/log"
@@ -35,8 +36,12 @@ func GetRoomByNameAndBuilding(context echo.Context) error {
 	if err != nil {
 		return context.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 	}
+
+	//we need to add the input reachability stuff
+	reachable, err := inputgraph.GetVideoDeviceReachability(room)
+
 	log.L.Info("Done.\n")
-	return context.JSON(http.StatusOK, room)
+	return context.JSON(http.StatusOK, reachable)
 }
 
 func SetRoomState(context echo.Context) error {
