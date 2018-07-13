@@ -16,11 +16,6 @@ type VideoList struct {
 	Inputs []status.Input `json:"inputs"`
 }
 
-// Battery is a base evaluator struct.
-type Battery struct {
-	Battery int `json:"battery"`
-}
-
 // Status represents output from a device, use Error field to flag errors
 type Status struct {
 	Status            map[string]interface{} `json:"status"`
