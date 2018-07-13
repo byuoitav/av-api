@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/byuoitav/common/log"
+	"github.com/byuoitav/common/nerr"
 	"github.com/byuoitav/common/structs"
 	"github.com/fatih/color"
 )
@@ -19,6 +20,11 @@ type InputGraph struct {
 type Node struct {
 	ID     string
 	Device structs.Device
+}
+
+type ReachableRoomConfig struct {
+	structs.Room
+	InputReachability map[string][]string `json:"input_reachability"`
 }
 
 var debug = true
@@ -39,10 +45,11 @@ func BuildGraph(devs []structs.Device) (InputGraph, error) {
 			ig.Nodes = append(ig.Nodes, &newNode)
 			ig.DeviceMap[device.ID] = &newNode
 		}
+		log.L.Debugf("Device %+v", device.Ports)
 
 		// add each entry in the adjancy map
 		for _, port := range device.Ports {
-			log.L.Infof("[inputgraph] Addding %v to the adjecency for %v based on port %v", port.SourceDevice, port.DestinationDevice, port.ID)
+			log.L.Debugf("[inputgraph] Adding %v to the adjecency for %v based on port %v", port.SourceDevice, port.DestinationDevice, port.ID)
 
 			if _, ok := ig.AdjacencyMap[port.DestinationDevice]; ok {
 				// only insert source device if it doesn't already exist
@@ -68,7 +75,7 @@ func BuildGraph(devs []structs.Device) (InputGraph, error) {
 
 //where deviceA is the sink and deviceB is the SourceDevice
 func CheckReachability(deviceA, deviceB string, ig InputGraph) (bool, []Node, error) {
-	log.L.Info("[inputgraph] Looking for a path from %v to %v", deviceA, deviceB)
+	log.L.Debugf("[inputgraph] Looking for a path from %v to %v", deviceA, deviceB)
 
 	//check and make sure that both of the devices are actually a part of the graph
 
@@ -101,15 +108,14 @@ func CheckReachability(deviceA, deviceB string, ig InputGraph) (bool, []Node, er
 	for {
 		select {
 		case cur := <-frontier:
-			log.L.Infof("[inputgraph] Evaluating %v", cur)
+			log.L.Debugf("[inputgraph] Evaluating %v", cur)
 			if cur == deviceB {
-				log.L.Info("[inputgraph] DestinationDevice reached.")
+				log.L.Debugf("[inputgraph] DestinationDevice reached.")
 				dev := cur
 
 				toReturn := []Node{}
 				toReturn = append(toReturn, *ig.DeviceMap[dev])
-				log.L.Infof("[inputgraph] First Hop: %v -> %v", dev, path[dev])
-
+				log.L.Debugf("[inputgraph] First Hop: %v -> %v", dev, path[dev])
 				dev, ok := path[dev]
 
 				count := 0
@@ -120,7 +126,7 @@ func CheckReachability(deviceA, deviceB string, ig InputGraph) (bool, []Node, er
 
 						return false, []Node{}, errors.New(msg)
 					}
-					log.L.Infof("[inputgraph] Next hop: %v -> %v", dev, path[dev])
+					log.L.Debugf("[inputgraph] Next hop: %v -> %v", dev, path[dev])
 
 					toReturn = append(toReturn, *ig.DeviceMap[dev])
 
@@ -139,21 +145,69 @@ func CheckReachability(deviceA, deviceB string, ig InputGraph) (bool, []Node, er
 
 				path[next] = cur
 
-				log.L.Infof("[inputgraph] Path from %v to %v, adding %v to frontier", cur, next, next)
-				log.L.Infof("[inputgraph] Path as it stands is: ")
+				log.L.Debugf("[inputgraph] Path from %v to %v, adding %v to frontier", cur, next, next)
+				log.L.Debugf("[inputgraph] Path as it stands is: ")
 
 				curDev := next
 				dev, ok := path[curDev]
 				for ok {
-					log.L.Infof("[inputgraph] %v -> %v", curDev, dev)
+					log.L.Debugf("[inputgraph] %v -> %v", curDev, dev)
 					curDev = dev
 					dev, ok = path[curDev]
 				}
 				frontier <- next
 			}
 		default:
-			log.L.Info("[inputgraph] No path found")
+			log.L.Debugf("[inputgraph] No path found")
 			return false, []Node{}, nil
 		}
 	}
+}
+
+//There is a more effient way to do this as part of the initial traversal.
+//TODO: Make this more efficient.
+func GetVideoDeviceReachability(room structs.Room) (ReachableRoomConfig, *nerr.E) {
+
+	reachabilityMap := make(map[string][]string)
+
+	graph, err := BuildGraph(room.Devices)
+	if err != nil {
+		return ReachableRoomConfig{Room: room}, nerr.Translate(err).Addf("Couldn't build reachability graph")
+	}
+	log.L.Debugf("%+v", graph.AdjacencyMap)
+
+	log.L.Debugf("Building reachability map...")
+
+	inputs := []string{}
+	outputs := []string{}
+
+	for _, device := range room.Devices {
+		if structs.HasRole(device, "VideoIn") {
+			inputs = append(inputs, device.Name)
+		}
+		if structs.HasRole(device, "VideoOut") {
+			outputs = append(outputs, device.Name)
+		}
+	}
+
+	for _, i := range outputs {
+		for _, j := range inputs {
+			//check if the input can reach the output
+			reachable, _, err := CheckReachability(fmt.Sprintf("%v-%v", room.ID, i), fmt.Sprintf("%v-%v", room.ID, j), graph)
+			if err != nil {
+				log.L.Warn("Couldn't calculate reachability between %v and %v", i, j)
+				continue
+			}
+			if reachable {
+				_, ok := reachabilityMap[j]
+				if ok {
+					reachabilityMap[j] = append(reachabilityMap[j], i)
+				} else {
+					reachabilityMap[j] = []string{i}
+				}
+			}
+		}
+	}
+
+	return ReachableRoomConfig{Room: room, InputReachability: reachabilityMap}, nil
 }

@@ -27,7 +27,7 @@ services:
         restart: always
         tty: true
     configuration-database-microservice:
-        image: byuoitav/common:${DOCKER_HUB_TAG}
+        image: byuoitav/configuration-database-microservice:${DOCKER_HUB_TAG}
         ports:
             - "8006:8006"
         environment:
@@ -47,6 +47,9 @@ services:
         environment:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - SONY_TV_PSK=$SONY_TV_PSK
+            - DB_ADDRESS=$DB_ADDRESS
+            - DB_USERNAME=$DB_USERNAME
+            - DB_PASSWORD=$DB_PASSWORD
         network_mode: "host"
         restart: always
         tty: true
@@ -83,6 +86,9 @@ services:
             - "8012:8012"
         environment:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+            - DB_ADDRESS=$DB_ADDRESS
+            - DB_USERNAME=$DB_USERNAME
+            - DB_PASSWORD=$DB_PASSWORD
         network_mode: "host"
         restart: always
         tty: true
