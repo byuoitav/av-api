@@ -83,7 +83,9 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 	// now we go through and check if power 'standby' was set for any other device.
 	for _, device := range room.Displays {
 		log.L.Info("[command_evaluators] Evaluating displays for command power standby. ")
-		destination := base.DestinationDevice{AudioDevice: true}
+
+		destination := base.DestinationDevice{AudioDevice: false, Display: true}
+
 		actions, err = s.evaluateDevice(device.Device, destination, actions, devices, room.Room, room.Building, eventInfo)
 		if err != nil {
 			return
@@ -92,7 +94,7 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 
 	for _, device := range room.AudioDevices {
 		log.L.Info("[command_evaluators] Evaluating audio devices for command power on. ")
-		destination := base.DestinationDevice{AudioDevice: true}
+		destination := base.DestinationDevice{AudioDevice: true, Display: false}
 		actions, err = s.evaluateDevice(device.Device, destination, actions, devices, room.Room, room.Building, eventInfo)
 		if err != nil {
 			return
@@ -150,6 +152,7 @@ func (s *StandbyDefault) evaluateDevice(device base.Device, destination base.Des
 			actions = append(actions, base.ActionStructure{
 				Action:              "Standby",
 				Device:              dev,
+				DestinationDevice:   destination,
 				GeneratingEvaluator: "StandbyDefault",
 				DeviceSpecific:      true,
 				EventLog:            []events.EventInfo{eventInfo},
