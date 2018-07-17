@@ -130,7 +130,6 @@ func ExecuteActions(DAG []base.ActionStructure, requestor string) ([]se.StatusRe
 
 //ExecuteAction builds a status response
 func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusResponse, control *sync.WaitGroup, requestor string) {
-
 	log.L.Infof("[state] Executing action %s against device %s...", action.Action, action.Device.Name)
 
 	if action.Overridden {

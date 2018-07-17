@@ -202,7 +202,6 @@ func EvaluateResponses(responses []se.StatusResponse, count int) (base.PublicRoo
 	}
 
 	//now we carry on
-
 	for _, v := range responsesByDestinationDevice {
 		if v.DestinationDevice.AudioDevice {
 			audioDevice, err := processAudioDevice(v)
@@ -211,7 +210,6 @@ func EvaluateResponses(responses []se.StatusResponse, count int) (base.PublicRoo
 			}
 		}
 		if v.DestinationDevice.Display {
-
 			display, err := processDisplay(v)
 			if err == nil {
 				Displays = append(Displays, display)
