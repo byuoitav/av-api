@@ -2,24 +2,29 @@ package commandevaluators
 
 import (
 	"errors"
-	"log"
+	"fmt"
 	"strings"
 
+	"github.com/byuoitav/common/log"
+
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/events"
+	"github.com/byuoitav/common/structs"
 )
 
+// UnMuteDefault implements the CommandEvaluator struct.
 type UnMuteDefault struct {
 }
 
+// Evaluate generates a list of actions based on the room information.
 func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
-	log.Printf("Evaluating UnMute command.")
+	log.L.Info("[command_evaluators] Evaluating UnMute command.")
 
 	var actions []base.ActionStructure
-	eventInfo := eventinfrastructure.EventInfo{
-		Type:           eventinfrastructure.CORESTATE,
-		EventCause:     eventinfrastructure.USERINPUT,
+	eventInfo := events.EventInfo{
+		Type:           events.CORESTATE,
+		EventCause:     events.USERINPUT,
 		EventInfoKey:   "muted",
 		EventInfoValue: "false",
 		Requestor:      requestor,
@@ -30,25 +35,26 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 	//check if request is a roomwide unmute
 	if room.Muted != nil && !*room.Muted {
 
-		log.Printf("Room-wide UnMute request recieved. Retrieving all devices")
+		log.L.Info("[command_evaluators] Room-wide UnMute request recieved. Retrieving all devices")
 
-		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "AudioOut")
+		roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
+		devices, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "AudioOut")
 		if err != nil {
 			return []base.ActionStructure{}, 0, err
 		}
 
-		log.Printf("UnMuting all devices in room.")
+		log.L.Info("[command_evaluators] UnMuting all devices in room.")
 
 		for _, device := range devices {
 
-			if device.Output {
+			if device.Type.Output {
 
-				log.Printf("Adding device %+v", device.Name)
+				log.L.Infof("[command_evaluators] Adding device %+v", device.Name)
 
 				eventInfo.Device = device.Name
 				destination.Device = device
 
-				if device.HasRole("VideoOut") {
+				if structs.HasRole(device, "VideoOut") {
 					destination.Display = true
 				}
 
@@ -58,7 +64,7 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 					Device:              device,
 					DestinationDevice:   destination,
 					DeviceSpecific:      false,
-					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
+					EventLog:            []events.EventInfo{eventInfo},
 				})
 
 			}
@@ -68,15 +74,16 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 	}
 
 	//check specific devices
-	log.Printf("Evaluating individual audio devices for unmuting.")
+	log.L.Info("[command_evaluators] Evaluating individual audio devices for unmuting.")
 
 	for _, audioDevice := range room.AudioDevices {
 
-		log.Printf("Adding device %+v", audioDevice.Name)
+		log.L.Infof("[command_evaluators] Adding device %+v", audioDevice.Name)
 
 		if audioDevice.Muted != nil && !*audioDevice.Muted {
 
-			device, err := dbo.GetDeviceByName(room.Building, room.Room, audioDevice.Name)
+			deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, audioDevice.Name)
+			device, err := db.GetDB().GetDevice(deviceID)
 			if err != nil {
 				return []base.ActionStructure{}, 0, err
 			}
@@ -84,7 +91,7 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 			eventInfo.Device = device.Name
 			destination.Device = device
 
-			if device.HasRole("VideoOut") {
+			if structs.HasRole(device, "VideoOut") {
 				destination.Display = true
 			}
 
@@ -94,35 +101,38 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 				Device:              device,
 				DestinationDevice:   destination,
 				DeviceSpecific:      true,
-				EventLog:            []eventinfrastructure.EventInfo{eventInfo},
+				EventLog:            []events.EventInfo{eventInfo},
 			})
 
 		}
 
 	}
 
-	log.Printf("%v actions generated.", len(actions))
-	log.Printf("Evalutation complete.")
+	log.L.Infof("[command_evaluators] %v actions generated.", len(actions))
+	log.L.Info("[command_evaluators] Evalutation complete.")
 
 	return actions, len(actions), nil
 
 }
 
+// Validate verified that the action information is correct.
 func (p *UnMuteDefault) Validate(action base.ActionStructure) error {
 
-	log.Printf("Validating action for command \"UnMute\"")
+	log.L.Info("[command_evaluators] Validating action for command \"UnMute\"")
 
-	ok, _ := CheckCommands(action.Device.Commands, "UnMute")
+	ok, _ := CheckCommands(action.Device.Type.Commands, "UnMute")
 
 	if !ok || !strings.EqualFold(action.Action, "UnMute") {
-		log.Printf("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
-		return errors.New(action.Action + " is an invalid command for" + action.Device.Name)
+		msg := fmt.Sprintf("[command_evaluators] ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
+		log.L.Error(msg)
+		return errors.New(msg)
 	}
 
-	log.Printf("Done.")
+	log.L.Info("[command_evaluators] Done.")
 	return nil
 }
 
+// GetIncompatibleCommands determines the list of incompatible commands for this evaluator.
 func (p *UnMuteDefault) GetIncompatibleCommands() (incompatibleActions []string) {
 
 	incompatibleActions = []string{

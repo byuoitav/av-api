@@ -1,19 +1,17 @@
 package actionreconcilers
 
 import (
-	"bytes"
 	"errors"
-	"log"
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
 	ce "github.com/byuoitav/av-api/commandevaluators"
-	"github.com/fatih/color"
+	"github.com/byuoitav/common/log"
 )
 
 /*
 ActionReconciler is an interface that builds a reconciler for a room configuration.
-The purpose of a reconciler is to
+The purpose of a reconciler is to sort by device and priority.
 */
 type ActionReconciler interface {
 	/*
@@ -48,11 +46,10 @@ func Init() map[string]ActionReconciler {
 	return reconcilerMap
 }
 
-func StandardReconcile(device int, inCount int, actions []base.ActionStructure) ([]base.ActionStructure, int, error) {
+// StandardReconcile determines the set of compatible actions, and then sorts them by device and priority.
+func StandardReconcile(device string, inCount int, actions []base.ActionStructure) ([]base.ActionStructure, int, error) {
 
-	color.Set(color.FgHiMagenta)
-	log.Printf("[reconciler] performing standard reconcile...")
-	color.Unset()
+	log.L.Debug("[reconciler] performing standard reconcile...")
 
 	//for each device, construct set of actions
 	actionsForEvaluation := make(map[string]base.ActionStructure)
@@ -65,9 +62,7 @@ func StandardReconcile(device int, inCount int, actions []base.ActionStructure) 
 		evaluator := ce.EVALUATORS[action.GeneratingEvaluator]
 
 		if evaluator == nil {
-			color.Set(color.FgHiRed)
-			log.Printf("Alert! Nil pointer for evaluator: %s", action.GeneratingEvaluator)
-			color.Unset()
+			log.L.Errorf("Alert! Nil pointer for evaluator: %s", action.GeneratingEvaluator)
 			continue
 		}
 
@@ -93,42 +88,30 @@ func StandardReconcile(device int, inCount int, actions []base.ActionStructure) 
 			}
 
 			if strings.EqualFold(curAction, incompatibleAction) { //we've found an incompatible action
-				log.Printf("%s is incompatible with %s.", incompatibleAction, incompatibleBaseAction.Action)
-				// if one of them is room wide and the other is not override the room-wide
-				// action.
+				log.L.Debugf("%s is incompatible with %s.", incompatibleAction, incompatibleBaseAction.Action)
+				// if one of them is room wide and the other is not override the room-wide action.
 
 				if !baseAction.DeviceSpecific && incompatibleBaseAction.DeviceSpecific {
-					log.Printf("%s is a device specific command. Overriding %s in favor of device-specific command %s.",
+					log.L.Debugf("%s is a device specific command. Overriding %s in favor of device-specific command %s.",
 						incompatibleBaseAction.Action, baseAction.Action, incompatibleBaseAction.Action)
 					inCount--
 					baseAction.Overridden = true
 
 				} else if baseAction.DeviceSpecific && !incompatibleBaseAction.DeviceSpecific {
-					log.Printf("%s is a device specific command. Overriding %s in favor of device-specific command %s.",
+					log.L.Infof("%s is a device specific command. Overriding %s in favor of device-specific command %s.",
 						baseAction.Action, incompatibleBaseAction.Action, baseAction.Action)
 					inCount--
 					incompatibleBaseAction.Overridden = true
 				} else {
 					errorString := incompatibleAction + " is an incompatible action with " + incompatibleBaseAction.Action + " for device with ID: " +
 						string(device)
-					log.Printf("%s", errorString)
+					log.L.Errorf("%s", errorString)
 					return []base.ActionStructure{}, 0, errors.New(errorString)
 				}
 			}
 		}
 	}
-	//DEBUG ==============================================================================================================================================
-
-	var buffer bytes.Buffer
-	for i, a := range actions {
-
-		buffer.WriteString(a.Action)
-		if i != len(actions)-1 {
-			buffer.WriteString(", ")
-		}
-	}
-	log.Printf("[reconciler] actions after standard reconcile: %s", buffer.String())
-	//=====================================================================================================================================================
+	log.L.Debugf("[reconciler] actions after standard reconcile: %s", len(actions))
 
 	return actions, inCount, nil
 }

@@ -1,14 +1,15 @@
 package commandevaluators
 
 import (
-	"errors"
 	"fmt"
-	"log"
 	"strconv"
+
+	"github.com/byuoitav/common/log"
 
 	"github.com/byuoitav/av-api/base"
 )
 
+// SetVolumeTecLite implements the CommandEvaluator struct.
 type SetVolumeTecLite struct {
 }
 
@@ -30,8 +31,8 @@ func (*SetVolumeTecLite) Evaluate(room base.PublicRoom, requestor string) ([]bas
 	for i := range actions {
 		oldLevel, err := strconv.Atoi(actions[i].Parameters["level"])
 		if err != nil {
-			err = errors.New(fmt.Sprintf("Could not parse parameter 'level' for an integer: %s", err.Error()))
-			log.Printf("%s", err.Error())
+			err = fmt.Errorf("[command_evaluators] Could not parse parameter 'level' for an integer: %s", err.Error())
+			log.L.Errorf("%s", err.Error())
 			return actions, count, err
 		}
 		actions[i].Parameters["level"] = strconv.Itoa(calculateNewLevel(oldLevel, 65))

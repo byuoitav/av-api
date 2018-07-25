@@ -2,12 +2,12 @@ package statusevaluators
 
 import (
 	"errors"
-	"log"
 	"strconv"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/structs"
+	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/log"
+	"github.com/byuoitav/common/structs"
 	"github.com/fatih/color"
 )
 
@@ -17,34 +17,40 @@ a) a mic has only one port configuration with the DSP as a destination device
 
 */
 
-const MUTED_DSP = "STATUS_MutedDSP"
-const MUTE_DSP_STATUS = "STATUS_MutedDSP"
+// MutedDSPEvaluator is a constant variable for the name of the evaluator.
+const MutedDSPEvaluator = "STATUS_MutedDSP"
 
+// MutedDSPCommand is a constant variable for the name of the command.
+const MutedDSPCommand = "STATUS_MutedDSP"
+
+// MutedDSP implements the StatusEvaluator struct.
 type MutedDSP struct{}
 
+// GetDevices returns a list of devices in the given room.
 func (p *MutedDSP) GetDevices(room structs.Room) ([]structs.Device, error) {
 
 	return room.Devices, nil
 }
 
+// GenerateCommands generates a list of commands for the given devices.
 func (p *MutedDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand, int, error) {
 
-	log.Printf("Generating \"Muted\" status commands...")
+	log.L.Info("[statusevals] Generating \"Muted\" status commands...")
 
 	//sort mics out of audio devices:w
 	var audioDevices, mics, dsp []structs.Device
 
 	for _, device := range devices {
 
-		log.Printf("Considering device: %s", device.Name)
+		log.L.Infof("[statusevals] Considering device: %s", device.Name)
 
-		if device.HasRole("Microphone") {
+		if structs.HasRole(device, "Microphone") {
 
 			mics = append(mics, device)
-		} else if device.HasRole("DSP") {
+		} else if structs.HasRole(device, "DSP") {
 
 			dsp = append(dsp, device)
-		} else if device.HasRole("AudioOut") {
+		} else if structs.HasRole(device, "AudioOut") {
 
 			audioDevices = append(audioDevices, device)
 		} else {
@@ -53,45 +59,37 @@ func (p *MutedDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand, 
 	}
 
 	//business as ususal for audioDevices
-	commands, count, err := generateStandardStatusCommand(audioDevices, MUTED_DSP, MutedDefaultCommandName)
+	commands, count, err := generateStandardStatusCommand(audioDevices, MutedDSPEvaluator, MutedDefaultCommand)
 	if err != nil {
-		errorMessage := "Could not generate audio device status commands: " + err.Error()
-		log.Printf(errorMessage)
+		errorMessage := "[statusevals] Could not generate audio device status commands: " + err.Error()
+		log.L.Error(errorMessage)
 		return []StatusCommand{}, 0, errors.New(errorMessage)
 	}
 
-	micCommands, c, err := generateMicStatusCommands(mics, MUTED_DSP, MUTE_DSP_STATUS)
+	micCommands, c, err := generateMicStatusCommands(mics, MutedDSPEvaluator, MutedDSPCommand)
 	if err != nil {
-		errorMessage := "Could not generate microphone status commands: " + err.Error()
-		log.Printf(errorMessage)
+		errorMessage := "[statusevals] Could not generate microphone status commands: " + err.Error()
+		log.L.Error(errorMessage)
 		return []StatusCommand{}, 0, errors.New(errorMessage)
 	}
 
 	count += c
 	commands = append(commands, micCommands...)
 
-	dspCommands, c, err := generateDSPStatusCommands(dsp, MUTED_DSP, MUTE_DSP_STATUS)
+	dspCommands, c, err := generateDSPStatusCommands(dsp, MutedDSPEvaluator, MutedDSPCommand)
 	if err != nil {
 		return []StatusCommand{}, 0, err
 	}
 
 	count += c
 	commands = append(commands, dspCommands...)
-	/*
-		for _, command := range commands {
 
-			log.Printf("action: %v", command.Action)
-			log.Printf("Device: %v", command.Device)
-			log.Printf("Destination device: %v", command.DestinationDevice)
-			log.Printf("Parameters: %v", command.Parameters)
-
-		}
-	*/
-	log.Printf(color.HiYellowString("[STATUS-Muted-DSP] Generated %v commands", len(commands)))
+	log.L.Infof(color.HiYellowString("[STATUS-Muted-DSP] Generated %v commands", len(commands)))
 	return commands, count, nil
 
 }
 
+// EvaluateResponse processes the response information that is given.
 func (p *MutedDSP) EvaluateResponse(label string, value interface{}, source structs.Device, destintation base.DestinationDevice) (string, interface{}, error) {
 
 	return label, value, nil
@@ -99,24 +97,24 @@ func (p *MutedDSP) EvaluateResponse(label string, value interface{}, source stru
 
 func generateMicStatusCommands(mics []structs.Device, evaluator string, command string) ([]StatusCommand, int, error) {
 
-	log.Printf("Generating %s commands agains mics...", command)
+	log.L.Infof("[statusevals] Generating %s commands agains mics...", command)
 
 	var commands []StatusCommand
 
 	if len(mics) == 0 {
-		errorMessage := "No mics"
+		errorMessage := "[statusevals] No mics"
 
-		log.Printf(errorMessage)
+		log.L.Error(errorMessage)
 		return []StatusCommand{}, 0, nil
 	}
 
-	dsp, err := dbo.GetDevicesByBuildingAndRoomAndRole(mics[0].Building.Shortname, mics[0].Room.Name, "DSP")
+	dsp, err := db.GetDB().GetDevicesByRoomAndRole(mics[0].GetDeviceRoomID(), "DSP")
 	if err != nil {
 		return []StatusCommand{}, 0, err
 	}
 
 	if len(dsp) != 1 {
-		errorMessage := "Invalid number of DSP devices found in room: " + strconv.Itoa(len(dsp))
+		errorMessage := "[statusevals] Invalid number of DSP devices found in room: " + strconv.Itoa(len(dsp))
 		return []StatusCommand{}, 0, errors.New(errorMessage)
 	}
 
@@ -124,14 +122,14 @@ func generateMicStatusCommands(mics []structs.Device, evaluator string, command 
 
 	for _, mic := range mics {
 
-		log.Printf("Considering mic %s...", mic.Name)
+		log.L.Infof("[statusevals] Considering mic %s...", mic.Name)
 
 		//find the only DSP the room has
 
 		for _, port := range dsp[0].Ports {
 
-			if port.Source == mic.Name {
-				log.Printf("Port configuration identified for mic %s and DSP %s", mic.Name, dsp[0].Name)
+			if port.SourceDevice == mic.ID {
+				log.L.Infof("[statusevals] Port configuration identified for mic %s and DSP %s", mic.Name, dsp[0].Name)
 				destinationDevice := base.DestinationDevice{
 					Device:      mic,
 					AudioDevice: true,
@@ -140,14 +138,14 @@ func generateMicStatusCommands(mics []structs.Device, evaluator string, command 
 				statusCommand := dsp[0].GetCommandByName(command)
 
 				parameters := make(map[string]string)
-				parameters["input"] = port.Name
+				parameters["input"] = port.ID
 				parameters["address"] = dsp[0].Address
 
 				//issue status command to DSP
 				commands = append(commands, StatusCommand{
 					Action:            statusCommand,
 					Device:            dsp[0],
-					Generator:         MUTED_DSP,
+					Generator:         MutedDSPEvaluator,
 					DestinationDevice: destinationDevice,
 					Parameters:        parameters,
 				})
@@ -166,11 +164,11 @@ func generateDSPStatusCommands(dsp []structs.Device, evaluator string, command s
 
 	//validate the correct number of dsps
 	if dsp == nil || len(dsp) != 1 {
-		errorMessage := "Invalide number of DSP devices found in room: " + strconv.Itoa(len(dsp))
+		errorMessage := "[statusevals] Invalid number of DSP devices found in room: " + strconv.Itoa(len(dsp))
 		return []StatusCommand{}, 0, errors.New(errorMessage)
 	}
 
-	log.Printf("Generating DSP status command: %s against device: %s", command, dsp[0])
+	log.L.Infof("[statusevals] Generating DSP status command: %s against device: %s", command, dsp[0])
 
 	parameters := make(map[string]string)
 	parameters["address"] = dsp[0].Address
@@ -186,14 +184,14 @@ func generateDSPStatusCommands(dsp []structs.Device, evaluator string, command s
 	//one command for each port that's not a mic
 	for _, port := range dsp[0].Ports {
 
-		device, err := dbo.GetDeviceByName(dsp[0].Building.Shortname, dsp[0].Room.Name, port.Source)
+		device, err := db.GetDB().GetDevice(dsp[0].ID)
 		if err != nil {
 			return []StatusCommand{}, 0, err
 		}
 
-		if !device.HasRole("Microphone") {
+		if !structs.HasRole(device, "Microphone") {
 
-			parameters["input"] = port.Name
+			parameters["input"] = port.ID
 			commands = append(commands, StatusCommand{
 				Action:            statusCommand,
 				Device:            dsp[0],

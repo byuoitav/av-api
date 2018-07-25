@@ -1,8 +1,8 @@
 package base
 
 import (
-	"github.com/byuoitav/configuration-database-microservice/structs"
-	ei "github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	ei "github.com/byuoitav/common/events"
+	"github.com/byuoitav/common/structs"
 )
 
 //PublicRoom is the struct that is returned (or put) as part of the public API
@@ -15,28 +15,28 @@ type PublicRoom struct {
 	Blanked           *bool         `json:"blanked,omitempty"`
 	Muted             *bool         `json:"muted,omitempty"`
 	Volume            *int          `json:"volume,omitempty"`
-	Displays          []Display     `json:"displays"`
-	AudioDevices      []AudioDevice `json:"audioDevices"`
+	Displays          []Display     `json:"displays,omitempty"`
+	AudioDevices      []AudioDevice `json:"audioDevices,omitempty"`
 }
 
 //Device is a struct for inheriting
 type Device struct {
-	Name  string `json:"name"`
-	Power string `json:"power"`
-	Input string `json:"input"`
+	Name  string `json:"name,omitempty"`
+	Power string `json:"power,omitempty"`
+	Input string `json:"input,omitempty"`
 }
 
 //AudioDevice represents an audio device
 type AudioDevice struct {
 	Device
-	Muted  *bool `json:"muted"`
-	Volume *int  `json:"volume"`
+	Muted  *bool `json:"muted,omitempty"`
+	Volume *int  `json:"volume,omitempty"`
 }
 
 //Display represents a display
 type Display struct {
 	Device
-	Blanked *bool `json:"blanked"`
+	Blanked *bool `json:"blanked,omitempty"`
 }
 
 //ActionStructure is the internal struct we use to pass commands around once
@@ -55,12 +55,14 @@ type ActionStructure struct {
 	Callback            func(StatusPackage, chan<- StatusPackage) error
 }
 
+// DestinationDevice represents the device that is being acted upon.
 type DestinationDevice struct {
 	structs.Device
 	AudioDevice bool `json:"audio"`
 	Display     bool `json:"video"`
 }
 
+// StatusPackage contains the callback information for the action.
 type StatusPackage struct {
 	Key    string
 	Value  interface{}
@@ -75,6 +77,32 @@ func (a *ActionStructure) Equals(b ActionStructure) bool {
 		a.Device.Address == b.Device.Address &&
 		a.DeviceSpecific == b.DeviceSpecific &&
 		a.Overridden == b.Overridden && CheckStringMapsEqual(a.Parameters, b.Parameters)
+}
+
+//ActionByPriority implements the sort.Interface for []ActionStructure
+type ActionByPriority []ActionStructure
+
+func (abp ActionByPriority) Len() int { return len(abp) }
+
+func (abp ActionByPriority) Swap(i, j int) { abp[i], abp[j] = abp[j], abp[i] }
+
+func (abp ActionByPriority) Less(i, j int) bool {
+	var ipri int
+	var jpri int
+	//we've gotta go through and get the priorities
+	for _, command := range abp[i].Device.Type.Commands {
+		if command.ID == abp[i].Action {
+			ipri = command.Priority
+			break
+		}
+	}
+	for _, command := range abp[j].Device.Type.Commands {
+		if command.ID == abp[j].Action {
+			jpri = command.Priority
+			break
+		}
+	}
+	return ipri < jpri
 }
 
 //CheckStringMapsEqual just takes two map[string]string and compares them.

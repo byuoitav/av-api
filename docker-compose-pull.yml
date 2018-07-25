@@ -8,8 +8,10 @@ services:
             - PI_HOSTNAME=$PI_HOSTNAME
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
-            - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
             - EVENT_ROUTER_ADDRESS=$EVENT_ROUTER_ADDRESS
+            - DB_ADDRESS=$DB_ADDRESS
+            - DB_USERNAME=$DB_USERNAME
+            - DB_PASSWORD=$DB_PASSWORD
         network_mode: "host"
         restart: always
         tty: true
@@ -45,6 +47,9 @@ services:
         environment:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - SONY_TV_PSK=$SONY_TV_PSK
+            - DB_ADDRESS=$DB_ADDRESS
+            - DB_USERNAME=$DB_USERNAME
+            - DB_PASSWORD=$DB_PASSWORD
         network_mode: "host"
         restart: always
         tty: true
@@ -81,6 +86,9 @@ services:
             - "8012:8012"
         environment:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+            - DB_ADDRESS=$DB_ADDRESS
+            - DB_USERNAME=$DB_USERNAME
+            - DB_PASSWORD=$DB_PASSWORD
         network_mode: "host"
         restart: always
         tty: true
@@ -92,19 +100,11 @@ services:
             - PI_HOSTNAME=$PI_HOSTNAME
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - HELP_SLACKBOT_WEBHOOK=$HELP_SLACKBOT_WEBHOOK
-            - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
             - UI_CONFIGURATION_ADDRESS=$UI_CONFIGURATION_ADDRESS
             - EVENT_ROUTER_ADDRESS=$EVENT_ROUTER_ADDRESS
-        network_mode: "host"
-        restart: always
-        tty: true
-    configuration-database-tool:
-        image: byuoitav/configuration-database-tool:${DOCKER_HUB_TAG}
-        ports:
-            - "9999:9999"
-        environment:
-            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
-            - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
+            - DB_ADDRESS=$DB_ADDRESS
+            - DB_USERNAME=$DB_USERNAME
+            - DB_PASSWORD=$DB_PASSWORD
         network_mode: "host"
         restart: always
         tty: true
@@ -116,8 +116,10 @@ services:
             - PI_HOSTNAME=$PI_HOSTNAME
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
-            - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
-            - EVENT_NODE_ADDRESSES=$EVENT_NODE_ADDRESSES
+            - DB_ADDRESS=$DB_ADDRESS
+            - DB_USERNAME=$DB_USERNAME
+            - DB_PASSWORD=$DB_PASSWORD
+            - DEV_ROUTER=$DEV_ROUTER
         network_mode: "host"
         tty: true
     event-translator-microservice:
@@ -127,8 +129,6 @@ services:
         environment:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - ELASTIC_API_EVENTS=$ELASTIC_API_EVENTS
-            - ELASTIC_API_EVENTS_DEV=$ELASTIC_API_EVENTS_DEV
-            - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
             - EVENT_ROUTER_ADDRESS=$EVENT_ROUTER_ADDRESS
         network_mode: "host"
         restart: always
@@ -141,26 +141,33 @@ services:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - ELASTIC_API_EVENTS=$ELASTIC_API_EVENTS
             - ELASTIC_API_EVENTS_DEV=$ELASTIC_API_EVENTS_DEV
-            - DEVELOPMENT_HOSTNAME=$DEVELOPMENT_HOSTNAME
             - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
             - PI_HOSTNAME=$PI_HOSTNAME
             - EVENT_ROUTER_ADDRESS=$EVENT_ROUTER_ADDRESS
         network_mode: "host"
-    atlona-microservice:
-        image: byuoitav/atlona-microservice:${DOCKER_HUB_TAG}
-        ports:
-            - "8015:8015"
-        environment:
-            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
-        network_mode: "host"
-        restart: always
-        tty: true
-    qsc-microservice:
-        image: byuoitav/qsc-microservice:${DOCKER_HUB_TAG}
-        ports:
-            - "7016:7016"
-        environment:
-            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
-        network_mode: "host"
-        restart: always
-        tty: true
+        #    couch-db:
+        #        image: treehouses/rpi-couchdb:2.1.1
+        #        ports:
+        #            - "5984:5984"
+        #        environment:
+        #            - COUCHDB_USER=$COUCH_USER
+        #            - COUCHDB_PASSWORD=$COUCH_PASS
+        #        network_mode: "host"
+        #        restart: always
+        #        tty: true
+        #    couch-db-repl:
+        #        image: byuoitav/rpi-couch-db-repl:development
+        #        ports:
+        #            - "7012:7012"
+        #        environment:
+        #            - PI_HOSTNAME=$PI_HOSTNAME
+        #            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+        #            - COUCH_ADDR=$COUCH_ADDR
+        #            - COUCH_USER=$COUCH_USER
+        #            - COUCH_PASS=$COUCH_PASS
+        #            - COUCH_REPL_ADDR=$COUCH_REPL_ADDR
+        #            - COUCH_REPL_USER=$COUCH_REPL_USER
+        #            - COUCH_REPL_PASS=$COUCH_REPL_PASS
+        #        network_mode: "host"
+        #        restart: always
+        #        tty: true

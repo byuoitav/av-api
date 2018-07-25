@@ -2,31 +2,31 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 
 	"github.com/byuoitav/authmiddleware"
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/av-api/handlers"
 	"github.com/byuoitav/av-api/health"
 	avapi "github.com/byuoitav/av-api/init"
+	"github.com/byuoitav/common/db"
+	ei "github.com/byuoitav/common/events"
+	"github.com/byuoitav/common/log"
 	si "github.com/byuoitav/device-monitoring-microservice/statusinfrastructure"
-	ei "github.com/byuoitav/event-router-microservice/eventinfrastructure"
 	jh "github.com/jessemillar/health"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 )
 
 func main() {
-	base.EventNode = ei.NewEventNode("AV-API", []string{}, os.Getenv("EVENT_ROUTER_ADDRESS"))
+	base.EventNode = ei.NewEventNode("AV-API", os.Getenv("EVENT_ROUTER_ADDRESS"), []string{})
 
 	go func() {
 		err := avapi.CheckRoomInitialization()
 		if err != nil {
 			base.PublishError("Fail to run init script. Terminating. ERROR:"+err.Error(), ei.INTERNAL)
-			log.Fatalf("Could not initialize room. Error: %v\n", err.Error())
+			log.L.Errorf("Could not initialize room. Error: %v\n", err.Error())
 		}
 	}()
 
@@ -59,6 +59,7 @@ func main() {
 	router.StartServer(&server)
 }
 
+// GetStatus returns the status and version number of this instance of the API.
 func GetStatus(context echo.Context) error {
 	var s si.Status
 	var err error
@@ -68,7 +69,8 @@ func GetStatus(context echo.Context) error {
 		return context.JSON(http.StatusOK, "Failed to open version.txt")
 	}
 
-	vals, err := dbo.GetBuildings()
+	// Test a database retrieval to assess the status.
+	vals, err := db.GetDB().GetAllBuildings()
 	if len(vals) < 1 || err != nil {
 		s.Status = si.StatusDead
 		s.StatusInfo = fmt.Sprintf("Unable to access database. Error: %s", err)
@@ -76,6 +78,7 @@ func GetStatus(context echo.Context) error {
 		s.Status = si.StatusOK
 		s.StatusInfo = ""
 	}
+	log.L.Info("Getting Mstatus")
 
 	return context.JSON(http.StatusOK, s)
 }

@@ -3,29 +3,30 @@ package commandevaluators
 import (
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/events"
+	"github.com/byuoitav/common/log"
+	"github.com/byuoitav/common/structs"
 )
 
-// BlankDisplay is struct that implements the CommandEvaluation struct
+// BlankDisplayDefault is struct that implements the CommandEvaluation struct
 type BlankDisplayDefault struct {
 }
 
-// Takes a PublicRoom and builds a slice of ActionStructures
+// Evaluate verifies the information for a BlankDisplayDefault object and generates a list of actions based on the command.
 func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 
-	log.Printf("[command_evaluators] evaluating BlankDisplay commands...")
+	log.L.Info("[command_evaluators] Evaluating BlankDisplay commands...")
 
 	var actions []base.ActionStructure
 
 	//build event info
-	eventInfo := eventinfrastructure.EventInfo{
-		Type:           eventinfrastructure.CORESTATE,
-		EventCause:     eventinfrastructure.USERINPUT,
+	eventInfo := events.EventInfo{
+		Type:           events.CORESTATE,
+		EventCause:     events.USERINPUT,
 		EventInfoKey:   "blanked",
 		EventInfoValue: "true",
 		Requestor:      requestor,
@@ -33,30 +34,31 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 
 	// Check for room-wide blanking
 	if room.Blanked != nil && *room.Blanked {
-		log.Printf("[command_evaluators] room-wide blank request received. Retrieving all devices...")
+		log.L.Info("[command_evaluators] Room-wide blank request received. Retrieving all devices...")
 
 		// Get all devices
-		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "VideoOut")
+		roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
+		devices, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "VideoOut")
 		if err != nil {
 			return []base.ActionStructure{}, 0, err
 		}
 
-		fmt.Printf("VideoOut devices: %+v\n", devices)
+		log.L.Infof("[command_evaluators] VideoOut devices: %+v\n", devices)
 
-		log.Printf("[command_evaluators] assigning BlankDisplay commands...")
+		log.L.Info("[command_evaluators] Assigning BlankDisplay commands...")
 		// Currently we only check for output devices
 		for _, device := range devices {
 
-			if device.Output {
+			if device.Type.Output {
 
-				log.Printf("[command_evaluators]Adding device %+v", device.Name)
+				log.L.Infof("[command_evaluators] Adding device %+v", device.Name)
 
 				destination := base.DestinationDevice{
 					Device:  device,
 					Display: true,
 				}
 
-				if device.HasRole("AudioOut") {
+				if structs.HasRole(device, "AudioOut") {
 					destination.AudioDevice = true
 				}
 
@@ -67,20 +69,22 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 					Device:              device,
 					DestinationDevice:   destination,
 					DeviceSpecific:      false,
-					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
+					EventLog:            []events.EventInfo{eventInfo},
 				})
 			}
 		}
 	}
 
-	log.Printf("[command_evaluators]Evaluating individual displays for blanking.")
+	log.L.Info("[command_evaluators] Evaluating individual displays for blanking.")
 
 	for _, display := range room.Displays {
-		log.Printf("[command_evaluators]Adding device %+v", display.Name)
+		log.L.Infof("[command_evaluators] Adding device %+v", display.Name)
 
 		if display.Blanked != nil && *display.Blanked {
 
-			device, err := dbo.GetDeviceByName(room.Building, room.Room, display.Name)
+			// Retrieve device information from the database.
+			deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, display.Name)
+			device, err := db.GetDB().GetDevice(deviceID)
 			if err != nil {
 				return []base.ActionStructure{}, 0, err
 			}
@@ -90,7 +94,7 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 				Display: true,
 			}
 
-			if device.HasRole("AudioOut") {
+			if structs.HasRole(device, "AudioOut") {
 				destination.AudioDevice = true
 			}
 
@@ -101,30 +105,31 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 				Device:              device,
 				DestinationDevice:   destination,
 				DeviceSpecific:      true,
-				EventLog:            []eventinfrastructure.EventInfo{eventInfo},
+				EventLog:            []events.EventInfo{eventInfo},
 			})
 		}
 	}
 
-	log.Printf("[command_evaluators]%v actions generated.", len(actions))
-	log.Printf("[command_evaluators]Evaluation complete.")
+	log.L.Infof("[command_evaluators] %v actions generated.", len(actions))
+	log.L.Info("[command_evaluators] Evaluation complete.")
 
 	return actions, len(actions), nil
 }
 
 // Validate fulfills the Fulfill requirement on the command interface
 func (p *BlankDisplayDefault) Validate(action base.ActionStructure) (err error) {
-	log.Printf("[command_evaluators] validating action for command %v", action.Action)
+	log.L.Infof("[command_evaluators] Validating action for command %v", action.Action)
 
 	// Check if the BlankDisplay command is a valid name of a command
-	ok, _ := CheckCommands(action.Device.Commands, "BlankDisplay")
+	ok, _ := CheckCommands(action.Device.Type.Commands, "BlankDisplay")
+
 	// Return an error if the BlankDisplay command doesn't exist or the command in question isn't a BlankDisplay command
 	if !ok || !strings.EqualFold(action.Action, "BlankDisplay") {
-		log.Printf("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
+		log.L.Errorf("[command_evaluators] ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
 		return errors.New(action.Action + " is an invalid command for" + action.Device.Name)
 	}
 
-	log.Printf("[command_evaluators] Done.")
+	log.L.Info("[command_evaluators] Done.")
 	return
 }
 

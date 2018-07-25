@@ -6,18 +6,18 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 
 	"github.com/byuoitav/authmiddleware/bearertoken"
+	"github.com/byuoitav/common/log"
 	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/fatih/color"
 )
 
 // GetData will run a get on the url, and attempt to fill the interface provided from the returned JSON.
 func GetData(url string, structToFill interface{}) error {
-	log.Printf("[dbo] getting data from URL: %s...", url)
+	log.L.Infof("[dbo] getting data from URL: %s...", url)
 	// Make an HTTP client so we can add custom headers (currently used for adding in the Bearer token for inter-microservice communication)
 
 	client := &http.Client{}
@@ -37,7 +37,7 @@ func GetData(url string, structToFill interface{}) error {
 	resp, err := client.Do(req)
 	if err != nil {
 		color.Set(color.FgHiRed, color.Bold)
-		log.Printf("Error on request: %s", err.Error())
+		log.L.Infof("Error on request: %s", err.Error())
 		color.Unset()
 		return err
 	}
@@ -59,7 +59,7 @@ func GetData(url string, structToFill interface{}) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("[dbo] done getting data from url: %s", url)
+	log.L.Infof("[dbo] done getting data from url: %s", url)
 	return nil
 }
 
@@ -105,21 +105,21 @@ func SendData(url string, structToAdd interface{}, structToFill interface{}, met
 
 //PostData hits POST endpoints
 func PostData(url string, structToAdd interface{}, structToFill interface{}) error {
-	log.Printf("[dbo Posting data to URL: %s...", url)
+	log.L.Infof("[dbo Posting data to URL: %s...", url)
 	return SendData(url, structToAdd, structToFill, "POST")
 
 }
 
 //PutData hits PUT endpoints
 func PutData(url string, structToAdd interface{}, structToFill interface{}) error {
-	log.Printf("[dbo] Putting data to URL: %v...", url)
+	log.L.Infof("[dbo] Putting data to URL: %v...", url)
 	return SendData(url, structToAdd, structToFill, "PUT")
 }
 
 func setToken(request *http.Request) error {
 	if len(os.Getenv("LOCAL_ENVIRONMENT")) == 0 {
 
-		log.Printf("[dbo] adding the bearer token for inter-service communication")
+		log.L.Info("[dbo] adding the bearer token for inter-service communication")
 
 		token, err := bearertoken.GetToken()
 		if err != nil {
@@ -133,25 +133,25 @@ func setToken(request *http.Request) error {
 	return nil
 }
 
-// GetAllRawCommands retrieves all the commands
+//GetAllRawCommands retrieves all the commands
 func GetAllRawCommands() (commands []structs.RawCommand, err error) {
-	log.Printf("[dbo] getting all commands.")
+	log.L.Info("[dbo] getting all commands.")
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/commands"
 	err = GetData(url, &commands)
 
 	if err != nil {
 		color.Set(color.FgHiRed, color.Bold)
-		log.Printf("[error]: %s", err.Error())
+		log.L.Infof("[error]: %s", err.Error())
 		color.Unset()
 		return
 	}
 
-	log.Printf("[dbo] Done.")
+	log.L.Info("[dbo] Done.")
 	return
 }
 
 func AddRawCommand(toAdd structs.RawCommand) (structs.RawCommand, error) {
-	log.Printf("[dbo] adding raw command: %v to database", toAdd.Name)
+	log.L.Infof("[dbo] adding raw command: %v to database", toAdd.Name)
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/commands/" + toAdd.Name
 
 	var toFill structs.RawCommand
@@ -164,14 +164,36 @@ func AddRawCommand(toAdd structs.RawCommand) (structs.RawCommand, error) {
 }
 
 func GetRoomByInfo(buildingName string, roomName string) (toReturn structs.Room, err error) {
-	log.Printf("[dbo] getting room %s in building %s...", roomName, buildingName)
-	err = GetData(os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS")+"/buildings/"+buildingName+"/rooms/"+roomName, &toReturn)
+
+	log.L.Infof("[dbo] getting room %s in building %s...", roomName, buildingName)
+	url := fmt.Sprintf("%s/buildings/%s/rooms/%s", os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS"), buildingName, roomName)
+	err = GetData(url, &toReturn)
 	return
+}
+
+func GetRoomById(roomId int) (*structs.Room, error) {
+	url := fmt.Sprintf("%s/rooms/id/%d", os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS"), roomId)
+	var room structs.Room
+	err := GetData(url, &room)
+	if err != nil {
+		return &structs.Room{}, err
+	}
+
+	return &room, nil
 }
 
 // GetDeviceByName simply retrieves a device's information from the databse.
 func GetDeviceByName(buildingName string, roomName string, deviceName string) (toReturn structs.Device, err error) {
 	err = GetData(os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS")+"/buildings/"+buildingName+"/rooms/"+roomName+"/devices/"+deviceName, &toReturn)
+	return
+}
+
+func GetDeviceById(id int) (toReturn structs.Device, err error) {
+
+	url := fmt.Sprintf("%s/devices/%d", os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS"), id)
+
+	err = GetData(url, &toReturn)
+
 	return
 }
 
@@ -181,31 +203,65 @@ func GetDevicesByRoom(buildingName string, roomName string) (toReturn []structs.
 	return
 }
 
+func GetDevicesByRoomId(roomId int) ([]structs.Device, error) {
+
+	url := fmt.Sprintf("%s/rooms/%d/devices", os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS"), roomId)
+
+	var devices []structs.Device
+	err := GetData(url, &devices)
+	if err != nil {
+		return []structs.Device{}, err
+	}
+
+	return devices, nil
+}
+
 // GetDevicesByBuildingAndRoomAndRole will get the devices with the given role from the DB
 func GetDevicesByBuildingAndRoomAndRole(building string, room string, roleName string) (toReturn []structs.Device, err error) {
 
 	err = GetData(os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS")+"/buildings/"+building+"/rooms/"+room+"/devices/roles/"+roleName, &toReturn)
 	if err != nil {
-		log.Printf("%s", color.HiRedString("[error] problem getting device by role: %s", err.Error()))
+		log.L.Infof("%s", color.HiRedString("[error] problem getting device by role: %s", err.Error()))
 	}
 	return
 }
 
+func GetDevicesByRoomIdAndRoleId(roomId, roleId int) ([]structs.Device, error) {
+
+	url := fmt.Sprintf("%s/rooms/%d/roles/%d", os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS"), roomId, roleId)
+
+	var devices []structs.Device
+	err := GetData(url, &devices)
+	if err != nil {
+		return []structs.Device{}, err
+	}
+
+	return devices, nil
+}
+
 // GetBuildings will return all buildings
 func GetBuildings() ([]structs.Building, error) {
-	log.Printf("[dbo] getting all buildings...")
+	log.L.Info("[dbo] getting all buildings...")
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/buildings"
-	log.Printf("[dbo] url: %s", url)
+	log.L.Infof("[dbo] url: %s", url)
 	var buildings []structs.Building
 	err := GetData(url, &buildings)
 
 	return buildings, err
 }
 
+func GetRooms() ([]structs.Room, error) {
+	url := fmt.Sprintf("%s/rooms", os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS"))
+	var rooms []structs.Room
+	err := GetData(url, &rooms)
+
+	return rooms, err
+}
+
 // GetRooms returns all the rooms in a given building
 func GetRoomsByBuilding(building string) ([]structs.Room, error) {
 
-	log.Printf("[dbo] getting all rooms from %v ...", building)
+	log.L.Infof("[dbo] getting all rooms from %v ...", building)
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/buildings/" + building + "/rooms"
 	var rooms []structs.Room
 	err := GetData(url, &rooms)
@@ -225,7 +281,7 @@ func GetBuildingByShortname(building string) (structs.Building, error) {
 
 // AddBuilding
 func AddBuilding(buildingToAdd structs.Building) (structs.Building, error) {
-	log.Printf("[dbo] adding building %v to database", buildingToAdd.Shortname)
+	log.L.Infof("[dbo] adding building %v to database", buildingToAdd.Shortname)
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/buildings/" + buildingToAdd.Shortname
 
 	var buildingToFill structs.Building
@@ -238,7 +294,7 @@ func AddBuilding(buildingToAdd structs.Building) (structs.Building, error) {
 }
 
 func AddRoom(building string, roomToAdd structs.Room) (structs.Room, error) {
-	log.Printf("[dbo] adding room %v to building %v in database", roomToAdd.Name, building)
+	log.L.Infof("[dbo] adding room %v to building %v in database", roomToAdd.Name, building)
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/buildings/" + building + "/rooms/" + roomToAdd.Name
 
 	var roomToFill structs.Room
@@ -251,7 +307,7 @@ func AddRoom(building string, roomToAdd structs.Room) (structs.Room, error) {
 }
 
 func GetDeviceTypes() ([]structs.DeviceType, error) {
-	log.Printf("[dbo] getting all device types")
+	log.L.Info("[dbo] getting all device types")
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/types/"
 
 	var DeviceTypes []structs.DeviceType
@@ -264,7 +320,7 @@ func GetDeviceTypes() ([]structs.DeviceType, error) {
 }
 
 func AddDeviceType(toAdd structs.DeviceType) (structs.DeviceType, error) {
-	log.Printf("[dbo] adding device type: %v to database", toAdd.Name)
+	log.L.Infof("[dbo] adding device type: %v to database", toAdd.Name)
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/types/" + toAdd.Name
 
 	var toFill structs.DeviceType
@@ -276,7 +332,7 @@ func AddDeviceType(toAdd structs.DeviceType) (structs.DeviceType, error) {
 	return toFill, nil
 }
 func GetPowerStates() ([]structs.PowerState, error) {
-	log.Printf("[dbo] getting all power states")
+	log.L.Info("[dbo] getting all power states")
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/powerstates/"
 
 	var powerStates []structs.PowerState
@@ -289,7 +345,7 @@ func GetPowerStates() ([]structs.PowerState, error) {
 }
 
 func AddPowerState(toAdd structs.PowerState) (structs.PowerState, error) {
-	log.Printf("[dbo] adding power state: %v to database", toAdd.Name)
+	log.L.Infof("[dbo] adding power state: %v to database", toAdd.Name)
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/powerstates/" + toAdd.Name
 
 	var toFill structs.PowerState
@@ -302,7 +358,7 @@ func AddPowerState(toAdd structs.PowerState) (structs.PowerState, error) {
 }
 
 func GetMicroservices() ([]structs.Microservice, error) {
-	log.Printf("[dbo] getting all microservices")
+	log.L.Info("[dbo] getting all microservices")
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/microservices"
 
 	var microservices []structs.Microservice
@@ -315,7 +371,7 @@ func GetMicroservices() ([]structs.Microservice, error) {
 }
 
 func AddMicroservice(toAdd structs.Microservice) (structs.Microservice, error) {
-	log.Printf("[dbo] adding microservice: %v to database", toAdd.Name)
+	log.L.Infof("[dbo] adding microservice: %v to database", toAdd.Name)
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/microservices/" + toAdd.Name
 
 	var toFill structs.Microservice
@@ -328,7 +384,7 @@ func AddMicroservice(toAdd structs.Microservice) (structs.Microservice, error) {
 }
 
 func GetEndpoints() ([]structs.Endpoint, error) {
-	log.Printf("[dbo] getting all endpoints")
+	log.L.Info("[dbo] getting all endpoints")
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/endpoints"
 
 	var endpoints []structs.Endpoint
@@ -341,7 +397,7 @@ func GetEndpoints() ([]structs.Endpoint, error) {
 }
 
 func AddEndpoint(toAdd structs.Endpoint) (structs.Endpoint, error) {
-	log.Printf("[dbo] adding endpoint: %v to database", toAdd.Name)
+	log.L.Infof("[dbo] adding endpoint: %v to database", toAdd.Name)
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/endpoints/" + toAdd.Name
 
 	var toFill structs.Endpoint
@@ -354,7 +410,7 @@ func AddEndpoint(toAdd structs.Endpoint) (structs.Endpoint, error) {
 }
 
 func GetPortsByClass(class string) ([]structs.DeviceTypePort, error) {
-	log.Printf("[dbo] Getting ports for class %v", class)
+	log.L.Infof("[dbo] Getting ports for class %v", class)
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + fmt.Sprintf("/classes/%v/ports", class)
 
 	var ports []structs.DeviceTypePort
@@ -363,7 +419,7 @@ func GetPortsByClass(class string) ([]structs.DeviceTypePort, error) {
 }
 
 func GetPorts() ([]structs.PortType, error) {
-	log.Printf("[dbo] getting all ports")
+	log.L.Info("[dbo] getting all ports")
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/ports"
 
 	var ports []structs.PortType
@@ -376,7 +432,7 @@ func GetPorts() ([]structs.PortType, error) {
 }
 
 func AddPort(portToAdd structs.PortType) (structs.PortType, error) {
-	log.Printf("[dbo] adding Port: %v to database", portToAdd.Name)
+	log.L.Infof("[dbo] adding Port: %v to database", portToAdd.Name)
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/ports/" + portToAdd.Name
 
 	var portToFill structs.PortType
@@ -389,7 +445,7 @@ func AddPort(portToAdd structs.PortType) (structs.PortType, error) {
 }
 
 func GetDeviceRoleDefinitions() ([]structs.DeviceRoleDef, error) {
-	log.Printf("[dbo] getting device role definitions")
+	log.L.Info("[dbo] getting device role definitions")
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/roledefinitions"
 
 	var definitions []structs.DeviceRoleDef
@@ -401,8 +457,21 @@ func GetDeviceRoleDefinitions() ([]structs.DeviceRoleDef, error) {
 	return definitions, nil
 }
 
+func GetDeviceRoleDefinitionById(roleId int) (structs.DeviceRoleDef, error) {
+
+	url := fmt.Sprintf("%s/devices/roledefinitions/%d", os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS"), roleId)
+
+	var toFill structs.DeviceRoleDef
+	err := GetData(url, &toFill)
+	if err != nil {
+		return structs.DeviceRoleDef{}, err
+	}
+
+	return toFill, nil
+}
+
 func AddRoleDefinition(toAdd structs.DeviceRoleDef) (structs.DeviceRoleDef, error) {
-	log.Printf("[dbo] adding role definition: %v to database", toAdd.Name)
+	log.L.Infof("[dbo] adding role definition: %v to database", toAdd.Name)
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/roledefinitions/" + toAdd.Name
 
 	var toFill structs.DeviceRoleDef
@@ -415,7 +484,7 @@ func AddRoleDefinition(toAdd structs.DeviceRoleDef) (structs.DeviceRoleDef, erro
 }
 
 func GetRoomConfigurations() ([]structs.RoomConfiguration, error) {
-	log.Printf("[dbo] getting room configurations")
+	log.L.Info("[dbo] getting room configurations")
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/configurations"
 
 	var rcs []structs.RoomConfiguration
@@ -429,12 +498,12 @@ func GetRoomConfigurations() ([]structs.RoomConfiguration, error) {
 }
 
 func GetRoomDesignations() ([]string, error) {
-	log.Printf("[dbo] getting room designations")
+	log.L.Info("[dbo] getting room designations")
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/rooms/designations"
 	var toReturn []string
 	err := GetData(url, &toReturn)
 	if err != nil {
-		log.Printf("err: %v", err.Error())
+		log.L.Errorf("err: %v", err.Error())
 		return toReturn, err
 	}
 
@@ -442,7 +511,7 @@ func GetRoomDesignations() ([]string, error) {
 }
 
 func AddDevice(toAdd structs.Device) (structs.Device, error) {
-	log.Printf("[dbo] adding device: %v to database", toAdd.Name)
+	log.L.Infof("[dbo] adding device: %v to database", toAdd.Name)
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/buildings/" + toAdd.Building.Shortname + "/rooms/" + toAdd.Room.Name + "/devices/" + toAdd.Name
 
 	var toFill structs.Device
@@ -455,7 +524,7 @@ func AddDevice(toAdd structs.Device) (structs.Device, error) {
 }
 
 func GetDeviceClasses() ([]structs.DeviceClass, error) {
-	log.Printf("[dbo] getting all classes")
+	log.L.Info("[dbo] getting all classes")
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/classes"
 
 	var classes []structs.DeviceClass
@@ -465,16 +534,16 @@ func GetDeviceClasses() ([]structs.DeviceClass, error) {
 }
 
 func SetDeviceAttribute(attributeInfo structs.DeviceAttributeInfo) (structs.Device, error) {
-	log.Printf("[dbo] Setting device attrbute %v to %v for device %v", attributeInfo.AttributeName, attributeInfo.AttributeValue, attributeInfo.AttributeValue)
+	log.L.Infof("[dbo] Setting device attrbute %v to %v for device %v", attributeInfo.AttributeName, attributeInfo.AttributeValue, attributeInfo.AttributeValue)
 
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + fmt.Sprintf("/devices/attribute")
 
 	device := structs.Device{}
 	err := PutData(url, attributeInfo, &device)
 	if err != nil {
-		log.Printf("[error] %v", err.Error())
+		log.L.Errorf("[error] %v", err.Error())
 	} else {
-		log.Printf("[dbo] Done.")
+		log.L.Info("[dbo] Done.")
 	}
 
 	return device, err

@@ -14,21 +14,24 @@ c) room-wide requests do not affect microphones
 import (
 	"errors"
 	"fmt"
-	"log"
 	"strconv"
 
-	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/structs"
+	"github.com/byuoitav/common/log"
 
-	ei "github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	"github.com/byuoitav/av-api/base"
+	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/structs"
+
+	ei "github.com/byuoitav/common/events"
 )
 
+// SetVolumeDSP implements the CommandEvaluation struct.
 type SetVolumeDSP struct{}
 
+// Evaluate generates a list of actions based on the room information.
 func (p *SetVolumeDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 
-	log.Printf("Evaluating SetVolume command in DSP context...")
+	log.L.Info("[command_evaluators] Evaluating SetVolume command in DSP context...")
 
 	eventInfo := ei.EventInfo{
 		Type:         ei.CORESTATE,
@@ -41,14 +44,14 @@ func (p *SetVolumeDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.
 
 	if room.Volume != nil {
 
-		log.Printf("Room-wide request detected")
+		log.L.Info("[command_evaluators] Room-wide request detected")
 
 		eventInfo.EventInfoValue = strconv.Itoa(*room.Volume)
 
 		actions, err := GetGeneralVolumeRequestActionsDSP(room, eventInfo)
 		if err != nil {
-			errorMessage := "Could not generate actions for room-wide \"SetVolume\" request: " + err.Error()
-			log.Printf(errorMessage)
+			errorMessage := "[command_evaluators] Could not generate actions for room-wide \"SetVolume\" request: " + err.Error()
+			log.L.Error(errorMessage)
 			return []base.ActionStructure{}, 0, errors.New(errorMessage)
 		}
 
@@ -63,12 +66,13 @@ func (p *SetVolumeDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.
 
 				eventInfo.EventInfoValue = strconv.Itoa(*audioDevice.Volume)
 
-				device, err := dbo.GetDeviceByName(room.Building, room.Room, audioDevice.Name)
+				deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, audioDevice.Name)
+				device, err := db.GetDB().GetDevice(deviceID)
 				if err != nil {
-					log.Printf("Error getting device %s from database: %s", audioDevice.Name, err.Error())
+					log.L.Errorf("[command_evaluators] Error getting device %s from database: %s", audioDevice.Name, err.Error())
 				}
 
-				if device.HasRole("Microphone") {
+				if structs.HasRole(device, "Microphone") {
 
 					action, err := GetMicVolumeAction(device, room, eventInfo, *audioDevice.Volume)
 					if err != nil {
@@ -77,7 +81,7 @@ func (p *SetVolumeDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.
 
 					actions = append(actions, action)
 
-				} else if device.HasRole("DSP") {
+				} else if structs.HasRole(device, "DSP") {
 
 					dspActions, err := GetDSPMediaVolumeAction(device, room, eventInfo, *audioDevice.Volume)
 					if err != nil {
@@ -86,7 +90,7 @@ func (p *SetVolumeDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.
 
 					actions = append(actions, dspActions...)
 
-				} else if device.HasRole("AudioOut") {
+				} else if structs.HasRole(device, "AudioOut") {
 
 					action, err := GetDisplayVolumeAction(device, room, eventInfo, *audioDevice.Volume)
 					if err != nil {
@@ -96,25 +100,26 @@ func (p *SetVolumeDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.
 					actions = append(actions, action)
 
 				} else { //bad device
-					errorMessage := "Cannot set volume of device: " + device.Name + " in given context"
-					log.Printf(errorMessage)
+					errorMessage := "[command_evaluators] Cannot set volume of device: " + device.Name + " in given context"
+					log.L.Error(errorMessage)
 					return []base.ActionStructure{}, 0, errors.New(errorMessage)
 				}
 			}
 		}
 	}
 
-	log.Printf("%v actions generated.", len(actions))
+	log.L.Infof("[command_evaluators] %v actions generated.", len(actions))
 
 	for _, a := range actions {
-		log.Printf("%v, %v", a.Action, a.Parameters)
+		log.L.Infof("[command_evaluators] %v, %v", a.Action, a.Parameters)
 
 	}
 
-	log.Printf("Evaluation complete.")
+	log.L.Info("[command_evaluators] Evaluation complete.")
 	return actions, len(actions), nil
 }
 
+// Validate verifies that the action information is correct.
 func (p *SetVolumeDSP) Validate(action base.ActionStructure) (err error) {
 	maximum := 100
 	minimum := 0
@@ -125,60 +130,64 @@ func (p *SetVolumeDSP) Validate(action base.ActionStructure) (err error) {
 	}
 
 	if level > maximum || level < minimum {
-		log.Printf("ERROR. %v is an invalid volume level for %s", action.Parameters["level"], action.Device.Name)
-		return errors.New(action.Action + " is an invalid command for " + action.Device.Name)
+		msg := fmt.Sprintf("[command_evaluators] ERROR. %v is an invalid volume level for %s", action.Parameters["level"], action.Device.Name)
+		log.L.Error(msg)
+		return errors.New(msg)
 	}
 
 	return
 }
 
+// GetIncompatibleCommands determines the commands from the room that are incompatible with this evaluator.
 func (p *SetVolumeDSP) GetIncompatibleCommands() (incompatibleActions []string) {
 	return nil
 }
 
+// GetGeneralVolumeRequestActionsDSP generates a list of actions based on the room and DSP info.
 func GetGeneralVolumeRequestActionsDSP(room base.PublicRoom, eventInfo ei.EventInfo) ([]base.ActionStructure, error) {
 
-	log.Printf("Generating actions for room-wide \"SetVolume\" request")
+	log.L.Info("[command_evaluators] Generating actions for room-wide \"SetVolume\" request")
 
 	var actions []base.ActionStructure
 
-	dsp, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "DSP")
+	roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
+	dsp, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "DSP")
 	if err != nil {
-		log.Printf("Error getting devices %s", err.Error)
+		log.L.Errorf("[command_evaluators] Error getting devices %s", err.Error)
 		return []base.ActionStructure{}, err
 	}
 
 	//verify that there is only one DSP
 	if len(dsp) != 1 {
-		errorMessage := "Invalid DSP configuration detected in room."
-		log.Printf(errorMessage)
+		errorMessage := "[command_evaluators] Invalid DSP configuration detected in room."
+		log.L.Error(errorMessage)
 		return []base.ActionStructure{}, errors.New(errorMessage)
 	}
 
 	dspActions, err := GetDSPMediaVolumeAction(dsp[0], room, eventInfo, *room.Volume)
 	if err != nil {
-		errorMessage := "Could not generate action corresponding to general mute request in room " + room.Room + ", building " + room.Building + ": " + err.Error()
-		log.Printf(errorMessage)
+		errorMessage := "[command_evaluators] Could not generate action corresponding to general mute request in room " + room.Room + ", building " + room.Building + ": " + err.Error()
+		log.L.Error(errorMessage)
 		return []base.ActionStructure{}, errors.New(errorMessage)
 	}
 
 	actions = append(actions, dspActions...)
 
-	audioDevices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "AudioOut")
+	audioDevices, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "AudioOut")
 	if err != nil {
-		log.Printf("Error getting devices %s", err.Error())
+		log.L.Errorf("[command_evaluators] Error getting devices %s", err.Error())
 		return []base.ActionStructure{}, err
 	}
 
 	for _, device := range audioDevices {
-		if device.HasRole("DSP") {
+		if structs.HasRole(device, "DSP") {
 			continue
 		}
 
 		action, err := GetDisplayVolumeAction(device, room, eventInfo, *room.Volume)
 		if err != nil {
-			errorMessage := "Could not generate mute action for display " + device.Name + " in room " + room.Room + ", building " + room.Building + ": " + err.Error()
-			log.Printf(errorMessage)
+			errorMessage := "[command_evaluators] Could not generate mute action for display " + device.Name + " in room " + room.Room + ", building " + room.Building + ": " + err.Error()
+			log.L.Error(errorMessage)
 			return []base.ActionStructure{}, errors.New(errorMessage)
 		}
 
@@ -188,11 +197,12 @@ func GetGeneralVolumeRequestActionsDSP(room base.PublicRoom, eventInfo ei.EventI
 	return actions, nil
 }
 
+// GetMicVolumeAction generates an action based on the room, microphone and event information.
 //we assume microphones are only connected to a DSP
 //commands regarding microphones are only issued to DSP
 func GetMicVolumeAction(mic structs.Device, room base.PublicRoom, eventInfo ei.EventInfo, volume int) (base.ActionStructure, error) {
 
-	log.Printf("Identified microphone volume request")
+	log.L.Info("[command_evaluators] Identified microphone volume request")
 
 	destination := base.DestinationDevice{
 		Device:      mic,
@@ -200,17 +210,18 @@ func GetMicVolumeAction(mic structs.Device, room base.PublicRoom, eventInfo ei.E
 	}
 
 	//get DSP
-	dsps, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "DSP")
+	roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
+	dsps, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "DSP")
 	if err != nil {
-		errorMessage := "Error getting DSP configuration for building " + room.Building + ", room " + room.Room + ": " + err.Error()
-		log.Printf(errorMessage)
+		errorMessage := "[command_evaluators] Error getting DSP configuration for building " + room.Building + ", room " + room.Room + ": " + err.Error()
+		log.L.Error(errorMessage)
 		return base.ActionStructure{}, errors.New(errorMessage)
 	}
 
 	//verify that there is only one DSP
 	if len(dsps) != 1 {
-		errorMessage := "Invalid DSP configuration detected in room."
-		log.Printf(errorMessage)
+		errorMessage := "[command_evaluators] Invalid DSP configuration detected in room."
+		log.L.Error(errorMessage)
 		return base.ActionStructure{}, errors.New(errorMessage)
 	}
 
@@ -218,19 +229,19 @@ func GetMicVolumeAction(mic structs.Device, room base.PublicRoom, eventInfo ei.E
 	parameters := make(map[string]string)
 
 	if volume < 0 || volume > 100 {
-		errorMessage := "Invalid volume parameter: " + strconv.Itoa(volume)
-		log.Printf(errorMessage)
+		errorMessage := "[command_evaluators] Invalid volume parameter: " + strconv.Itoa(volume)
+		log.L.Error(errorMessage)
 		return base.ActionStructure{}, errors.New(errorMessage)
 	}
 
 	for _, port := range dsp.Ports {
 
-		if port.Source == mic.Name {
+		if port.SourceDevice == mic.ID {
 
 			eventInfo.EventInfoValue = strconv.Itoa(volume)
 			eventInfo.Device = mic.Name
 			parameters["level"] = strconv.Itoa(volume)
-			parameters["input"] = port.Name
+			parameters["input"] = port.ID
 
 			return base.ActionStructure{
 				Action:              "SetVolume",
@@ -244,13 +255,14 @@ func GetMicVolumeAction(mic structs.Device, room base.PublicRoom, eventInfo ei.E
 		}
 	}
 
-	return base.ActionStructure{}, errors.New("Could not find port for mic " + mic.Name)
+	return base.ActionStructure{}, errors.New("[command_evaluators] Could not find port for mic " + mic.Name)
 }
 
+// GetDSPMediaVolumeAction generates a list of actions based on the room, DSP, and event information.
 func GetDSPMediaVolumeAction(dsp structs.Device, room base.PublicRoom, eventInfo ei.EventInfo, volume int) ([]base.ActionStructure, error) { //commands are issued to whatever port doesn't have a mic connected
-	log.Printf("%v", volume)
+	log.L.Infof("[command_evaluators] %v", volume)
 
-	log.Printf("Generating action for command SetVolume on media routed through DSP")
+	log.L.Info("[command_evaluators] Generating action for command SetVolume on media routed through DSP")
 
 	var output []base.ActionStructure
 
@@ -260,21 +272,22 @@ func GetDSPMediaVolumeAction(dsp structs.Device, room base.PublicRoom, eventInfo
 		eventInfo.EventInfoValue = fmt.Sprintf("%v", volume)
 		eventInfo.Device = dsp.Name
 
-		sourceDevice, err := dbo.GetDeviceByName(room.Building, room.Room, port.Source)
+		deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, port.SourceDevice)
+		sourceDevice, err := db.GetDB().GetDevice(deviceID)
 		if err != nil {
-			errorMessage := "Could not get device " + port.Source + " from database: " + err.Error()
-			log.Printf(errorMessage)
+			errorMessage := "[command_evaluators] Could not get device " + port.SourceDevice + " from database: " + err.Error()
+			log.L.Error(errorMessage)
 			return []base.ActionStructure{}, errors.New(errorMessage)
 		}
 
-		if !(sourceDevice.HasRole("Microphone")) {
+		if !(structs.HasRole(sourceDevice, "Microphone")) {
 
 			destination := base.DestinationDevice{
 				Device:      dsp,
 				AudioDevice: true,
 			}
 
-			parameters["input"] = port.Name
+			parameters["input"] = port.ID
 			action := base.ActionStructure{
 				Action:              "SetVolume",
 				GeneratingEvaluator: "SetVolumeDSP",
@@ -293,9 +306,10 @@ func GetDSPMediaVolumeAction(dsp structs.Device, room base.PublicRoom, eventInfo
 
 }
 
+// GetDisplayVolumeAction generates an action based on the room, display and event information.
 func GetDisplayVolumeAction(device structs.Device, room base.PublicRoom, eventInfo ei.EventInfo, volume int) (base.ActionStructure, error) { //commands are issued to devices, e.g. they aren't connected to the DSP
 
-	log.Printf("Generating action for SetVolume on device %s external to DSP", device.Name)
+	log.L.Infof("[command_evaluators] Generating action for SetVolume on device %s external to DSP", device.Name)
 
 	parameters := make(map[string]string)
 
@@ -304,7 +318,7 @@ func GetDisplayVolumeAction(device structs.Device, room base.PublicRoom, eventIn
 		AudioDevice: true,
 	}
 
-	if device.HasRole("VideoOut") {
+	if structs.HasRole(device, "VideoOut") {
 		destination.Display = true
 	}
 

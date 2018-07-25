@@ -2,29 +2,34 @@ package statusevaluators
 
 import (
 	"errors"
-	"log"
+	"fmt"
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/structs"
+	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/log"
+	"github.com/byuoitav/common/structs"
 )
 
-const INPUT_STATUS_VIDEO_SWITCHER_EVALUATOR = "STATUS_InputVideoSwitcher"
+// InputVideoSwitcherEvaluator is a constant variable for the name of the evaluator.
+const InputVideoSwitcherEvaluator = "STATUS_InputVideoSwitcher"
 
+// InputVideoSwitcher implements the StatusEvaluator struct.
 type InputVideoSwitcher struct {
 }
 
+// GetDevices returns a list of devices in the given room.
 func (p *InputVideoSwitcher) GetDevices(room structs.Room) ([]structs.Device, error) {
 	return room.Devices, nil
 }
 
+// GenerateCommands generates a list of commands for the given devices.
 func (p *InputVideoSwitcher) GenerateCommands(devices []structs.Device) ([]StatusCommand, int, error) {
-	log.Printf("Generating status commands from STATUS_Video_Switcher")
+	log.L.Info("[statusevals] Generating status commands from STATUS_Video_Switcher")
 
 	//first thing is to get the video switcher in the room
 	//xuther: we could do this via another call to the database, but looping through is actually faster.
-	log.Printf("Looking for video switcher in room")
+	log.L.Info("[statusevals] Looking for video switcher in room")
 
 	found := false
 	var switcher structs.Device
@@ -33,8 +38,8 @@ func (p *InputVideoSwitcher) GenerateCommands(devices []structs.Device) ([]Statu
 
 	for _, device := range devices {
 		for _, role := range device.Roles {
-			if role == "VideoSwitcher" {
-				log.Printf("Found.")
+			if role.ID == "VideoSwitcher" {
+				log.L.Info("[statusevals] Found.")
 				found = true
 				break
 			}
@@ -42,8 +47,8 @@ func (p *InputVideoSwitcher) GenerateCommands(devices []structs.Device) ([]Statu
 		if found {
 			found = false
 			//check to see if it has the get input by output port command
-			for _, c := range device.Commands {
-				if c.Name == "STATUS_Input" {
+			for _, c := range device.Type.Commands {
+				if c.ID == "STATUS_Input" {
 					found = true
 					command = c
 					break
@@ -51,109 +56,111 @@ func (p *InputVideoSwitcher) GenerateCommands(devices []structs.Device) ([]Statu
 			}
 			if found {
 				switcher = device
-				log.Printf("Video switcher found")
+				log.L.Info("[statusevals] Video switcher found")
 			}
 			break
 		}
 	}
 	if !found {
-		log.Printf("No video switcher found in the room, generating standard commands")
-		return generateStandardStatusCommand(devices, DEFAULT_INPUT_EVALUATOR, DEFAULT_INPUT_COMMAND)
+		log.L.Info("[statusevals] No video switcher found in the room, generating standard commands")
+		return generateStandardStatusCommand(devices, DefaultInputEvaluator, DefaultInputCommand)
 	}
 
 	var count int
 
 	//this isn't going to be standard
 	for _, device := range devices {
-		log.Printf("Considering device: %v", device.GetFullName())
+		log.L.Infof("[statusevals] Considering device: %v", device.ID)
 
 		cont := false
 		var destinationDevice base.DestinationDevice
 		//for now assume that everything is going through the switcher, check to make sure it's a device we care about
 		for _, role := range device.Roles {
-			if role == "AudioOut" {
+			if role.ID == "AudioOut" {
 				cont = true
 				destinationDevice.AudioDevice = true
 			}
 
-			if role == "VideoOut" {
+			if role.ID == "VideoOut" {
 				cont = true
 				destinationDevice.Display = true
 			}
 		}
 		if !cont {
-			log.Printf("Device is not an output device.")
+			log.L.Info("[statusevals] Device is not an output device.")
 			continue
 		}
-		log.Printf("Device is an output device.")
+		log.L.Info("[statusevals] Device is an output device.")
 
 		destinationDevice.Device = device
 		parameters := make(map[string]string)
 		parameters["address"] = switcher.Address
 
-		log.Printf("Looking for an output port that matches the goal device.")
+		log.L.Info("[statusevals] Looking for an output port that matches the goal device.")
 
 		//find the outport for the device
 		for _, p := range switcher.Ports {
-			if p.Destination == device.Name {
-				split := strings.Split(p.Name, ":")
+			if p.DestinationDevice == device.ID {
+				split := strings.Split(p.ID, ":")
 				parameters["port"] = split[1]
-				log.Printf("Found an output port on switcher %v for device %v. Port: %v", switcher.GetFullName(), device.GetFullName(), split[1])
+				log.L.Infof("[statusevals] Found an output port on switcher %v for device %v. Port: %v", switcher.ID, device.ID, split[1])
 				break
 			}
 		}
 		if _, ok := parameters["port"]; !ok {
-			log.Printf("Could find no output port matching the device on the switcher, skipping.")
+			log.L.Info("[statusevals] Could find no output port matching the device on the switcher, skipping.")
 			continue
 		}
 
-		log.Printf("Generating status command.")
+		log.L.Info("[statusevals] Generating status command.")
 
 		statusCommands = append(statusCommands, StatusCommand{
 			Action:            command,
 			Device:            switcher,
-			Generator:         INPUT_STATUS_VIDEO_SWITCHER_EVALUATOR,
+			Generator:         InputVideoSwitcherEvaluator,
 			DestinationDevice: destinationDevice,
 			Parameters:        parameters,
 		})
 		count++
 	}
-	log.Printf("Done.")
+	log.L.Info("[statusevals] Done.")
 
 	return statusCommands, count, nil
 }
 
+// EvaluateResponse processes the response information that is given.
 func (p *InputVideoSwitcher) EvaluateResponse(label string, value interface{}, source structs.Device, dest base.DestinationDevice) (string, interface{}, error) {
-	log.Printf("Evaluating response: %s, %s in evaluator %v", label, value, BlankedDefaultName)
+	log.L.Infof("[statusevals] Evaluating response: %s, %s in evaluator %v", label, value, BlankedDefaultEvaluator)
 
 	//in this case we assume that there's a single video switcher, so first we get the video switcher in the room, then we match source and dest
-	switcherList, err := dbo.GetDevicesByBuildingAndRoomAndRole(source.Building.Shortname, source.Room.Name, "VideoSwitcher")
+	switcherList, err := db.GetDB().GetDevicesByRoomAndRole(source.GetDeviceRoomID(), "VideoSwitcher")
 	if err != nil {
-		log.Printf("Error getting the video switcher: %v", err.Error())
+		log.L.Errorf("[statusevals] Error getting the video switcher: %v", err.Error())
 		return "", nil, err
 	}
 	if len(switcherList) != 1 {
-		log.Printf("Invalid room for this evaluator, there are %v switchers in the room, expecting 1", len(switcherList))
-		return "", nil, errors.New("Invalid room for this evaluator, there is more than one video switcher in the room.")
+		msg := fmt.Sprintf("[statusevals] Invalid room for this evaluator, there are %v switchers in the room, expecting 1", len(switcherList))
+		log.L.Error(msg)
+		return "", nil, errors.New(msg)
 	}
 
 	//source and dest are in the value string
 	bay, ok := value.(string)
 	if !ok {
-		errString := "Invalid response value for this evaluiator, expects a string"
-		log.Printf(errString)
+		errString := "[statusevals] Invalid response value for this evaluiator, expects a string"
+		log.L.Error(errString)
 		return "", nil, errors.New(errString)
 	}
 
 	for _, port := range switcherList[0].Ports {
-		split := strings.Split(port.Name, ":")
-		if strings.EqualFold(port.Destination, dest.Name) && bay == split[0] {
-			log.Printf("Found a source device that matches the port returned: %v, %v", bay, port.Source)
-			return label, port.Source, nil
+		split := strings.Split(port.ID, ":")
+		if strings.EqualFold(port.DestinationDevice, dest.ID) && bay == split[0] {
+			log.L.Infof("[statusevals] Found a source device that matches the port returned: %v, %v", bay, port.SourceDevice)
+			return label, port.SourceDevice, nil
 		}
 	}
 
-	log.Printf("Couldn't find a mapping for entry port %v on video switcher %v", bay, switcherList[0].GetFullName())
+	log.L.Infof("[statusevals] Couldn't find a mapping for entry port %v on video switcher %v", bay, switcherList[0].ID)
 
 	return label, value, nil
 }

@@ -2,12 +2,15 @@ package commandevaluators
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
+	"github.com/byuoitav/common/log"
+
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/structs"
-	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/events"
+	"github.com/byuoitav/common/structs"
 )
 
 //ChangeVideoInputDefault is struct that implements the CommandEvaluation struct
@@ -67,90 +70,109 @@ func (p *ChangeVideoInputDefault) GetIncompatibleCommands() (incompatableActions
 }
 
 func generateChangeInputByDevice(dev base.Device, room, building, generatingEvaluator, requestor string) (action base.ActionStructure, err error) {
+	var output structs.Device
+	var input structs.Device
 
-	var curDevice structs.Device
-
-	curDevice, err = dbo.GetDeviceByName(building, room, dev.Name)
+	roomID := fmt.Sprintf("%v-%v", building, room)
+	devices, err := db.GetDB().GetDevicesByRoom(roomID)
 	if err != nil {
 		return
 	}
 
-	paramMap := make(map[string]string)
-	var portSource string
+	// get the input/output devices
+	for _, device := range devices {
+		if strings.EqualFold(device.Name, dev.Name) {
+			output = device
+		} else if strings.EqualFold(device.Name, dev.Input) {
+			input = device
+		}
+	}
 
-	for _, port := range curDevice.Ports {
-		if strings.EqualFold(port.Source, dev.Input) {
-			paramMap["port"] = port.Name
-			portSource = port.Source
+	if len(output.ID) == 0 {
+		err = errors.New(fmt.Sprintf("unable to find a device in the room matching the name %s", dev.Name))
+		return
+	}
+
+	if len(input.ID) == 0 {
+		err = errors.New(fmt.Sprintf("unable to find a device in the room matching the name %s", dev.Input))
+		return
+	}
+
+	paramMap := make(map[string]string)
+
+	for _, port := range output.Ports {
+		if strings.EqualFold(port.SourceDevice, input.ID) {
+			paramMap["port"] = port.ID
 			break
 		}
 	}
 
 	if len(paramMap) == 0 {
-		err = errors.New("No port found for input.")
+		log.L.Error("[command_evaluators] No port found for input.")
 		return
 	}
 
 	destination := base.DestinationDevice{
-		Device: curDevice,
+		Device: output,
 	}
 
-	if curDevice.HasRole("AudioOut") {
+	if structs.HasRole(output, "AudioOut") {
 		destination.AudioDevice = true
 	}
 
-	if curDevice.HasRole("VideoOut") {
+	if structs.HasRole(output, "VideoOut") {
 		destination.Display = true
 	}
 
-	eventInfo := eventinfrastructure.EventInfo{
-		Type:           eventinfrastructure.CORESTATE,
-		EventCause:     eventinfrastructure.USERINPUT,
+	eventInfo := events.EventInfo{
+		Type:           events.CORESTATE,
+		EventCause:     events.USERINPUT,
 		Device:         dev.Name,
 		EventInfoKey:   "input",
-		EventInfoValue: portSource,
+		EventInfoValue: input.Name,
 		Requestor:      requestor,
 	}
 
 	action = base.ActionStructure{
 		Action:              "ChangeInput",
 		GeneratingEvaluator: generatingEvaluator,
-		Device:              curDevice,
+		Device:              output,
+		DestinationDevice:   destination,
 		Parameters:          paramMap,
 		DeviceSpecific:      true,
 		Overridden:          false,
-		EventLog:            []eventinfrastructure.EventInfo{eventInfo},
+		EventLog:            []events.EventInfo{eventInfo},
 	}
 
 	return
 }
 
 func generateChangeInputByRole(role, input, room, building, generatingEvaluator, requestor string) (actions []base.ActionStructure, err error) {
-	devicesToChange, err := dbo.GetDevicesByBuildingAndRoomAndRole(building, room, role)
+	roomID := fmt.Sprintf("%v-%v", building, room)
+	devicesToChange, err := db.GetDB().GetDevicesByRoomAndRole(roomID, role)
 	if err != nil {
 		return
 	}
 
-	var source string
+	// get the input device
+	inputDevice, err := db.GetDB().GetDevice(input)
+	if err != nil {
+		return
+	}
 
 	for _, d := range devicesToChange { // Loop through the devices in the room
 		paramMap := make(map[string]string) // Start building parameter map
 
 		//Get the port mapping for the device
 		for _, curPort := range d.Ports { // Loop through the found ports
-
-			if strings.EqualFold(curPort.Source, input) {
-
-				paramMap["port"] = curPort.Name
-				source = curPort.Source
+			if strings.EqualFold(curPort.SourceDevice, inputDevice.ID) {
+				paramMap["port"] = curPort.ID
 				break
-
 			}
-
 		}
 
 		if len(paramMap) == 0 {
-			err = errors.New("No port found for input.")
+			log.L.Error("[command_evaluators] No port found for input.")
 			return
 		}
 
@@ -158,20 +180,20 @@ func generateChangeInputByRole(role, input, room, building, generatingEvaluator,
 			Device: d,
 		}
 
-		if d.HasRole("AudioOut") {
+		if structs.HasRole(d, "AudioOut") {
 			dest.AudioDevice = true
 		}
 
-		if d.HasRole("VideoOut") {
+		if structs.HasRole(d, "VideoOut") {
 			dest.Display = true
 		}
 
-		eventInfo := eventinfrastructure.EventInfo{
-			Type:           eventinfrastructure.USERACTION,
-			EventCause:     eventinfrastructure.USERINPUT,
+		eventInfo := events.EventInfo{
+			Type:           events.USERACTION,
+			EventCause:     events.USERINPUT,
 			Device:         d.Name,
 			EventInfoKey:   "input",
-			EventInfoValue: source,
+			EventInfoValue: inputDevice.Name,
 			Requestor:      requestor,
 		}
 
@@ -183,7 +205,7 @@ func generateChangeInputByRole(role, input, room, building, generatingEvaluator,
 			Parameters:          paramMap,
 			DeviceSpecific:      false,
 			Overridden:          false,
-			EventLog:            []eventinfrastructure.EventInfo{eventInfo},
+			EventLog:            []events.EventInfo{eventInfo},
 		}
 
 		actions = append(actions, action)

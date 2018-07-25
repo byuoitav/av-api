@@ -5,18 +5,22 @@ import (
 	"strings"
 	"time"
 
-	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	"github.com/byuoitav/common/events"
 )
 
-var EventNode *eventinfrastructure.EventNode
+// EventNode is the event node used through the AV-API package to send events.
+var EventNode *events.EventNode
 
-func PublishHealth(e eventinfrastructure.Event) {
+// PublishHealth is a wrapper function to publish an Event that is not an error.
+func PublishHealth(e events.Event) {
 	Publish(e, false)
 }
 
-func Publish(e eventinfrastructure.Event, Error bool) error {
+// Publish sends a pre-made Event to the event router and tags it as a Success or an Error.
+func Publish(e events.Event, Error bool) error {
 	var err error
 
+	// Add some more information to the Event, such as hostname and a timestamp.
 	e.Timestamp = time.Now().Format(time.RFC3339)
 	if len(os.Getenv("LOCAL_ENVIRONMENT")) > 0 {
 		e.Hostname = os.Getenv("PI_HOSTNAME")
@@ -34,16 +38,17 @@ func Publish(e eventinfrastructure.Event, Error bool) error {
 	e.LocalEnvironment = len(os.Getenv("LOCAL_ENVIRONMENT")) > 0
 
 	if !Error {
-		EventNode.PublishEvent(e, eventinfrastructure.APISuccess)
+		EventNode.PublishEvent(events.APISuccess, e)
 	} else {
-		EventNode.PublishEvent(e, eventinfrastructure.APIError)
+		EventNode.PublishEvent(events.APIError, e)
 	}
 
 	return err
 }
 
-func SendEvent(Type eventinfrastructure.EventType,
-	Cause eventinfrastructure.EventCause,
+// SendEvent builds and then sends the Event to the event router.
+func SendEvent(Type events.EventType,
+	Cause events.EventCause,
 	Device string,
 	Room string,
 	Building string,
@@ -52,7 +57,7 @@ func SendEvent(Type eventinfrastructure.EventType,
 	Requestor string,
 	Error bool) error {
 
-	e := eventinfrastructure.EventInfo{
+	e := events.EventInfo{
 		Type:           Type,
 		EventCause:     Cause,
 		Device:         Device,
@@ -61,7 +66,7 @@ func SendEvent(Type eventinfrastructure.EventType,
 		Requestor:      Requestor,
 	}
 
-	err := Publish(eventinfrastructure.Event{
+	err := Publish(events.Event{
 		Event:    e,
 		Building: Building,
 		Room:     Room,
@@ -70,9 +75,10 @@ func SendEvent(Type eventinfrastructure.EventType,
 	return err
 }
 
-func PublishError(errorStr string, cause eventinfrastructure.EventCause) {
-	e := eventinfrastructure.EventInfo{
-		Type:           eventinfrastructure.ERROR,
+// PublishError takes an error message and cause for the error, and then builds an Event to send to the event router.
+func PublishError(errorStr string, cause events.EventCause) {
+	e := events.EventInfo{
+		Type:           events.ERROR,
 		EventCause:     cause,
 		EventInfoKey:   "Error String",
 		EventInfoValue: errorStr,
@@ -91,7 +97,7 @@ func PublishError(errorStr string, cause eventinfrastructure.EventCause) {
 		}
 	}
 
-	Publish(eventinfrastructure.Event{
+	Publish(events.Event{
 		Event:    e,
 		Building: building,
 		Room:     room,

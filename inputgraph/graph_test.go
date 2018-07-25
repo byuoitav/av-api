@@ -1,219 +1,195 @@
 package inputgraph
 
 import (
-	"log"
 	"testing"
 
-	"github.com/byuoitav/configuration-database-microservice/structs"
+	"github.com/byuoitav/av-api/base"
+	"github.com/byuoitav/common/structs"
 )
 
 var i1 = structs.Device{
-	Name: "i1",
+	ID: "i1",
 }
 var i2 = structs.Device{
-	Name: "i2",
+	ID: "i2",
 }
 var i3 = structs.Device{
-	Name: "i3",
+	ID: "i3",
 }
 var i4 = structs.Device{
-	Name: "i1",
+	ID: "i1",
 }
 var i5 = structs.Device{
-	Name: "i5",
+	ID: "i5",
 }
 var i6 = structs.Device{
-	Name: "i6",
+	ID: "i6",
 }
 
 var a = structs.Device{
-	Name: "a",
+	ID: "a",
 	Ports: []structs.Port{
 		structs.Port{
-			Source:      "i1",
-			Name:        "in1",
-			Host:        "a",
-			Destination: "a",
+			SourceDevice:      "i1",
+			ID:                "in1",
+			DestinationDevice: "a",
 		},
 		structs.Port{
-			Source:      "i2",
-			Name:        "in2",
-			Host:        "a",
-			Destination: "a",
+			SourceDevice:      "i2",
+			ID:                "in2",
+			DestinationDevice: "a",
 		},
 		structs.Port{
-			Source:      "i3",
-			Name:        "in3",
-			Host:        "a",
-			Destination: "a",
+			SourceDevice:      "i2",
+			ID:                "in2",
+			DestinationDevice: "a",
 		},
 		structs.Port{
-			Source:      "i4",
-			Name:        "in4",
-			Host:        "a",
-			Destination: "a",
+			SourceDevice:      "i2",
+			ID:                "in2",
+			DestinationDevice: "a",
 		},
 		structs.Port{
-			Source:      "a",
-			Name:        "out1",
-			Host:        "a",
-			Destination: "c",
+			SourceDevice:      "a",
+			ID:                "out1",
+			DestinationDevice: "c",
 		},
 	},
 }
 
 var b = structs.Device{
-	Name: "b",
+	ID: "b",
 	Ports: []structs.Port{
 		structs.Port{
-			Source:      "i3",
-			Name:        "in1",
-			Host:        "b",
-			Destination: "b",
+			SourceDevice:      "i3",
+			ID:                "in1",
+			DestinationDevice: "b",
 		},
 		structs.Port{
-			Source:      "i4",
-			Name:        "in2",
-			Host:        "b",
-			Destination: "b",
+			SourceDevice:      "i4",
+			ID:                "in2",
+			DestinationDevice: "b",
 		},
 		structs.Port{
-			Source:      "i5",
-			Name:        "in3",
-			Host:        "b",
-			Destination: "b",
+			SourceDevice:      "i5",
+			ID:                "in3",
+			DestinationDevice: "b",
 		},
 		structs.Port{
-			Source:      "b",
-			Name:        "out1",
-			Host:        "b",
-			Destination: "c",
+			SourceDevice:      "b",
+			ID:                "out1",
+			DestinationDevice: "c",
 		},
 		structs.Port{
-			Source:      "b",
-			Name:        "out2",
-			Host:        "b",
-			Destination: "d",
+			SourceDevice:      "b",
+			ID:                "out2",
+			DestinationDevice: "d",
 		},
 	},
 }
 
 var c = structs.Device{
-	Name: "c",
+	ID: "c",
 	Ports: []structs.Port{
 		structs.Port{
-			Source:      "a",
-			Name:        "in1",
-			Host:        "c",
-			Destination: "c",
+			SourceDevice:      "a",
+			ID:                "in1",
+			DestinationDevice: "c",
 		},
 		structs.Port{
-			Source:      "b",
-			Name:        "in2",
-			Host:        "c",
-			Destination: "c",
+			SourceDevice:      "b",
+			ID:                "in2",
+			DestinationDevice: "c",
 		},
 		structs.Port{
-			Source:      "c",
-			Name:        "out1",
-			Host:        "c",
-			Destination: "o1",
+			SourceDevice:      "c",
+			ID:                "out1",
+			DestinationDevice: "o1",
 		},
 		structs.Port{
-			Source:      "c",
-			Name:        "out2",
-			Host:        "c",
-			Destination: "o2",
+			SourceDevice:      "c",
+			ID:                "out2",
+			DestinationDevice: "o2",
 		},
 		structs.Port{
-			Source:      "c",
-			Name:        "out3",
-			Host:        "c",
-			Destination: "o3",
+			SourceDevice:      "c",
+			ID:                "out3",
+			DestinationDevice: "o3",
 		},
 	},
 }
 var d = structs.Device{
-	Name: "d",
+	ID: "d",
 	Ports: []structs.Port{
 		structs.Port{
-			Source:      "b",
-			Name:        "in1",
-			Host:        "d",
-			Destination: "d",
+			SourceDevice:      "b",
+			ID:                "in1",
+			DestinationDevice: "d",
 		},
 		structs.Port{
-			Source:      "d",
-			Name:        "out1",
-			Host:        "d",
-			Destination: "o4",
+			SourceDevice:      "d",
+			ID:                "out1",
+			DestinationDevice: "o4",
 		},
 		structs.Port{
-			Source:      "d",
-			Name:        "out2",
-			Host:        "d",
-			Destination: "o5",
+			SourceDevice:      "d",
+			ID:                "out2",
+			DestinationDevice: "o5",
 		},
 	},
 }
 var o1 = structs.Device{
-	Name: "o1",
+	ID: "o1",
 	Ports: []structs.Port{
 		structs.Port{
-			Source:      "c",
-			Name:        "in1",
-			Host:        "o1",
-			Destination: "o1",
+			SourceDevice:      "c",
+			ID:                "in1",
+			DestinationDevice: "o1",
 		},
 	},
 }
 var o2 = structs.Device{
-	Name: "o2",
+	ID: "o2",
 	Ports: []structs.Port{
 		structs.Port{
-			Source:      "c",
-			Name:        "in1",
-			Host:        "o2",
-			Destination: "o2",
+			SourceDevice:      "c",
+			ID:                "in1",
+			DestinationDevice: "o2",
 		},
 	},
 }
 var o3 = structs.Device{
-	Name: "o3",
+	ID: "o3",
 	Ports: []structs.Port{
 		structs.Port{
-			Source:      "c",
-			Name:        "in1",
-			Host:        "o3",
-			Destination: "o3",
+			SourceDevice:      "c",
+			ID:                "in1",
+			DestinationDevice: "o3",
 		},
 	},
 }
 var o4 = structs.Device{
-	Name: "o4",
+	ID: "o4",
 	Ports: []structs.Port{
 		structs.Port{
-			Source:      "d",
-			Name:        "in1",
-			Host:        "o4",
-			Destination: "o4",
+			SourceDevice:      "d",
+			ID:                "in1",
+			DestinationDevice: "o4",
 		},
 	},
 }
 var o5 = structs.Device{
-	Name: "o5",
+	ID: "o5",
 	Ports: []structs.Port{
 		structs.Port{
-			Source:      "d",
-			Name:        "in1",
-			Host:        "o5",
-			Destination: "o5",
+			SourceDevice:      "d",
+			ID:                "in1",
+			DestinationDevice: "o5",
 		},
 		structs.Port{
-			Source:      "i6",
-			Name:        "in2",
-			Host:        "o5",
-			Destination: "o5",
+			SourceDevice:      "i6",
+			ID:                "in2",
+			DestinationDevice: "o5",
 		},
 	},
 }
@@ -226,12 +202,12 @@ func TestGraphBuilding(t *testing.T) {
 
 	graph, err := BuildGraph(Devices)
 	if err != nil {
-		log.Printf("error: %v", err.Error())
+		base.Log("error: %v", err.Error())
 		t.FailNow()
 	}
 
 	if debug {
-		log.Printf("%+v", graph.AdjacencyMap)
+		base.Log("%+v", graph.AdjacencyMap)
 	}
 }
 
@@ -239,7 +215,7 @@ func TestReachability(t *testing.T) {
 
 	graph, err := BuildGraph(Devices)
 	if err != nil {
-		log.Printf("error: %v", err.Error())
+		base.Log("error: %v", err.Error())
 		t.FailNow()
 	}
 
@@ -251,7 +227,7 @@ func TestReachability(t *testing.T) {
 
 	if debug {
 		for _, v := range ret {
-			log.Printf("%v", v.ID)
+			base.Log("%v", v.ID)
 		}
 	}
 	debug = false

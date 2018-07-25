@@ -2,17 +2,19 @@ package commandevaluators
 
 import (
 	"errors"
-	"log"
+	"fmt"
 	"strings"
 
+	"github.com/byuoitav/common/log"
+
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/structs"
-	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/events"
+	"github.com/byuoitav/common/structs"
 	"github.com/fatih/color"
 )
 
-// PowerOn is struct that implements the CommandEvaluation struct
+// PowerOnDefault implements the CommandEvaluation struct.
 type PowerOnDefault struct {
 }
 
@@ -20,14 +22,14 @@ type PowerOnDefault struct {
 func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actions []base.ActionStructure, count int, err error) {
 	count = 0
 
-	log.Printf("Evaluating for PowerOn command.")
+	log.L.Info("[command_evaluators] Evaluating for PowerOn command.")
 	color.Set(color.FgYellow, color.Bold)
-	log.Printf("requestor: %s", requestor)
+	log.L.Infof("[command_evaluators] Requestor: %s", requestor)
 	color.Unset()
 
-	eventInfo := eventinfrastructure.EventInfo{
-		Type:           eventinfrastructure.CORESTATE,
-		EventCause:     eventinfrastructure.USERINPUT,
+	eventInfo := events.EventInfo{
+		Type:           events.CORESTATE,
+		EventCause:     events.USERINPUT,
 		EventInfoKey:   "power",
 		EventInfoValue: "on",
 		Requestor:      requestor,
@@ -36,32 +38,33 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 	var devices []structs.Device
 	if strings.EqualFold(room.Power, "on") {
 
-		log.Printf("Room-wide PowerOn request received. Retrieving all devices.")
+		log.L.Info("[command_evaluators] Room-wide PowerOn request received. Retrieving all devices.")
 
-		devices, err = dbo.GetDevicesByRoom(room.Building, room.Room)
+		roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
+		devices, err = db.GetDB().GetDevicesByRoom(roomID)
 		if err != nil {
 			return
 		}
 
-		log.Printf("Setting power 'on' state for all output devices.")
+		log.L.Info("[command_evaluators] Setting power 'on' state for all output devices.")
 
 		for _, device := range devices {
 
-			if device.Output {
+			if device.Type.Output {
 
 				destination := base.DestinationDevice{
 					Device: device,
 				}
 
-				if device.HasRole("AudioOut") {
+				if structs.HasRole(device, "AudioOut") {
 					destination.AudioDevice = true
 				}
 
-				if device.HasRole("VideoOut") {
+				if structs.HasRole(device, "VideoOut") {
 					destination.Display = true
 				}
 
-				log.Printf("Adding device %+v", device.Name)
+				log.L.Info("[command_evaluators] Adding device %+v", device.Name)
 
 				eventInfo.Device = device.Name
 				actions = append(actions, base.ActionStructure{
@@ -70,14 +73,14 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 					DestinationDevice:   destination,
 					GeneratingEvaluator: "PowerOnDefault",
 					DeviceSpecific:      false,
-					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
+					EventLog:            []events.EventInfo{eventInfo},
 				})
 			}
 		}
 	}
 
 	// Now we go through and check if power 'on' was set for any other device.
-	log.Printf("Evaluating displays for power on command.")
+	log.L.Info("[command_evaluators] Evaluating displays for power on command.")
 	for _, device := range room.Displays {
 
 		actions, err = p.evaluateDevice(device.Device, actions, devices, room.Room, room.Building, eventInfo)
@@ -88,7 +91,7 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 
 	for _, device := range room.AudioDevices {
 
-		log.Printf("Evaluating audio devices for command power on. ")
+		log.L.Info("[command_evaluators] Evaluating audio devices for command power on. ")
 
 		actions, err = p.evaluateDevice(device.Device, actions, devices, room.Room, room.Building, eventInfo)
 		if err != nil {
@@ -96,8 +99,8 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 		}
 	}
 
-	log.Printf("%v actions generated.", len(actions))
-	log.Printf("Evaluation complete.")
+	log.L.Infof("[command_evaluators] %v actions generated.", len(actions))
+	log.L.Info("[command_evaluators] Evaluation complete.")
 
 	count = len(actions)
 	return
@@ -106,15 +109,16 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 // Validate fulfills the Fulfill requirement on the command interface
 func (p *PowerOnDefault) Validate(action base.ActionStructure) (err error) {
 
-	log.Printf("Validating action for comand PowerOn")
+	log.L.Info("[command_evaluators] Validating action for comand PowerOn")
 
-	ok, _ := CheckCommands(action.Device.Commands, "PowerOn")
+	ok, _ := CheckCommands(action.Device.Type.Commands, "PowerOn")
 	if !ok || !strings.EqualFold(action.Action, "PowerOn") {
-		log.Printf("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
-		return errors.New(action.Action + " is an invalid command for" + action.Device.Name)
+		msg := fmt.Sprintf("[command_evaluators] ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
+		log.L.Error(msg)
+		return errors.New(msg)
 	}
 
-	log.Printf("Done.")
+	log.L.Info("[command_evaluators] Done.")
 	return
 }
 
@@ -133,7 +137,7 @@ func (p *PowerOnDefault) evaluateDevice(device base.Device,
 	devices []structs.Device,
 	room string,
 	building string,
-	eventInfo eventinfrastructure.EventInfo) ([]base.ActionStructure, error) {
+	eventInfo events.EventInfo) ([]base.ActionStructure, error) {
 
 	// Check if we even need to start anything
 	if strings.EqualFold(device.Power, "on") {
@@ -151,11 +155,11 @@ func (p *PowerOnDefault) evaluateDevice(device base.Device,
 				Device: dev,
 			}
 
-			if dev.HasRole("AudioOut") {
+			if structs.HasRole(dev, "AudioOut") {
 				destination.AudioDevice = true
 			}
 
-			if dev.HasRole("VideoOut") {
+			if structs.HasRole(dev, "VideoOut") {
 				destination.Display = true
 			}
 
@@ -168,7 +172,7 @@ func (p *PowerOnDefault) evaluateDevice(device base.Device,
 				DestinationDevice:   destination,
 				GeneratingEvaluator: "PowerOnDefault",
 				DeviceSpecific:      true,
-				EventLog:            []eventinfrastructure.EventInfo{eventInfo},
+				EventLog:            []events.EventInfo{eventInfo},
 			})
 		}
 	}

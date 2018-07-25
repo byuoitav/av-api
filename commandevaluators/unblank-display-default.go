@@ -2,14 +2,18 @@ package commandevaluators
 
 import (
 	"errors"
-	"log"
+	"fmt"
 	"strings"
 
+	"github.com/byuoitav/common/log"
+
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/event-router-microservice/eventinfrastructure"
+	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/events"
+	"github.com/byuoitav/common/structs"
 )
 
+// UnBlankDisplayDefault implements the CommandEvaluator struct.
 type UnBlankDisplayDefault struct {
 }
 
@@ -18,9 +22,9 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 
 	var actions []base.ActionStructure
 
-	eventInfo := eventinfrastructure.EventInfo{
-		Type:           eventinfrastructure.CORESTATE,
-		EventCause:     eventinfrastructure.USERINPUT,
+	eventInfo := events.EventInfo{
+		Type:           events.CORESTATE,
+		EventCause:     events.USERINPUT,
 		EventInfoKey:   "blanked",
 		EventInfoValue: "false",
 		Requestor:      requestor,
@@ -30,25 +34,26 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 
 	if room.Blanked != nil && !*room.Blanked {
 
-		log.Printf("Room-wide UnBlank request received. Retrieving all devices.")
+		log.L.Info("[command_evaluators] Room-wide UnBlank request received. Retrieving all devices.")
 
-		devices, err := dbo.GetDevicesByBuildingAndRoomAndRole(room.Building, room.Room, "VideoOut")
+		roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
+		devices, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "VideoOut")
 		if err != nil {
 			return []base.ActionStructure{}, 0, err
 		}
 
-		log.Printf("Un-Blanking all displays in room.")
+		log.L.Info("[command_evaluators] Un-Blanking all displays in room.")
 
 		for _, device := range devices {
 
-			if device.Output {
+			if device.Type.Output {
 
-				log.Printf("Adding Device %+v", device.Name)
+				log.L.Infof("[command_evaluators] Adding Device %+v", device.Name)
 
 				eventInfo.Device = device.Name
 				destination.Device = device
 
-				if device.HasRole("AudioOut") {
+				if structs.HasRole(device, "AudioOut") {
 					destination.AudioDevice = true
 				}
 
@@ -58,7 +63,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 					Device:              device,
 					DestinationDevice:   destination,
 					DeviceSpecific:      false,
-					EventLog:            []eventinfrastructure.EventInfo{eventInfo},
+					EventLog:            []events.EventInfo{eventInfo},
 				})
 			}
 
@@ -66,15 +71,16 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 
 	}
 
-	log.Printf("Evaluating individial displays for unblanking.")
+	log.L.Info("[command_evaluators] Evaluating individial displays for unblanking.")
 
 	for _, display := range room.Displays {
 
-		log.Printf("Adding device %+v", display.Name)
+		log.L.Infof("[command_evaluators] Adding device %+v", display.Name)
 
 		if display.Blanked != nil && !*display.Blanked {
 
-			device, err := dbo.GetDeviceByName(room.Building, room.Room, display.Name)
+			deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, display.Name)
+			device, err := db.GetDB().GetDevice(deviceID)
 			if err != nil {
 				return []base.ActionStructure{}, 0, err
 			}
@@ -82,7 +88,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 			eventInfo.Device = device.Name
 			destination.Device = device
 
-			if device.HasRole("AudioOut") {
+			if structs.HasRole(device, "AudioOut") {
 				destination.AudioDevice = true
 			}
 
@@ -92,29 +98,30 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 				Device:              device,
 				DestinationDevice:   destination,
 				DeviceSpecific:      true,
-				EventLog:            []eventinfrastructure.EventInfo{eventInfo},
+				EventLog:            []events.EventInfo{eventInfo},
 			})
 
 		}
 	}
 
-	log.Printf("Evaluation complete; %v actions generated.", len(actions))
+	log.L.Infof("[command_evaluators] Evaluation complete; %v actions generated.", len(actions))
 
 	return actions, len(actions), nil
 }
 
 //Validate returns an error if a command is invalid for a device
 func (p *UnBlankDisplayDefault) Validate(action base.ActionStructure) error {
-	log.Printf("Validating action for command \"UnBlank\"")
+	log.L.Info("[command_evaluators] Validating action for command \"UnBlank\"")
 
-	ok, _ := CheckCommands(action.Device.Commands, "UnblankDisplay")
+	ok, _ := CheckCommands(action.Device.Type.Commands, "UnblankDisplay")
 
 	if !ok || !strings.EqualFold(action.Action, "UnblankDisplay") {
-		log.Printf("ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
-		return errors.New(action.Action + " is an invalid command for" + action.Device.Name)
+		msg := fmt.Sprintf("[command_evaluators] ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
+		log.L.Error(msg)
+		return errors.New(msg)
 	}
 
-	log.Printf("Done.")
+	log.L.Info("[command_evaluators] Done.")
 	return nil
 }
 

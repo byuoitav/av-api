@@ -1,27 +1,30 @@
 package state
 
 import (
-	"log"
+	"fmt"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/dbo"
 	"github.com/byuoitav/av-api/statusevaluators"
+	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/log"
 	"github.com/fatih/color"
 )
 
+//GetRoomState assesses the state of the room and returns a PublicRoom object.
 func GetRoomState(building string, roomName string) (base.PublicRoom, error) {
 
 	color.Set(color.FgHiCyan, color.Bold)
-	log.Printf("[state] getting room state...")
+	log.L.Info("[state] getting room state...")
 	color.Unset()
 
-	room, err := dbo.GetRoomByInfo(building, roomName)
+	roomID := fmt.Sprintf("%v-%v", building, roomName)
+	room, err := db.GetDB().GetRoom(roomID)
 	if err != nil {
 		return base.PublicRoom{}, err
 	}
 
 	//we get the number of actions generated
-	commands, count, err := GenerateStatusCommands(room, statusevaluators.STATUS_EVALUATORS)
+	commands, count, err := GenerateStatusCommands(room, statusevaluators.StatusEvaluatorMap)
 	if err != nil {
 		return base.PublicRoom{}, err
 	}
@@ -40,17 +43,19 @@ func GetRoomState(building string, roomName string) (base.PublicRoom, error) {
 	roomStatus.Room = roomName
 
 	color.Set(color.FgHiGreen, color.Bold)
-	log.Printf("[state] successfully retrieved room state")
+	log.L.Info("[state] successfully retrieved room state")
 	color.Unset()
 
 	return roomStatus, nil
 }
 
+//SetRoomState changes the state of the room and returns a PublicRoom object.
 func SetRoomState(target base.PublicRoom, requestor string) (base.PublicRoom, error) {
 
-	log.Printf("%s", color.HiBlueString("[state] setting room state..."))
+	log.L.Infof("%s", color.HiBlueString("[state] setting room state..."))
 
-	room, err := dbo.GetRoomByInfo(target.Building, target.Room)
+	roomID := fmt.Sprintf("%v-%v", target.Building, target.Room)
+	room, err := db.GetDB().GetRoom(roomID)
 	if err != nil {
 		return base.PublicRoom{}, err
 	}
@@ -76,7 +81,7 @@ func SetRoomState(target base.PublicRoom, requestor string) (base.PublicRoom, er
 	report.Room = target.Room
 
 	color.Set(color.FgHiGreen, color.Bold)
-	log.Printf("[state] successfully set room state")
+	log.L.Info("[state] successfully set room state")
 	color.Unset()
 
 	return report, nil

@@ -2,13 +2,14 @@ package init
 
 import (
 	"errors"
-	"log"
+	"fmt"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/byuoitav/av-api/dbo"
-	"github.com/byuoitav/configuration-database-microservice/structs"
+	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/log"
+	"github.com/byuoitav/common/structs"
 )
 
 /*
@@ -18,16 +19,16 @@ init code.
 */
 func CheckRoomInitialization() error {
 
-	log.Printf("Initializing.")
+	log.L.Info("[init] Initializing.")
 
 	//Check if local
 	if len(os.Getenv("LOCAL_ENVIRONMENT")) < 1 {
-		log.Printf("Not a local instance of the API.")
-		log.Printf("Done.")
+		log.L.Info("[init] Not a local instance of the API.")
+		log.L.Info("[init] Done.")
 		return nil
 	}
 
-	log.Printf("Getting room information.")
+	log.L.Info("[init] Getting room information.")
 
 	/*
 	  It's not local, parse the hostname for the building room
@@ -36,22 +37,26 @@ func CheckRoomInitialization() error {
 	*/
 
 	hostname := os.Getenv("PI_HOSTNAME")
+	if len(hostname) == 0 {
+		log.L.Fatal("PI_HOSTNAME is not set.")
+	}
 
 	splitValues := strings.Split(hostname, "-")
-	log.Printf("Room %v-%v", splitValues[0], splitValues[1])
+	roomID := fmt.Sprintf("%v-%v", splitValues[0], splitValues[1])
+	log.L.Info("[init] Room %v", roomID)
 
 	attempts := 0
 
-	room, err := dbo.GetRoomByInfo(splitValues[0], splitValues[1])
+	room, err := db.GetDB().GetRoom(roomID)
 	if err != nil {
 
 		//If there was an error we want to attempt to connect multiple times - as the
 		//configuration service may not be up.
 		for attempts < 40 {
-			log.Printf("Attempting to connect to DB...")
-			room, err = dbo.GetRoomByInfo(splitValues[0], splitValues[1])
+			log.L.Info("[init] Attempting to connect to DB...")
+			room, err = db.GetDB().GetRoom(roomID)
 			if err != nil {
-				log.Printf("Error: %s", err.Error())
+				log.L.Errorf("[init] Error: %s", err.Error())
 				attempts++
 				time.Sleep(2 * time.Second)
 			} else {
@@ -59,24 +64,26 @@ func CheckRoomInitialization() error {
 			}
 		}
 		if attempts > 30 && err != nil {
-			log.Printf("Error Retrieving room information.")
+			log.L.Error("[init] Error Retrieving room information.")
 			return err
 		}
 	}
 
 	//There is no initializer, no need to run code
-	if len(room.Configuration.RoomInitKey) < 1 {
+	if len(room.Configuration.Description) < 1 {
 		return nil
 	}
 
 	//take our room and get the init key
 	initMap := getMap()
-	if initializor, ok := initMap[room.Configuration.RoomInitKey]; ok {
+	if initializor, ok := initMap[room.Configuration.Description]; ok {
 		initializor.Initialize(room)
 		return nil
 	}
 
-	return errors.New("No initializer for the key in configuration")
+	msg := fmt.Sprintf("[init] No initializer for the key in configuration")
+	log.L.Error(msg)
+	return errors.New(msg)
 }
 
 //RoomInitializer is the interface programmed against to build a new roomInitializer

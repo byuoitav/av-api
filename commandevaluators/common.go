@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/configuration-database-microservice/structs"
+	"github.com/byuoitav/common/structs"
 )
 
 //This file contains common 'helper' functions.
@@ -21,14 +21,17 @@ func checkActionListForDevice(a []base.ActionStructure, d string, room string, b
 }
 
 func checkDevicesEqual(dev structs.Device, name string, room string, building string) bool {
-	return strings.EqualFold(dev.Name, name) &&
-		strings.EqualFold(dev.Room.Name, room) &&
-		strings.EqualFold(dev.Building.Shortname, building)
+	splits := strings.Split(dev.GetDeviceRoomID(), "-")
+	return strings.EqualFold(dev.ID, name) &&
+		strings.EqualFold(splits[1], room) &&
+		strings.EqualFold(splits[0], building)
 }
 
+// CheckCommands searches a list of Commands to see if it contains any command by the name given.
+// returns T/F, as well as the command if true.
 func CheckCommands(commands []structs.Command, commandName string) (bool, structs.Command) {
 	for _, c := range commands {
-		if strings.EqualFold(c.Name, commandName) {
+		if strings.EqualFold(c.ID, commandName) {
 			return true, c
 		}
 	}
