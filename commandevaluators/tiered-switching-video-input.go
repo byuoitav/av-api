@@ -323,10 +323,11 @@ func (c *ChangeVideoInputTieredSwitchers) GenerateActionsFromPath(path []inputgr
 			// we look back in the path for the av-ip-reciever, that's our boy
 			for j := i; j > 0; j-- {
 				if structs.HasRole(path[j].Device, "av-ip-transmitter") {
-					tempAction, err := generateActionForAVIPReceiver(path[j], cur, path[0].Device.Name, callbackEngine, requestor)
+					tempAction, err := generateActionForAVIPReceiver(path[j], cur, path[len(path)-1].Device, path[0].Device.Name, callbackEngine, requestor)
 					if err != nil {
 						return toReturn, err
 					}
+					toReturn = append(toReturn, tempAction)
 				}
 			}
 
@@ -349,18 +350,12 @@ func (c *ChangeVideoInputTieredSwitchers) GenerateActionsFromPath(path []inputgr
 }
 
 //we assume that the change is on the receiver
-func generateActionForAVIPReceiver(tx, rx inputgraph.Node, selected string, callbackEngine *statusevaluators.TieredSwitcherCallback, requestor string) (base.ActionStructure, error) {
+func generateActionForAVIPReceiver(tx, rx inputgraph.Node, destination structs.Device, selected string, callbackEngine *statusevaluators.TieredSwitcherCallback, requestor string) (base.ActionStructure, error) {
 
 	cmd := rx.Device.GetCommandByName("ChangeInput")
 	if len(cmd.ID) == 0 {
 		color.HiRedString("Command not found Change input")
 		return base.ActionStructure{}, errors.New("Command not found Change input")
-	}
-
-	if len(in) == 0 {
-		msg := fmt.Sprintf("[command_evaluators] There is no path from %v to %v. Check the port configuration", cur.ID, prev.ID)
-		color.HiRedString(msg)
-		return base.ActionStructure{}, errors.New(msg)
 	}
 
 	m := make(map[string]string)
@@ -390,7 +385,7 @@ func generateActionForAVIPReceiver(tx, rx inputgraph.Node, selected string, call
 	tempAction := base.ActionStructure{
 		Action:              "ChangeInput",
 		GeneratingEvaluator: "ChangeVideoInputTieredSwitcher",
-		Device:              cur.Device,
+		Device:              rx.Device,
 		DestinationDevice:   destStruct,
 		Parameters:          m,
 		DeviceSpecific:      false,
@@ -398,6 +393,7 @@ func generateActionForAVIPReceiver(tx, rx inputgraph.Node, selected string, call
 		EventLog:            []events.EventInfo{eventInfo},
 		Callback:            callbackEngine.Callback,
 	}
+
 	return tempAction, nil
 }
 

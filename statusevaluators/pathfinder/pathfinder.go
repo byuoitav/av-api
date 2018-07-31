@@ -70,10 +70,10 @@ func (sp *SignalPathfinder) AddEdge(Device structs.Device, port string) bool {
 		realPort.DestinationDevice = Device.ID
 
 		//we need to go through the devices and find the receiver with the address denoted
-		for k, v := range sp.Devices {
+		for _, v := range sp.Devices {
 			if strings.EqualFold(v.Address, port) {
 				//check to see if the device in question is a non-controllable one
-				if structs.HasRole("signal-passthrough") {
+				if structs.HasRole(v, "signal-passthrough") {
 					//validate that the length of ports is 1
 					if len(v.Ports) == 1 {
 						realPort.SourceDevice = v.Ports[0].SourceDevice
