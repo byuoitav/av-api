@@ -39,7 +39,7 @@ func (p *InputTieredSwitcher) GenerateCommands(devs []structs.Device) ([]StatusC
 		if len(cmd.ID) == 0 {
 			continue
 		}
-		if (!d.Type.Output && !isVS) || structs.HasRole(d, "Microphone") || structs.HasRole(d, "DSP") { //we don't care about it
+		if (!d.Type.Output && !isVS && !structs.HasRole(d, "av-ip-receiver")) || structs.HasRole(d, "Microphone") || structs.HasRole(d, "DSP") { //we don't care about it
 			continue
 		}
 
