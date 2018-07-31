@@ -234,6 +234,7 @@ func (c *ChangeVideoInputTieredSwitchers) RoutePath(input, output string, graph 
 
 // ChangeAll generates a list of actions based on the information about the room.
 func (c *ChangeVideoInputTieredSwitchers) ChangeAll(input string, devices []structs.Device, graph inputgraph.InputGraph, callbackEngine *statusevaluators.TieredSwitcherCallback, requestor string) ([]base.ActionStructure, int, error) {
+
 	log.L.Info(color.HiBlueString("[command_evaluators] Evaluating Room wide input."))
 
 	//we need to go through and validate that for all the output devices in the room that the selected input is a valid input
@@ -298,6 +299,12 @@ func (c *ChangeVideoInputTieredSwitchers) GenerateActionsFromPath(path []inputgr
 
 	for i := 1; i < len(path); i++ {
 		cur := path[i]
+		//check to see if the current device is a 'signal passthrough' wich means that it's not going to have a command generated for it.
+		if structs.HasRole(cur.Device, "signal-passthrough") {
+			log.L.Debugf("%v is a Signal passthrough device, skipping.", cur.Device.ID)
+			continue
+		}
+
 		//we look for a path from last to cur, assuming that the change has to happen on cur. if cur is a videoswitcher we need to check for an in and out port to generate the action
 		if structs.HasRole(cur.Device, "VideoSwitcher") {
 			log.L.Infof("[command_evaluators] Generating action for VS %v", cur.ID)
@@ -308,6 +315,11 @@ func (c *ChangeVideoInputTieredSwitchers) GenerateActionsFromPath(path []inputgr
 			}
 
 			toReturn = append(toReturn, tempAction)
+		} else if structs.HasRole(cur.Device, "av-ip-receiver") {
+
+			// we look back in the path for the av-ip-reciever, that's our boy
+			for i := 0; i < 
+
 		} else {
 
 			log.L.Infof("[command_evaluators] Generating action for non-vs %v", cur.ID)
