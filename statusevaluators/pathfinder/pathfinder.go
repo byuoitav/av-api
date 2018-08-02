@@ -64,6 +64,25 @@ func (sp *SignalPathfinder) AddEdge(Device structs.Device, port string) bool {
 				realPort.SourceDevice = p.SourceDevice
 			}
 		}
+	} else if structs.HasRole(Device, "av-ip-receiver") {
+		//For AV/IP Receivers we assume that the port coming in is the address of the transmitter it's connected to.
+		realPort.ID = "rx " + port
+		realPort.DestinationDevice = Device.ID
+
+		//we need to go through the devices and find the receiver with the address denoted
+		for _, v := range sp.Devices {
+			if strings.EqualFold(v.Address, port) {
+				//check to see if the device in question is a non-controllable one
+				if structs.HasRole(v, "signal-passthrough") {
+					//validate that the length of ports is 1
+					if len(v.Ports) == 1 {
+						realPort.SourceDevice = v.Ports[0].SourceDevice
+					} else {
+						realPort.SourceDevice = v.ID
+					}
+				}
+			}
+		}
 	} else {
 		//we can just use the port itself
 		for _, p := range Device.Ports {
@@ -76,7 +95,6 @@ func (sp *SignalPathfinder) AddEdge(Device structs.Device, port string) bool {
 	if _, ok := sp.Pending[Device.ID]; !ok {
 		sp.Pending[Device.ID] = []structs.Port{realPort}
 	} else {
-		//TODO: we should check for a duplicate edge
 		duplicate := false
 
 		for _, edge := range sp.Pending[Device.ID] {
@@ -136,6 +154,7 @@ func (sp *SignalPathfinder) GetInputs() (map[string]structs.Device, error) {
 }
 
 func (sp *SignalPathfinder) getNextDeviceInPath(curDevice string, lastDevice string) (string, error) {
+	log.L.Debugf("Getting next device from %v", curDevice)
 
 	//check to see if the current device has a port in the array
 	if _, ok := sp.Pending[curDevice]; !ok {

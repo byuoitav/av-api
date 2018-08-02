@@ -67,6 +67,30 @@ func BuildGraph(devs []structs.Device) (InputGraph, error) {
 			} else {
 				ig.AdjacencyMap[port.DestinationDevice] = []string{port.SourceDevice}
 			}
+
+			if structs.HasRole(device, "NetworkSwitch") {
+				//network swtich ports are bi-drectional, so we need to go the other direction here, too.
+				log.L.Debugf("[inputgraph] Network swtich, adding ports as bi-directional", port.SourceDevice, port.DestinationDevice, port.ID)
+				log.L.Debugf("[inputgraph] Adding %v to the adjecency for %v based on port %v", port.DestinationDevice, port.SourceDevice, port.ID)
+
+				if _, ok := ig.AdjacencyMap[port.SourceDevice]; ok {
+					// only insert source device if it doesn't already exist
+					exists := false
+					for _, source := range ig.AdjacencyMap[port.SourceDevice] {
+						if strings.EqualFold(source, port.DestinationDevice) {
+							exists = true
+							break
+						}
+					}
+
+					if !exists {
+						ig.AdjacencyMap[port.SourceDevice] = append(ig.AdjacencyMap[port.SourceDevice], port.DestinationDevice)
+					}
+				} else {
+					ig.AdjacencyMap[port.SourceDevice] = []string{port.DestinationDevice}
+				}
+
+			}
 		}
 	}
 

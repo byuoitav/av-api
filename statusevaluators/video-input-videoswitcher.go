@@ -27,48 +27,48 @@ func (p *InputVideoSwitcher) GetDevices(room structs.Room) ([]structs.Device, er
 func (p *InputVideoSwitcher) GenerateCommands(devices []structs.Device) ([]StatusCommand, int, error) {
 	log.L.Info("[statusevals] Generating status commands from STATUS_Video_Switcher")
 
-	//first thing is to get the video switcher in the room
 	//xuther: we could do this via another call to the database, but looping through is actually faster.
 	log.L.Info("[statusevals] Looking for video switcher in room")
 
-	found := false
 	var switcher structs.Device
 	var command structs.Command
 	statusCommands := []StatusCommand{}
 
-	for _, device := range devices {
-		for _, role := range device.Roles {
-			if role.ID == "VideoSwitcher" {
-				log.L.Info("[statusevals] Found.")
-				found = true
-				break
-			}
-		}
-		if found {
-			found = false
-			//check to see if it has the get input by output port command
-			for _, c := range device.Type.Commands {
-				if c.ID == "STATUS_Input" {
-					found = true
-					command = c
+	/*
+		found := false
+			for _, device := range devices {
+				for _, role := range device.Roles {
+					if role.ID == "VideoSwitcher" {
+						log.L.Info("[statusevals] Found.")
+						found = true
+						break
+					}
+				}
+				if found {
+					found = false
+					//check to see if it has the get input by output port command
+					for _, c := range device.Type.Commands {
+						if c.ID == "STATUS_Input" {
+							found = true
+							command = c
+							break
+						}
+					}
+					if found {
+						switcher = device
+						log.L.Info("[statusevals] Video switcher found")
+					}
 					break
 				}
 			}
-			if found {
-				switcher = device
-				log.L.Info("[statusevals] Video switcher found")
+			if !found {
+				log.L.Info("[statusevals] No video switcher found in the room, generating standard commands")
+				return generateStandardStatusCommand(devices, DefaultInputEvaluator, DefaultInputCommand)
 			}
-			break
-		}
-	}
-	if !found {
-		log.L.Info("[statusevals] No video switcher found in the room, generating standard commands")
-		return generateStandardStatusCommand(devices, DefaultInputEvaluator, DefaultInputCommand)
-	}
+	*/
 
 	var count int
 
-	//this isn't going to be standard
 	for _, device := range devices {
 		log.L.Infof("[statusevals] Considering device: %v", device.ID)
 
