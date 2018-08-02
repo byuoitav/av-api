@@ -26,20 +26,27 @@ func (p *InputTieredSwitcher) GetDevices(room structs.Room) ([]structs.Device, e
 // GenerateCommands generates a list of commands for the given devices.
 func (p *InputTieredSwitcher) GenerateCommands(devs []structs.Device) ([]StatusCommand, int, error) {
 	//look at all the output devices and switchers in the room. we need to generate a status input for every port on every video switcher and every output device.
+	log.L.Debugf("Generating command from the STATUS_TIERED_SWITCHER")
 
 	//TODO use the 'bulk' endpoints and parse that. In that case there'd be two different paths, one for the change input and one for the get status.
-
 	callbackEngine := &TieredSwitcherCallback{}
 	toReturn := []StatusCommand{}
 	var count int
+
+	log.L.Debugf("Devices to evaluate: ")
+	for _, d := range devs {
+		log.L.Debugf("\t %v", d.ID)
+	}
 
 	for _, d := range devs {
 		isVS := structs.HasRole(d, "VideoSwitcher")
 		cmd := d.GetCommandByName("STATUS_Input")
 		if len(cmd.ID) == 0 {
+			log.L.Debugf("Skipping %v for input commands, does not have STATUS_Input command", d.ID)
 			continue
 		}
 		if (!d.Type.Output && !isVS && !structs.HasRole(d, "av-ip-receiver")) || structs.HasRole(d, "Microphone") || structs.HasRole(d, "DSP") { //we don't care about it
+			log.L.Debugf("Skipping %v for input commands, incorrect roles.", d.ID)
 			continue
 		}
 
@@ -76,7 +83,9 @@ func (p *InputTieredSwitcher) GenerateCommands(devs []structs.Device) ([]StatusC
 			}
 			//we've finished with the switch
 			continue
-		} //now we deal with the output devices, which is pretty basic
+		}
+
+		log.L.Debugf("Generating input command for %v", d.ID)
 		params := make(map[string]string)
 		params["address"] = d.Address
 
@@ -93,7 +102,9 @@ func (p *InputTieredSwitcher) GenerateCommands(devs []structs.Device) ([]StatusC
 			Callback:   callbackEngine.Callback,
 		})
 		//we only count the number of output devices
-		count++
+		if structs.HasRole(d, "VideoOut") || structs.HasRole(d, "AudioOut") {
+			count++
+		}
 
 	}
 
