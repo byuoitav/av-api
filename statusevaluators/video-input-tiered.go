@@ -229,6 +229,7 @@ func (p *TieredSwitcherCallback) StartAggregator() {
 			ready := pathfinder.AddEdge(val.Device, val.Value.(string))
 			if ready {
 				log.L.Info(color.HiYellowString("[callback] All Information received."))
+				log.L.Debugf(color.HiYellowString("[callback] Paths: %+v", pathfinder.Pending))
 				p.GetInputPaths(pathfinder)
 				return
 			}

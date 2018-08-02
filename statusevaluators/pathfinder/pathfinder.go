@@ -154,6 +154,7 @@ func (sp *SignalPathfinder) GetInputs() (map[string]structs.Device, error) {
 }
 
 func (sp *SignalPathfinder) getNextDeviceInPath(curDevice string, lastDevice string) (string, error) {
+	log.L.Debugf("Getting next device from %v", curDevice)
 
 	//check to see if the current device has a port in the array
 	if _, ok := sp.Pending[curDevice]; !ok {
