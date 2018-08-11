@@ -168,6 +168,11 @@ func generateDSPStatusCommands(dsp []structs.Device, evaluator string, command s
 		return []StatusCommand{}, 0, errors.New(errorMessage)
 	}
 
+	if !device.HasRole(dsp[0], "AudioOut") {
+		//we don't need to get the state of it
+		return []StatusCommand{}, 0, nil
+	}
+
 	log.L.Infof("[statusevals] Generating DSP status command: %s against device: %s", command, dsp[0])
 
 	parameters := make(map[string]string)
