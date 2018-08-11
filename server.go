@@ -49,6 +49,9 @@ func main() {
 	secure.GET("/buildings/:building/rooms/:room", handlers.GetRoomState)
 	secure.GET("/buildings/:building/rooms/:room/configuration", handlers.GetRoomByNameAndBuilding)
 
+	secure.PUT("/log-level/:level", log.SetLogLevel)
+	secure.GET("/log-level", log.GetLogLevel)
+
 	server := http.Server{
 		Addr:           port,
 		MaxHeaderBytes: 1024 * 10,

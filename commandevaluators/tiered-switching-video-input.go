@@ -234,6 +234,7 @@ func (c *ChangeVideoInputTieredSwitchers) RoutePath(input, output string, graph 
 
 // ChangeAll generates a list of actions based on the information about the room.
 func (c *ChangeVideoInputTieredSwitchers) ChangeAll(input string, devices []structs.Device, graph inputgraph.InputGraph, callbackEngine *statusevaluators.TieredSwitcherCallback, requestor string) ([]base.ActionStructure, int, error) {
+
 	log.L.Info(color.HiBlueString("[command_evaluators] Evaluating Room wide input."))
 
 	//we need to go through and validate that for all the output devices in the room that the selected input is a valid input
@@ -298,8 +299,15 @@ func (c *ChangeVideoInputTieredSwitchers) GenerateActionsFromPath(path []inputgr
 
 	for i := 1; i < len(path); i++ {
 		cur := path[i]
+		//check to see if the current device is a 'signal passthrough' wich means that it's not going to have a command generated for it.
+		if structs.HasRole(cur.Device, "signal-passthrough") {
+			log.L.Debugf("%v is a Signal passthrough device, skipping.", cur.Device.ID)
+			continue
+		}
+
 		//we look for a path from last to cur, assuming that the change has to happen on cur. if cur is a videoswitcher we need to check for an in and out port to generate the action
 		if structs.HasRole(cur.Device, "VideoSwitcher") {
+
 			log.L.Infof("[command_evaluators] Generating action for VS %v", cur.ID)
 			//we assume we have an in and out port
 			tempAction, err := generateActionForSwitch(last, cur, path[i+1], path[len(path)-1].Device, path[0].Device.Name, callbackEngine, requestor)
@@ -308,6 +316,21 @@ func (c *ChangeVideoInputTieredSwitchers) GenerateActionsFromPath(path []inputgr
 			}
 
 			toReturn = append(toReturn, tempAction)
+
+		} else if structs.HasRole(cur.Device, "av-ip-receiver") {
+
+			log.L.Infof("[command_evaluators] Generating action for AV/IP Receiver %v", cur.ID)
+			// we look back in the path for the av-ip-reciever, that's our boy
+			for j := i; j > 0; j-- {
+				if structs.HasRole(path[j].Device, "av-ip-transmitter") {
+					tempAction, err := generateActionForAVIPReceiver(path[j], cur, path[len(path)-1].Device, path[0].Device.Name, callbackEngine, requestor)
+					if err != nil {
+						return toReturn, err
+					}
+					toReturn = append(toReturn, tempAction)
+				}
+			}
+
 		} else {
 
 			log.L.Infof("[command_evaluators] Generating action for non-vs %v", cur.ID)
@@ -326,6 +349,54 @@ func (c *ChangeVideoInputTieredSwitchers) GenerateActionsFromPath(path []inputgr
 	return toReturn, nil
 }
 
+//we assume that the change is on the receiver
+func generateActionForAVIPReceiver(tx, rx inputgraph.Node, destination structs.Device, selected string, callbackEngine *statusevaluators.TieredSwitcherCallback, requestor string) (base.ActionStructure, error) {
+
+	cmd := rx.Device.GetCommandByName("ChangeInput")
+	if len(cmd.ID) == 0 {
+		color.HiRedString("Command not found Change input")
+		return base.ActionStructure{}, errors.New("Command not found Change input")
+	}
+
+	m := make(map[string]string)
+	m["transmitter"] = tx.Device.Address
+
+	eventInfo := events.EventInfo{
+		Type:           events.CORESTATE,
+		EventCause:     events.USERINPUT,
+		Device:         destination.Name,
+		EventInfoKey:   "input",
+		EventInfoValue: selected,
+		Requestor:      requestor,
+	}
+
+	destStruct := base.DestinationDevice{
+		Device: destination,
+	}
+
+	if structs.HasRole(destination, "AudioOut") {
+		destStruct.AudioDevice = true
+	}
+
+	if structs.HasRole(destination, "VideoOut") {
+		destStruct.Display = true
+	}
+
+	tempAction := base.ActionStructure{
+		Action:              "ChangeInput",
+		GeneratingEvaluator: "ChangeVideoInputTieredSwitcher",
+		Device:              rx.Device,
+		DestinationDevice:   destStruct,
+		Parameters:          m,
+		DeviceSpecific:      false,
+		Overridden:          false,
+		EventLog:            []events.EventInfo{eventInfo},
+		Callback:            callbackEngine.Callback,
+	}
+
+	return tempAction, nil
+}
+
 func generateActionForNonSwitch(prev, cur inputgraph.Node, destination structs.Device, selected string, callbackEngine *statusevaluators.TieredSwitcherCallback, requestor string) (base.ActionStructure, error) {
 
 	var in = ""
@@ -342,8 +413,6 @@ func generateActionForNonSwitch(prev, cur inputgraph.Node, destination structs.D
 		color.HiRedString(msg)
 		return base.ActionStructure{}, errors.New(msg)
 	}
-
-	//we put the inX:outY in the format X:Y
 
 	m := make(map[string]string)
 	m["port"] = in
