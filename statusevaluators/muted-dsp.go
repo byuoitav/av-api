@@ -168,7 +168,7 @@ func generateDSPStatusCommands(dsp []structs.Device, evaluator string, command s
 		return []StatusCommand{}, 0, errors.New(errorMessage)
 	}
 
-	if !device.HasRole(dsp[0], "AudioOut") {
+	if !structs.HasRole(dsp[0], "AudioOut") {
 		//we don't need to get the state of it
 		return []StatusCommand{}, 0, nil
 	}
@@ -189,7 +189,7 @@ func generateDSPStatusCommands(dsp []structs.Device, evaluator string, command s
 	//one command for each port that's not a mic
 	for _, port := range dsp[0].Ports {
 
-		device, err := db.GetDB().GetDevice(dsp[0].ID)
+		device, err := db.GetDB().GetDevice(port.SourceDevice)
 		if err != nil {
 			return []StatusCommand{}, 0, err
 		}
