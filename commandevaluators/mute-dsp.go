@@ -214,6 +214,7 @@ func GetMicMuteAction(mic structs.Device, room base.PublicRoom, eventInfo ei.Eve
 
 			parameters["input"] = port.ID
 			eventInfo.Device = mic.Name
+			eventInfo.DeviceID = mic.ID
 
 			return base.ActionStructure{
 				Action:              "Mute",
@@ -237,6 +238,7 @@ func GetDSPMediaMuteAction(dsp structs.Device, room base.PublicRoom, eventInfo e
 
 	var output []base.ActionStructure
 	eventInfo.Device = dsp.Name
+	eventInfo.DeviceID = dsp.ID
 
 	for _, port := range dsp.Ports {
 		parameters := make(map[string]string)
@@ -280,6 +282,7 @@ func GetDisplayMuteAction(device structs.Device, room base.PublicRoom, eventInfo
 	log.L.Infof("Generating action for command \"Mute\" for device %s external to DSP", device.Name)
 
 	eventInfo.Device = device.Name
+	eventInfo.ID = device.ID
 
 	destination := base.DestinationDevice{
 		Device:      device,

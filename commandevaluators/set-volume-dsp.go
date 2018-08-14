@@ -240,6 +240,7 @@ func GetMicVolumeAction(mic structs.Device, room base.PublicRoom, eventInfo ei.E
 
 			eventInfo.EventInfoValue = strconv.Itoa(volume)
 			eventInfo.Device = mic.Name
+			eventInfo.DeviceID = mic.ID
 			parameters["level"] = strconv.Itoa(volume)
 			parameters["input"] = port.ID
 
@@ -271,6 +272,7 @@ func GetDSPMediaVolumeAction(dsp structs.Device, room base.PublicRoom, eventInfo
 		parameters["level"] = fmt.Sprintf("%v", volume)
 		eventInfo.EventInfoValue = fmt.Sprintf("%v", volume)
 		eventInfo.Device = dsp.Name
+		eventInfo.DeviceID = dsp.ID
 
 		deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, port.SourceDevice)
 		sourceDevice, err := db.GetDB().GetDevice(deviceID)
@@ -324,6 +326,7 @@ func GetDisplayVolumeAction(device structs.Device, room base.PublicRoom, eventIn
 
 	eventInfo.EventInfoValue = strconv.Itoa(volume)
 	eventInfo.Device = device.Name
+	eventInfo.DeviceID = device.ID
 	parameters["level"] = strconv.Itoa(volume)
 
 	action := base.ActionStructure{

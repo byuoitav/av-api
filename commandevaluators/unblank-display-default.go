@@ -51,6 +51,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 				log.L.Infof("[command_evaluators] Adding Device %+v", device.Name)
 
 				eventInfo.Device = device.Name
+				eventInfo.DeviceID = device.ID
 				destination.Device = device
 
 				if structs.HasRole(device, "AudioOut") {
@@ -86,6 +87,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 			}
 
 			eventInfo.Device = device.Name
+			eventInfo.DeviceID = device.ID
 			destination.Device = device
 
 			if structs.HasRole(device, "AudioOut") {

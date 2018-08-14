@@ -52,7 +52,9 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 				parameters["level"] = fmt.Sprintf("%v", *room.Volume)
 
 				eventInfo.EventInfoValue = fmt.Sprintf("%v", *room.Volume)
+
 				eventInfo.Device = device.Name
+				eventInfo.DeviceID = device.ID
 				destination.Device = device
 
 				if structs.HasRole(device, "VideoOut") {
@@ -98,6 +100,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 
 				eventInfo.EventInfoValue = fmt.Sprintf("%v", *audioDevice.Volume)
 				eventInfo.Device = device.Name
+				eventInfo.DeviceID = device.ID
 				destination.Device = device
 
 				if structs.HasRole(device, "VideoOut") {

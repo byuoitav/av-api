@@ -209,6 +209,7 @@ func GetMicUnMuteAction(mic structs.Device, room base.PublicRoom, eventInfo ei.E
 		if port.SourceDevice == mic.ID {
 			parameters["input"] = port.ID
 			eventInfo.Device = mic.Name
+			eventInfo.DeviceID = mic.ID
 
 			return base.ActionStructure{
 				Action:              "UnMute",
@@ -256,6 +257,7 @@ func GetDSPMediaUnMuteAction(dsp structs.Device, room base.PublicRoom, eventInfo
 
 			parameters["input"] = port.ID
 			eventInfo.Device = dsp.Name
+			eventInfo.ID = dsp.ID
 
 			toReturn = append(toReturn, base.ActionStructure{
 				Action:              "UnMute",
@@ -278,6 +280,7 @@ func GetDisplayUnMuteAction(device structs.Device, room base.PublicRoom, eventIn
 	log.L.Infof("[command_evaluators] Generating action for command \"UnMute\" for device %s external to DSP", device.Name)
 
 	eventInfo.Device = device.Name
+	eventInfo.DeviceID = device.ID
 
 	destination := base.DestinationDevice{
 		Device:      device,

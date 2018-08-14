@@ -54,6 +54,7 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 				log.L.Infof("[command_evaluators] Adding device %+v", device.Name)
 
 				eventInfo.Device = device.Name
+				eventInfo.DeviceID = device.ID
 				destination.Device = device
 
 				if structs.HasRole(device, "VideoOut") {

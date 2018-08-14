@@ -74,6 +74,8 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) (
 				log.L.Infof("[command_evaluators] Adding device %+v", device.Name)
 
 				eventInfo.Device = device.Name
+				eventInfo.DeviceID = device.ID
+
 				actions = append(actions, base.ActionStructure{
 					Action:              "Mute",
 					GeneratingEvaluator: "ChangeAudioInputDSP",
@@ -192,6 +194,7 @@ func GetDSPMediaInputAction(room base.PublicRoom, eventInfo ei.EventInfo, input 
 			parameters["output"] = switcherPorts[1]
 
 			eventInfo.Device = switchers[0].Name
+			eventInfo.DeviceID = switchers[0].ID
 			eventInfo.EventInfoValue = input
 
 			destination.Device = device

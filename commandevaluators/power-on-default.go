@@ -67,6 +67,8 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 				log.L.Info("[command_evaluators] Adding device %+v", device.Name)
 
 				eventInfo.Device = device.Name
+				eventInfo.DeviceID = device.ID
+
 				actions = append(actions, base.ActionStructure{
 					Action:              "PowerOn",
 					Device:              device,

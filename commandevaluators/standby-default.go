@@ -68,6 +68,7 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 				}
 
 				eventInfo.Device = device.Name
+				eventInfo.DeviceID = device.ID
 				actions = append(actions, base.ActionStructure{
 					Action:              "Standby",
 					Device:              device,
@@ -147,6 +148,7 @@ func (s *StandbyDefault) evaluateDevice(device base.Device, destination base.Des
 			}
 
 			eventInfo.Device = device.Name
+			eventInfo.DeviceID = device.ID
 			destination.Device = dev
 
 			actions = append(actions, base.ActionStructure{

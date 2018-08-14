@@ -63,6 +63,8 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 				}
 
 				eventInfo.Device = device.Name
+				eventInfo.DeviceID = device.ID
+
 				actions = append(actions, base.ActionStructure{
 					Action:              "BlankDisplay",
 					GeneratingEvaluator: "BlankDisplayDefault",

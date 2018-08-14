@@ -133,6 +133,7 @@ func GetSwitcherAndCreateAction(room base.PublicRoom, device structs.Device, sel
 				Type:           events.CORESTATE,
 				EventCause:     events.USERINPUT,
 				Device:         device.Name,
+				DeviceID:       device.ID,
 				EventInfoKey:   "input",
 				EventInfoValue: selectedInput,
 				Requestor:      requestor,
