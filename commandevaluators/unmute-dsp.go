@@ -93,6 +93,30 @@ func (p *UnMuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Act
 
 					actions = append(actions, action)
 
+					////////////////////////
+					///// MIRROR STUFF /////
+					if structs.HasRole(device, "MirrorMaster") {
+						for _, port := range device.Ports {
+							if port.ID == "mirror" {
+								DX, err := db.GetDB().GetDevice(port.DestinationDevice)
+								if err != nil {
+									return []base.ActionStructure{}, 0, err
+								}
+
+								log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)
+
+								action, err := GetDisplayUnMuteAction(DX, room, eventInfo, true)
+								if err != nil {
+									return []base.ActionStructure{}, 0, err
+								}
+
+								actions = append(actions, action)
+							}
+						}
+					}
+					///// MIRROR STUFF /////
+					////////////////////////
+
 				} else { //bad device
 					errorMessage := "[command_evaluators] Cannot set volume of device " + device.Name
 					log.L.Error(errorMessage)
@@ -257,7 +281,7 @@ func GetDSPMediaUnMuteAction(dsp structs.Device, room base.PublicRoom, eventInfo
 
 			parameters["input"] = port.ID
 			eventInfo.Device = dsp.Name
-			eventInfo.ID = dsp.ID
+			eventInfo.DeviceID = dsp.ID
 
 			toReturn = append(toReturn, base.ActionStructure{
 				Action:              "UnMute",

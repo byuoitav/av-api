@@ -98,7 +98,7 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 
 			// validate those devices existed
 			if len(inputID) == 0 || len(outputID) == 0 {
-				return []base.ActionStructure{}, 0, errors.New(fmt.Sprintf("[command_evaluators] no device name mathing '%s' or '%s' found in the room.", d.Name, d.Input))
+				return []base.ActionStructure{}, 0, fmt.Errorf("[command_evaluators] no device name matching '%s' or '%s' found in the room", d.Name, d.Input)
 			}
 
 			tmpActions, err := c.RoutePath(inputID, outputID, graph, callbackEngine, requestor)
@@ -108,6 +108,31 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 
 			log.L.Infof("%v ChangeInput actions generated to change input on %s to %s", len(tmpActions), outputID, inputID)
 			actions = append(actions, tmpActions...)
+
+			////////////////////////
+			///// MIRROR STUFF /////
+			display, err := db.GetDB().GetDevice(outputID)
+			if err != nil {
+				return []base.ActionStructure{}, 0, err
+			}
+
+			if structs.HasRole(display, "MirrorMaster") {
+				for _, port := range display.Ports {
+					if port.ID == "mirror" {
+						DX := port.DestinationDevice
+
+						tmpActions, err := c.RoutePath(inputID, DX, graph, callbackEngine, requestor)
+						if err != nil {
+							return []base.ActionStructure{}, 0, err
+						}
+
+						log.L.Infof("%v ChangeInput actions generated to change input on %s to %s", len(tmpActions), DX, inputID)
+						actions = append(actions, tmpActions...)
+					}
+				}
+			}
+			///// MIRROR STUFF /////
+			////////////////////////
 		}
 	}
 
@@ -118,7 +143,7 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 			inputID := getDeviceIDFromShortname(d.Input, devices)
 
 			if len(inputID) == 0 || len(outputID) == 0 {
-				return []base.ActionStructure{}, 0, errors.New(fmt.Sprintf("[command_evaluators] no device name mathing '%s' or '%s' found in the room.", d.Name, d.Input))
+				return []base.ActionStructure{}, 0, fmt.Errorf("[command_evaluators] no device name matching '%s' or '%s' found in the room", d.Name, d.Input)
 			}
 
 			tmpActions, err := c.RoutePath(inputID, outputID, graph, callbackEngine, requestor)

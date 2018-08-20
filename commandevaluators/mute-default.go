@@ -69,6 +69,35 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 					DeviceSpecific:      false,
 					EventLog:            []events.EventInfo{eventInfo},
 				})
+
+				////////////////////////
+				///// MIRROR STUFF /////
+				if structs.HasRole(device, "MirrorMaster") {
+					for _, port := range device.Ports {
+						if port.ID == "mirror" {
+							DX, err := db.GetDB().GetDevice(port.DestinationDevice)
+							if err != nil {
+								return []base.ActionStructure{}, 0, err
+							}
+
+							log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)
+
+							eventInfo.Device = DX.Name
+							eventInfo.DeviceID = DX.ID
+
+							actions = append(actions, base.ActionStructure{
+								Action:              "Mute",
+								GeneratingEvaluator: "MuteDefault",
+								Device:              DX,
+								DestinationDevice:   destination,
+								DeviceSpecific:      false,
+								EventLog:            []events.EventInfo{eventInfo},
+							})
+						}
+					}
+				}
+				///// MIRROR STUFF /////
+				////////////////////////
 			}
 		}
 	}
@@ -99,6 +128,34 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 				EventLog:            []events.EventInfo{eventInfo},
 			})
 
+			////////////////////////
+			///// MIRROR STUFF /////
+			if structs.HasRole(device, "MirrorMaster") {
+				for _, port := range device.Ports {
+					if port.ID == "mirror" {
+						DX, err := db.GetDB().GetDevice(port.DestinationDevice)
+						if err != nil {
+							return []base.ActionStructure{}, 0, err
+						}
+
+						log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)
+
+						eventInfo.Device = DX.Name
+						eventInfo.DeviceID = DX.ID
+
+						actions = append(actions, base.ActionStructure{
+							Action:              "Mute",
+							GeneratingEvaluator: "MuteDefault",
+							Device:              DX,
+							DestinationDevice:   destination,
+							DeviceSpecific:      true,
+							EventLog:            []events.EventInfo{eventInfo},
+						})
+					}
+				}
+			}
+			///// MIRROR STUFF /////
+			////////////////////////
 		}
 
 	}

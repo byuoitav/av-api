@@ -100,6 +100,30 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Actio
 
 				actions = append(actions, action)
 
+				////////////////////////
+				///// MIRROR STUFF /////
+				if structs.HasRole(device, "MirrorMaster") {
+					for _, port := range device.Ports {
+						if port.ID == "mirror" {
+							DX, err := db.GetDB().GetDevice(port.DestinationDevice)
+							if err != nil {
+								return []base.ActionStructure{}, 0, err
+							}
+
+							log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)
+
+							action, err := GetDisplayMuteAction(DX, room, eventInfo, true)
+							if err != nil {
+								return []base.ActionStructure{}, 0, err
+							}
+
+							actions = append(actions, action)
+						}
+					}
+				}
+				///// MIRROR STUFF /////
+				////////////////////////
+
 			} else { //bad device
 				errorMessage := "[command_evaluators] Cannot set volume of device " + device.Name
 				log.L.Error(errorMessage)
@@ -282,7 +306,7 @@ func GetDisplayMuteAction(device structs.Device, room base.PublicRoom, eventInfo
 	log.L.Infof("Generating action for command \"Mute\" for device %s external to DSP", device.Name)
 
 	eventInfo.Device = device.Name
-	eventInfo.ID = device.ID
+	eventInfo.DeviceID = device.ID
 
 	destination := base.DestinationDevice{
 		Device:      device,

@@ -147,8 +147,8 @@ func (s *StandbyDefault) evaluateDevice(device base.Device, destination base.Des
 				return actions, err
 			}
 
-			eventInfo.Device = device.Name
-			eventInfo.DeviceID = device.ID
+			eventInfo.Device = dev.Name
+			eventInfo.DeviceID = dev.ID
 			destination.Device = dev
 
 			actions = append(actions, base.ActionStructure{
@@ -159,6 +159,35 @@ func (s *StandbyDefault) evaluateDevice(device base.Device, destination base.Des
 				DeviceSpecific:      true,
 				EventLog:            []events.EventInfo{eventInfo},
 			})
+
+			////////////////////////
+			///// MIRROR STUFF /////
+			if structs.HasRole(dev, "MirrorMaster") {
+				for _, port := range dev.Ports {
+					if port.ID == "mirror" {
+						DX, err := db.GetDB().GetDevice(port.DestinationDevice)
+						if err != nil {
+							return []base.ActionStructure{}, err
+						}
+
+						log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)
+
+						eventInfo.Device = DX.Name
+						eventInfo.DeviceID = DX.ID
+
+						actions = append(actions, base.ActionStructure{
+							Action:              "Standby",
+							Device:              DX,
+							DestinationDevice:   destination,
+							GeneratingEvaluator: "StandbyDefault",
+							DeviceSpecific:      false,
+							EventLog:            []events.EventInfo{eventInfo},
+						})
+					}
+				}
+			}
+			///// MIRROR STUFF /////
+			////////////////////////
 		}
 	}
 	return actions, nil

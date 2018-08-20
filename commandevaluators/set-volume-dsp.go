@@ -99,6 +99,30 @@ func (p *SetVolumeDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.
 
 					actions = append(actions, action)
 
+					////////////////////////
+					///// MIRROR STUFF /////
+					if structs.HasRole(device, "MirrorMaster") {
+						for _, port := range device.Ports {
+							if port.ID == "mirror" {
+								DX, err := db.GetDB().GetDevice(port.DestinationDevice)
+								if err != nil {
+									return []base.ActionStructure{}, 0, err
+								}
+
+								log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)
+
+								action, err := GetDisplayVolumeAction(DX, room, eventInfo, *audioDevice.Volume)
+								if err != nil {
+									return []base.ActionStructure{}, 0, err
+								}
+
+								actions = append(actions, action)
+							}
+						}
+					}
+					///// MIRROR STUFF /////
+					////////////////////////
+
 				} else { //bad device
 					errorMessage := "[command_evaluators] Cannot set volume of device: " + device.Name + " in given context"
 					log.L.Error(errorMessage)

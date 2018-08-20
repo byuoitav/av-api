@@ -68,10 +68,33 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 					EventLog:            []events.EventInfo{eventInfo},
 				})
 
+				////////////////////////
+				///// MIRROR STUFF /////
+				if structs.HasRole(device, "MirrorMaster") {
+					for _, port := range device.Ports {
+						if port.ID == "mirror" {
+							DX, err := db.GetDB().GetDevice(port.DestinationDevice)
+							if err != nil {
+								return []base.ActionStructure{}, 0, err
+							}
+
+							log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)
+
+							actions = append(actions, base.ActionStructure{
+								Action:              "UnMute",
+								GeneratingEvaluator: "UnMuteDefault",
+								Device:              DX,
+								DestinationDevice:   destination,
+								DeviceSpecific:      false,
+								EventLog:            []events.EventInfo{eventInfo},
+							})
+						}
+					}
+				}
+				///// MIRROR STUFF /////
+				////////////////////////
 			}
-
 		}
-
 	}
 
 	//check specific devices
