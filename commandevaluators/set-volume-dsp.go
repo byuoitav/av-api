@@ -99,6 +99,30 @@ func (p *SetVolumeDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.
 
 					actions = append(actions, action)
 
+					////////////////////////
+					///// MIRROR STUFF /////
+					if structs.HasRole(device, "MirrorMaster") {
+						for _, port := range device.Ports {
+							if port.ID == "mirror" {
+								DX, err := db.GetDB().GetDevice(port.DestinationDevice)
+								if err != nil {
+									return []base.ActionStructure{}, 0, err
+								}
+
+								log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)
+
+								action, err := GetDisplayVolumeAction(DX, room, eventInfo, *audioDevice.Volume)
+								if err != nil {
+									return []base.ActionStructure{}, 0, err
+								}
+
+								actions = append(actions, action)
+							}
+						}
+					}
+					///// MIRROR STUFF /////
+					////////////////////////
+
 				} else { //bad device
 					errorMessage := "[command_evaluators] Cannot set volume of device: " + device.Name + " in given context"
 					log.L.Error(errorMessage)
@@ -240,6 +264,7 @@ func GetMicVolumeAction(mic structs.Device, room base.PublicRoom, eventInfo ei.E
 
 			eventInfo.EventInfoValue = strconv.Itoa(volume)
 			eventInfo.Device = mic.Name
+			eventInfo.DeviceID = mic.ID
 			parameters["level"] = strconv.Itoa(volume)
 			parameters["input"] = port.ID
 
@@ -271,6 +296,7 @@ func GetDSPMediaVolumeAction(dsp structs.Device, room base.PublicRoom, eventInfo
 		parameters["level"] = fmt.Sprintf("%v", volume)
 		eventInfo.EventInfoValue = fmt.Sprintf("%v", volume)
 		eventInfo.Device = dsp.Name
+		eventInfo.DeviceID = dsp.ID
 
 		deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, port.SourceDevice)
 		sourceDevice, err := db.GetDB().GetDevice(deviceID)
@@ -324,6 +350,7 @@ func GetDisplayVolumeAction(device structs.Device, room base.PublicRoom, eventIn
 
 	eventInfo.EventInfoValue = strconv.Itoa(volume)
 	eventInfo.Device = device.Name
+	eventInfo.DeviceID = device.ID
 	parameters["level"] = strconv.Itoa(volume)
 
 	action := base.ActionStructure{

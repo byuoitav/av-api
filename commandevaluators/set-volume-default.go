@@ -52,7 +52,9 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 				parameters["level"] = fmt.Sprintf("%v", *room.Volume)
 
 				eventInfo.EventInfoValue = fmt.Sprintf("%v", *room.Volume)
+
 				eventInfo.Device = device.Name
+				eventInfo.DeviceID = device.ID
 				destination.Device = device
 
 				if structs.HasRole(device, "VideoOut") {
@@ -69,6 +71,32 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 					EventLog:            []events.EventInfo{eventInfo},
 				})
 
+				////////////////////////
+				///// MIRROR STUFF /////
+				if structs.HasRole(device, "MirrorMaster") {
+					for _, port := range device.Ports {
+						if port.ID == "mirror" {
+							DX, err := db.GetDB().GetDevice(port.DestinationDevice)
+							if err != nil {
+								return []base.ActionStructure{}, 0, err
+							}
+
+							log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)
+
+							actions = append(actions, base.ActionStructure{
+								Action:              "SetVolume",
+								Parameters:          parameters,
+								GeneratingEvaluator: "SetVolumeDefault",
+								Device:              DX,
+								DestinationDevice:   destination,
+								DeviceSpecific:      false,
+								EventLog:            []events.EventInfo{eventInfo},
+							})
+						}
+					}
+				}
+				///// MIRROR STUFF /////
+				////////////////////////
 			}
 
 		}
@@ -98,6 +126,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 
 				eventInfo.EventInfoValue = fmt.Sprintf("%v", *audioDevice.Volume)
 				eventInfo.Device = device.Name
+				eventInfo.DeviceID = device.ID
 				destination.Device = device
 
 				if structs.HasRole(device, "VideoOut") {
@@ -114,6 +143,32 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 					EventLog:            []events.EventInfo{eventInfo},
 				})
 
+				////////////////////////
+				///// MIRROR STUFF /////
+				if structs.HasRole(device, "MirrorMaster") {
+					for _, port := range device.Ports {
+						if port.ID == "mirror" {
+							DX, err := db.GetDB().GetDevice(port.DestinationDevice)
+							if err != nil {
+								return []base.ActionStructure{}, 0, err
+							}
+
+							log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)
+
+							actions = append(actions, base.ActionStructure{
+								Action:              "SetVolume",
+								GeneratingEvaluator: "SetVolumeDefault",
+								Device:              DX,
+								DestinationDevice:   destination,
+								DeviceSpecific:      true,
+								Parameters:          parameters,
+								EventLog:            []events.EventInfo{eventInfo},
+							})
+						}
+					}
+				}
+				///// MIRROR STUFF /////
+				////////////////////////
 			}
 
 		}
