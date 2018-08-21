@@ -185,7 +185,12 @@ func (p *PowerOnDefault) evaluateDevice(device base.Device,
 					if port.ID == "mirror" {
 						DX, err := db.GetDB().GetDevice(port.DestinationDevice)
 						if err != nil {
-							return []base.ActionStructure{}, err
+							return actions, err
+						}
+
+						cmd := DX.GetCommandByName("PowerOn")
+						if len(cmd.ID) < 1 {
+							return actions, nil
 						}
 
 						log.L.Info("[command_evaluators] Adding device %+v", DX.Name)

@@ -167,7 +167,12 @@ func (s *StandbyDefault) evaluateDevice(device base.Device, destination base.Des
 					if port.ID == "mirror" {
 						DX, err := db.GetDB().GetDevice(port.DestinationDevice)
 						if err != nil {
-							return []base.ActionStructure{}, err
+							return actions, err
+						}
+
+						cmd := DX.GetCommandByName("Standby")
+						if len(cmd.ID) < 1 {
+							return actions, nil
 						}
 
 						log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)

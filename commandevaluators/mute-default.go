@@ -77,7 +77,12 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 						if port.ID == "mirror" {
 							DX, err := db.GetDB().GetDevice(port.DestinationDevice)
 							if err != nil {
-								return []base.ActionStructure{}, 0, err
+								return actions, len(actions), err
+							}
+
+							cmd := DX.GetCommandByName("MuteDefault")
+							if len(cmd.ID) < 1 {
+								return actions, len(actions), nil
 							}
 
 							log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)
@@ -136,6 +141,11 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 						DX, err := db.GetDB().GetDevice(port.DestinationDevice)
 						if err != nil {
 							return []base.ActionStructure{}, 0, err
+						}
+
+						cmd := DX.GetCommandByName("MuteDefault")
+						if len(cmd.ID) < 1 {
+							return actions, len(actions), nil
 						}
 
 						log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)

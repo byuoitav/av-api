@@ -54,6 +54,11 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor
 							return []base.ActionStructure{}, 0, err
 						}
 
+						cmd := DX.GetCommandByName("ChangeVideoInputVideoSwitcher")
+						if len(cmd.ID) < 1 {
+							return actionList, len(actionList), nil
+						}
+
 						mirrorAction, err := GetSwitcherAndCreateAction(room, DX, room.CurrentVideoInput, "ChangeVideoInputVideoSwitcher", requestor)
 						if err != nil {
 							return []base.ActionStructure{}, 0, err
@@ -96,12 +101,17 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor
 						if port.ID == "mirror" {
 							DX, err := db.GetDB().GetDevice(port.DestinationDevice)
 							if err != nil {
-								return []base.ActionStructure{}, 0, err
+								return actionList, len(actionList), err
+							}
+
+							cmd := DX.GetCommandByName("ChangeVideoInputVideoSwitcher")
+							if len(cmd.ID) < 1 {
+								return actionList, len(actionList), nil
 							}
 
 							mirrorAction, err := GetSwitcherAndCreateAction(room, DX, display.Input, "ChangeVideoInputVideoSwitcher", requestor)
 							if err != nil {
-								return []base.ActionStructure{}, 0, err
+								return actionList, len(actionList), err
 							}
 							//Undecode the format into the
 							actionList = append(actionList, mirrorAction)
@@ -140,6 +150,11 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor
 							DX, err := db.GetDB().GetDevice(port.DestinationDevice)
 							if err != nil {
 								return []base.ActionStructure{}, 0, err
+							}
+
+							cmd := DX.GetCommandByName("ChangeVideoInputVideoSwitcher")
+							if len(cmd.ID) < 1 {
+								return actionList, len(actionList), nil
 							}
 
 							mirrorAction, err := GetSwitcherAndCreateAction(room, DX, audioDevice.Input, "ChangeVideoInputVideoSwitcher", requestor)

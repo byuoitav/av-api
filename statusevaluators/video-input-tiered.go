@@ -4,6 +4,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/byuoitav/common/db"
+
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/statusevaluators/pathfinder"
 	"github.com/byuoitav/common/log"
@@ -31,6 +33,7 @@ func (p *InputTieredSwitcher) GenerateCommands(devs []structs.Device) ([]StatusC
 	//TODO use the 'bulk' endpoints and parse that. In that case there'd be two different paths, one for the change input and one for the get status.
 	callbackEngine := &TieredSwitcherCallback{}
 	toReturn := []StatusCommand{}
+	mirrorEdges := make(map[string]string)
 	var count int
 
 	log.L.Debugf("Devices to evaluate: ")
@@ -42,17 +45,17 @@ func (p *InputTieredSwitcher) GenerateCommands(devs []structs.Device) ([]StatusC
 		isVS := structs.HasRole(d, "VideoSwitcher")
 		cmd := d.GetCommandByName("STATUS_Input")
 		if len(cmd.ID) == 0 {
+			if structs.HasRole(d, "MirrorSlave") && d.Ports[0].ID != "mirror" {
+				log.L.Debugf("Adding edge for mirror slave %s", d.ID)
+				mirrorEdges[d.ID] = d.Ports[0].ID
+				count++
+				continue
+			}
 			log.L.Debugf("Skipping %v for input commands, does not have STATUS_Input command", d.ID)
 			continue
 		}
 		if (!d.Type.Output && !isVS && !structs.HasRole(d, "av-ip-receiver")) || structs.HasRole(d, "Microphone") || structs.HasRole(d, "DSP") { //we don't care about it
 			log.L.Debugf("Skipping %v for input commands, incorrect roles.", d.ID)
-			continue
-		}
-
-		//validate it has the command
-		if len(cmd.ID) == 0 {
-			log.L.Error(color.HiRedString("[error] No input command for device %v...", d.Name))
 			continue
 		}
 
@@ -113,6 +116,11 @@ func (p *InputTieredSwitcher) GenerateCommands(devs []structs.Device) ([]StatusC
 	callbackEngine.ExpectedActionCount = len(toReturn)
 	callbackEngine.Devices = devs
 
+	for id, port := range mirrorEdges {
+		device, _ := db.GetDB().GetDevice(id)
+		callbackEngine.AddEdge(device, port)
+	}
+
 	go callbackEngine.StartAggregator()
 
 	for _, a := range toReturn {
@@ -135,6 +143,7 @@ type TieredSwitcherCallback struct {
 	Devices             []structs.Device
 	ExpectedCount       int
 	ExpectedActionCount int
+	pathfinder          pathfinder.SignalPathfinder
 }
 
 // Callback begins the callback process...
@@ -206,14 +215,16 @@ func (p *TieredSwitcherCallback) StartAggregator() {
 
 	t := time.NewTimer(0)
 	<-t.C
-	pathfinder := pathfinder.InitializeSignalPathfinder(p.Devices, p.ExpectedActionCount)
+	if p.pathfinder.Devices == nil {
+		p.pathfinder = pathfinder.InitializeSignalPathfinder(p.Devices, p.ExpectedActionCount)
+	}
 
 	for {
 		select {
 		case <-t.C:
 			//we're timed out
 			log.L.Warn(color.HiYellowString("[callback] Timeout."))
-			p.GetInputPaths(pathfinder)
+			p.GetInputPaths(p.pathfinder)
 			return
 
 		case val := <-p.InChan:
@@ -226,13 +237,21 @@ func (p *TieredSwitcherCallback) StartAggregator() {
 			}
 
 			//we need to start our graph, then check if we have any completed paths
-			ready := pathfinder.AddEdge(val.Device, val.Value.(string))
+			ready := p.pathfinder.AddEdge(val.Device, val.Value.(string))
 			if ready {
 				log.L.Info(color.HiYellowString("[callback] All Information received."))
-				log.L.Debugf(color.HiYellowString("[callback] Paths: %+v", pathfinder.Pending))
-				p.GetInputPaths(pathfinder)
+				log.L.Debugf(color.HiYellowString("[callback] Paths: %+v", p.pathfinder.Pending))
+				p.GetInputPaths(p.pathfinder)
 				return
 			}
 		}
 	}
+}
+
+// AddEdge initializes the pathfinder if it hasn't been, and then adds an edge. This should ONLY be used when there is only one port on the device.
+func (p *TieredSwitcherCallback) AddEdge(device structs.Device, port string) {
+	if p.pathfinder.Devices == nil {
+		p.pathfinder = pathfinder.InitializeSignalPathfinder(p.Devices, p.ExpectedActionCount)
+	}
+	p.pathfinder.AddEdge(device, port)
 }

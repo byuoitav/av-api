@@ -119,11 +119,20 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 			if structs.HasRole(display, "MirrorMaster") {
 				for _, port := range display.Ports {
 					if port.ID == "mirror" {
-						DX := port.DestinationDevice
-
-						tmpActions, err := c.RoutePath(inputID, DX, graph, callbackEngine, requestor)
+						DX, err := db.GetDB().GetDevice(port.DestinationDevice)
 						if err != nil {
-							return []base.ActionStructure{}, 0, err
+							return actions, len(actions), err
+						}
+
+						// cmd := DX.GetCommandByName("ChangeVideoInputTieredSwitcher")
+						// if len(cmd.ID) < 1 {
+						// 	return actions, len(actions), nil
+						// }
+
+						log.L.Debugf("----- I have supposedly found the copycat - %s", DX)
+						tmpActions, err := c.RoutePath(inputID, DX.ID, graph, callbackEngine, requestor)
+						if err != nil {
+							return actions, len(actions), err
 						}
 
 						log.L.Infof("%v ChangeInput actions generated to change input on %s to %s", len(tmpActions), DX, inputID)
@@ -226,7 +235,7 @@ func (c *ChangeVideoInputTieredSwitchers) RoutePath(input, output string, graph 
 	}
 
 	if !outDev.Device.Type.Output {
-		msg := fmt.Sprintf("[command_evaluators] Device %v is not an input device in this room", output)
+		msg := fmt.Sprintf("[command_evaluators] Device %v is not an output device in this room", output)
 		log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
 		return []base.ActionStructure{}, errors.New(msg)
 	}
@@ -363,6 +372,9 @@ func (c *ChangeVideoInputTieredSwitchers) GenerateActionsFromPath(path []inputgr
 			if err != nil {
 				return toReturn, err
 			}
+			if len(tempAction.Action) == 0 {
+				continue
+			}
 
 			toReturn = append(toReturn, tempAction)
 		}
@@ -438,6 +450,11 @@ func generateActionForNonSwitch(prev, cur inputgraph.Node, destination structs.D
 		msg := fmt.Sprintf("[command_evaluators] There is no path from %v to %v. Check the port configuration", cur.ID, prev.ID)
 		color.HiRedString(msg)
 		return base.ActionStructure{}, errors.New(msg)
+	}
+
+	cmd := destination.GetCommandByName("ChangeInput")
+	if len(cmd.ID) < 1 {
+		return base.ActionStructure{}, nil
 	}
 
 	m := make(map[string]string)
