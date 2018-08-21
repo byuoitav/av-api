@@ -81,7 +81,12 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 						if port.ID == "mirror" {
 							DX, err := db.GetDB().GetDevice(port.DestinationDevice)
 							if err != nil {
-								return []base.ActionStructure{}, 0, err
+								return actions, len(actions), nil
+							}
+
+							cmd := DX.GetCommandByName("BlankDisplay")
+							if len(cmd.ID) < 1 {
+								return actions, len(actions), nil
 							}
 
 							log.L.Info("[command_evaluators] Adding device %+v", DX.Name)
@@ -146,7 +151,7 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 					if port.ID == "mirror" {
 						DX, err := db.GetDB().GetDevice(port.DestinationDevice)
 						if err != nil {
-							return []base.ActionStructure{}, 0, err
+							return actions, len(actions), nil
 						}
 
 						log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)

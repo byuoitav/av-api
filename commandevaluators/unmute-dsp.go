@@ -100,14 +100,19 @@ func (p *UnMuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Act
 							if port.ID == "mirror" {
 								DX, err := db.GetDB().GetDevice(port.DestinationDevice)
 								if err != nil {
-									return []base.ActionStructure{}, 0, err
+									return actions, len(actions), err
+								}
+
+								cmd := DX.GetCommandByName("UnMuteDSP")
+								if len(cmd.ID) < 1 {
+									return actions, len(actions), nil
 								}
 
 								log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)
 
 								action, err := GetDisplayUnMuteAction(DX, room, eventInfo, true)
 								if err != nil {
-									return []base.ActionStructure{}, 0, err
+									return actions, len(actions), err
 								}
 
 								actions = append(actions, action)

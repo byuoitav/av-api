@@ -49,7 +49,7 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 		//build url
 		endpoint, err := ReplaceParameters(command.Action.Endpoint.Path, command.Parameters)
 		if err != nil {
-			msg := fmt.Sprintf("unable to replace paramaters for %s: %s", command.Action.ID, err.Error())
+			msg := fmt.Sprintf("unable to replace parameters for %s: %s", command.Action.ID, err.Error())
 			log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
 			base.PublishError(msg, ei.INTERNAL)
 			continue
@@ -65,7 +65,7 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 			continue
 		}
 
-		log.L.Infof("%s", color.HiBlueString("[state] sending requqest to %s", url))
+		log.L.Infof("%s", color.HiBlueString("[state] sending request to %s", url))
 		timeout := time.Duration(TIMEOUT * time.Second)
 		client := http.Client{Timeout: timeout}
 		response, err := client.Get(url)
