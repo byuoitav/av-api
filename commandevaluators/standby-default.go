@@ -43,15 +43,7 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 		log.L.Info("[command_evaluators] Setting power to 'standby' state for all devices with a 'standby' power state, that are also output devices.")
 		for _, device := range devices {
 
-			containsStandby := false
-			for _, ps := range device.Type.PowerStates {
-				if strings.EqualFold(ps.ID, "Standby") {
-					containsStandby = true
-					break
-				}
-			}
-
-			if containsStandby && device.Type.Output {
+			if device.Type.Output {
 
 				log.L.Infof("[command_evaluators] Adding device %+v", device.Name)
 
