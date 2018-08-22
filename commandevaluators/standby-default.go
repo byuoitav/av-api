@@ -43,15 +43,7 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 		log.L.Info("[command_evaluators] Setting power to 'standby' state for all devices with a 'standby' power state, that are also output devices.")
 		for _, device := range devices {
 
-			containsStandby := false
-			for _, ps := range device.Type.PowerStates {
-				if strings.EqualFold(ps.ID, "Standby") {
-					containsStandby = true
-					break
-				}
-			}
-
-			if containsStandby && device.Type.Output {
+			if device.Type.Output {
 
 				log.L.Infof("[command_evaluators] Adding device %+v", device.Name)
 
@@ -68,6 +60,7 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 				}
 
 				eventInfo.Device = device.Name
+				eventInfo.DeviceID = device.ID
 				actions = append(actions, base.ActionStructure{
 					Action:              "Standby",
 					Device:              device,
@@ -146,7 +139,8 @@ func (s *StandbyDefault) evaluateDevice(device base.Device, destination base.Des
 				return actions, err
 			}
 
-			eventInfo.Device = device.Name
+			eventInfo.Device = dev.Name
+			eventInfo.DeviceID = dev.ID
 			destination.Device = dev
 
 			actions = append(actions, base.ActionStructure{
@@ -157,6 +151,40 @@ func (s *StandbyDefault) evaluateDevice(device base.Device, destination base.Des
 				DeviceSpecific:      true,
 				EventLog:            []events.EventInfo{eventInfo},
 			})
+
+			////////////////////////
+			///// MIRROR STUFF /////
+			if structs.HasRole(dev, "MirrorMaster") {
+				for _, port := range dev.Ports {
+					if port.ID == "mirror" {
+						DX, err := db.GetDB().GetDevice(port.DestinationDevice)
+						if err != nil {
+							return actions, err
+						}
+
+						cmd := DX.GetCommandByName("Standby")
+						if len(cmd.ID) < 1 {
+							return actions, nil
+						}
+
+						log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)
+
+						eventInfo.Device = DX.Name
+						eventInfo.DeviceID = DX.ID
+
+						actions = append(actions, base.ActionStructure{
+							Action:              "Standby",
+							Device:              DX,
+							DestinationDevice:   destination,
+							GeneratingEvaluator: "StandbyDefault",
+							DeviceSpecific:      false,
+							EventLog:            []events.EventInfo{eventInfo},
+						})
+					}
+				}
+			}
+			///// MIRROR STUFF /////
+			////////////////////////
 		}
 	}
 	return actions, nil

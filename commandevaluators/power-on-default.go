@@ -67,6 +67,8 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 				log.L.Info("[command_evaluators] Adding device %+v", device.Name)
 
 				eventInfo.Device = device.Name
+				eventInfo.DeviceID = device.ID
+
 				actions = append(actions, base.ActionStructure{
 					Action:              "PowerOn",
 					Device:              device,
@@ -75,6 +77,7 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 					DeviceSpecific:      false,
 					EventLog:            []events.EventInfo{eventInfo},
 				})
+
 			}
 		}
 	}
@@ -174,6 +177,40 @@ func (p *PowerOnDefault) evaluateDevice(device base.Device,
 				DeviceSpecific:      true,
 				EventLog:            []events.EventInfo{eventInfo},
 			})
+
+			////////////////////////
+			///// MIRROR STUFF /////
+			if structs.HasRole(dev, "MirrorMaster") {
+				for _, port := range dev.Ports {
+					if port.ID == "mirror" {
+						DX, err := db.GetDB().GetDevice(port.DestinationDevice)
+						if err != nil {
+							return actions, err
+						}
+
+						cmd := DX.GetCommandByName("PowerOn")
+						if len(cmd.ID) < 1 {
+							return actions, nil
+						}
+
+						log.L.Info("[command_evaluators] Adding device %+v", DX.Name)
+
+						eventInfo.Device = DX.Name
+						eventInfo.DeviceID = DX.ID
+
+						actions = append(actions, base.ActionStructure{
+							Action:              "PowerOn",
+							Device:              DX,
+							DestinationDevice:   destination,
+							GeneratingEvaluator: "PowerOnDefault",
+							DeviceSpecific:      false,
+							EventLog:            []events.EventInfo{eventInfo},
+						})
+					}
+				}
+			}
+			///// MIRROR STUFF /////
+			////////////////////////
 		}
 	}
 	return actions, nil

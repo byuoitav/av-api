@@ -43,6 +43,33 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor
 				return []base.ActionStructure{}, 0, err
 			}
 			actionList = append(actionList, action)
+
+			////////////////////////
+			///// MIRROR STUFF /////
+			if structs.HasRole(device, "MirrorMaster") {
+				for _, port := range device.Ports {
+					if port.ID == "mirror" {
+						DX, err := db.GetDB().GetDevice(port.DestinationDevice)
+						if err != nil {
+							return []base.ActionStructure{}, 0, err
+						}
+
+						cmd := DX.GetCommandByName("ChangeVideoInputVideoSwitcher")
+						if len(cmd.ID) < 1 {
+							return actionList, len(actionList), nil
+						}
+
+						mirrorAction, err := GetSwitcherAndCreateAction(room, DX, room.CurrentVideoInput, "ChangeVideoInputVideoSwitcher", requestor)
+						if err != nil {
+							return []base.ActionStructure{}, 0, err
+						}
+						//Undecode the format into the
+						actionList = append(actionList, mirrorAction)
+					}
+				}
+			}
+			///// MIRROR STUFF /////
+			////////////////////////
 		}
 	}
 
@@ -66,6 +93,33 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor
 				}
 				//Undecode the format into the
 				actionList = append(actionList, action)
+
+				////////////////////////
+				///// MIRROR STUFF /////
+				if structs.HasRole(device, "MirrorMaster") {
+					for _, port := range device.Ports {
+						if port.ID == "mirror" {
+							DX, err := db.GetDB().GetDevice(port.DestinationDevice)
+							if err != nil {
+								return actionList, len(actionList), err
+							}
+
+							cmd := DX.GetCommandByName("ChangeVideoInputVideoSwitcher")
+							if len(cmd.ID) < 1 {
+								return actionList, len(actionList), nil
+							}
+
+							mirrorAction, err := GetSwitcherAndCreateAction(room, DX, display.Input, "ChangeVideoInputVideoSwitcher", requestor)
+							if err != nil {
+								return actionList, len(actionList), err
+							}
+							//Undecode the format into the
+							actionList = append(actionList, mirrorAction)
+						}
+					}
+				}
+				///// MIRROR STUFF /////
+				////////////////////////
 			}
 		}
 	}
@@ -87,6 +141,33 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor
 				}
 				//Undecode the format into the
 				actionList = append(actionList, action)
+
+				////////////////////////
+				///// MIRROR STUFF /////
+				if structs.HasRole(device, "MirrorMaster") {
+					for _, port := range device.Ports {
+						if port.ID == "mirror" {
+							DX, err := db.GetDB().GetDevice(port.DestinationDevice)
+							if err != nil {
+								return []base.ActionStructure{}, 0, err
+							}
+
+							cmd := DX.GetCommandByName("ChangeVideoInputVideoSwitcher")
+							if len(cmd.ID) < 1 {
+								return actionList, len(actionList), nil
+							}
+
+							mirrorAction, err := GetSwitcherAndCreateAction(room, DX, audioDevice.Input, "ChangeVideoInputVideoSwitcher", requestor)
+							if err != nil {
+								return []base.ActionStructure{}, 0, err
+							}
+							//Undecode the format into the
+							actionList = append(actionList, mirrorAction)
+						}
+					}
+				}
+				///// MIRROR STUFF /////
+				////////////////////////
 			}
 
 		}
@@ -133,6 +214,7 @@ func GetSwitcherAndCreateAction(room base.PublicRoom, device structs.Device, sel
 				Type:           events.CORESTATE,
 				EventCause:     events.USERINPUT,
 				Device:         device.Name,
+				DeviceID:       device.ID,
 				EventInfoKey:   "input",
 				EventInfoValue: selectedInput,
 				Requestor:      requestor,

@@ -3,6 +3,8 @@ package statusevaluators
 import (
 	"strings"
 
+	"github.com/byuoitav/common/db"
+
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/common/log"
 	"github.com/byuoitav/common/structs"
@@ -81,6 +83,34 @@ func generateStandardStatusCommand(devices []structs.Device, evaluatorName strin
 					Generator:         evaluatorName,
 				})
 				count++
+
+				if structs.HasRole(device, "MirrorMaster") {
+					for _, port := range device.Ports {
+						if port.ID == "mirror" {
+							DX, err := db.GetDB().GetDevice(port.DestinationDevice)
+							if err != nil {
+								return output, count, err
+							}
+
+							cmd := DX.GetCommandByName(commandName)
+							if len(cmd.ID) < 1 {
+								return output, count, nil
+							}
+
+							destinationDevice.Device = DX
+
+							log.L.Infof("[statusevals] Adding command: %s to action list with device %s", command.ID, DX.ID)
+							output = append(output, StatusCommand{
+								Action:            command,
+								Device:            DX,
+								Parameters:        parameters,
+								DestinationDevice: destinationDevice,
+								Generator:         evaluatorName,
+							})
+							count++
+						}
+					}
+				}
 
 			}
 

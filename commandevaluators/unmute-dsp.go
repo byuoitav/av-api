@@ -93,6 +93,35 @@ func (p *UnMuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Act
 
 					actions = append(actions, action)
 
+					////////////////////////
+					///// MIRROR STUFF /////
+					if structs.HasRole(device, "MirrorMaster") {
+						for _, port := range device.Ports {
+							if port.ID == "mirror" {
+								DX, err := db.GetDB().GetDevice(port.DestinationDevice)
+								if err != nil {
+									return actions, len(actions), err
+								}
+
+								cmd := DX.GetCommandByName("UnMuteDSP")
+								if len(cmd.ID) < 1 {
+									return actions, len(actions), nil
+								}
+
+								log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)
+
+								action, err := GetDisplayUnMuteAction(DX, room, eventInfo, true)
+								if err != nil {
+									return actions, len(actions), err
+								}
+
+								actions = append(actions, action)
+							}
+						}
+					}
+					///// MIRROR STUFF /////
+					////////////////////////
+
 				} else { //bad device
 					errorMessage := "[command_evaluators] Cannot set volume of device " + device.Name
 					log.L.Error(errorMessage)
@@ -209,6 +238,7 @@ func GetMicUnMuteAction(mic structs.Device, room base.PublicRoom, eventInfo ei.E
 		if port.SourceDevice == mic.ID {
 			parameters["input"] = port.ID
 			eventInfo.Device = mic.Name
+			eventInfo.DeviceID = mic.ID
 
 			return base.ActionStructure{
 				Action:              "UnMute",
@@ -256,6 +286,7 @@ func GetDSPMediaUnMuteAction(dsp structs.Device, room base.PublicRoom, eventInfo
 
 			parameters["input"] = port.ID
 			eventInfo.Device = dsp.Name
+			eventInfo.DeviceID = dsp.ID
 
 			toReturn = append(toReturn, base.ActionStructure{
 				Action:              "UnMute",
@@ -278,6 +309,7 @@ func GetDisplayUnMuteAction(device structs.Device, room base.PublicRoom, eventIn
 	log.L.Infof("[command_evaluators] Generating action for command \"UnMute\" for device %s external to DSP", device.Name)
 
 	eventInfo.Device = device.Name
+	eventInfo.DeviceID = device.ID
 
 	destination := base.DestinationDevice{
 		Device:      device,

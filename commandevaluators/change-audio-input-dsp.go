@@ -74,6 +74,8 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) (
 				log.L.Infof("[command_evaluators] Adding device %+v", device.Name)
 
 				eventInfo.Device = device.Name
+				eventInfo.DeviceID = device.ID
+
 				actions = append(actions, base.ActionStructure{
 					Action:              "Mute",
 					GeneratingEvaluator: "ChangeAudioInputDSP",
@@ -82,6 +84,40 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) (
 					DeviceSpecific:      false,
 					EventLog:            []ei.EventInfo{eventInfo},
 				})
+
+				////////////////////////
+				///// MIRROR STUFF /////
+				if structs.HasRole(device, "MirrorMaster") {
+					for _, port := range device.Ports {
+						if port.ID == "mirror" {
+							DX, err := db.GetDB().GetDevice(port.DestinationDevice)
+							if err != nil {
+								return []base.ActionStructure{}, 0, err
+							}
+
+							cmd := DX.GetCommandByName("ChangeAudioInputDSP")
+							if len(cmd.ID) < 1 {
+								return actions, len(actions), nil
+							}
+
+							log.L.Infof("[command_evaluators] Adding device %+v", DX.Name)
+
+							eventInfo.Device = DX.Name
+							eventInfo.DeviceID = DX.ID
+
+							actions = append(actions, base.ActionStructure{
+								Action:              "Mute",
+								GeneratingEvaluator: "ChangeAudioInputDSP",
+								Device:              DX,
+								DestinationDevice:   destination,
+								DeviceSpecific:      false,
+								EventLog:            []ei.EventInfo{eventInfo},
+							})
+						}
+					}
+				}
+				///// MIRROR STUFF /////
+				////////////////////////
 			}
 
 		}
@@ -192,6 +228,7 @@ func GetDSPMediaInputAction(room base.PublicRoom, eventInfo ei.EventInfo, input 
 			parameters["output"] = switcherPorts[1]
 
 			eventInfo.Device = switchers[0].Name
+			eventInfo.DeviceID = switchers[0].ID
 			eventInfo.EventInfoValue = input
 
 			destination.Device = device

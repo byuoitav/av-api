@@ -1,7 +1,6 @@
 package commandevaluators
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 
@@ -89,12 +88,12 @@ func generateChangeInputByDevice(dev base.Device, room, building, generatingEval
 	}
 
 	if len(output.ID) == 0 {
-		err = errors.New(fmt.Sprintf("unable to find a device in the room matching the name %s", dev.Name))
+		err = fmt.Errorf("unable to find a device in the room matching the name %s", dev.Name)
 		return
 	}
 
 	if len(input.ID) == 0 {
-		err = errors.New(fmt.Sprintf("unable to find a device in the room matching the name %s", dev.Input))
+		err = fmt.Errorf("unable to find a device in the room matching the name %s", dev.Input)
 		return
 	}
 
@@ -192,6 +191,7 @@ func generateChangeInputByRole(role, input, room, building, generatingEvaluator,
 			Type:           events.USERACTION,
 			EventCause:     events.USERINPUT,
 			Device:         d.Name,
+			DeviceID:       d.ID,
 			EventInfoKey:   "input",
 			EventInfoValue: inputDevice.Name,
 			Requestor:      requestor,

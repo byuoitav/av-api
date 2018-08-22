@@ -51,6 +51,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 				log.L.Infof("[command_evaluators] Adding Device %+v", device.Name)
 
 				eventInfo.Device = device.Name
+				eventInfo.DeviceID = device.ID
 				destination.Device = device
 
 				if structs.HasRole(device, "AudioOut") {
@@ -65,10 +66,42 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 					DeviceSpecific:      false,
 					EventLog:            []events.EventInfo{eventInfo},
 				})
+
+				////////////////////////
+				///// MIRROR STUFF /////
+				if structs.HasRole(device, "MirrorMaster") {
+					for _, port := range device.Ports {
+						if port.ID == "mirror" {
+							DX, err := db.GetDB().GetDevice(port.DestinationDevice)
+							if err != nil {
+								return actions, len(actions), err
+							}
+
+							cmd := DX.GetCommandByName("UnblankDisplay")
+							if len(cmd.ID) < 1 {
+								return actions, len(actions), nil
+							}
+
+							log.L.Info("[command_evaluators] Adding device %+v", DX.Name)
+
+							eventInfo.Device = DX.Name
+							eventInfo.DeviceID = DX.ID
+
+							actions = append(actions, base.ActionStructure{
+								Action:              "UnblankDisplay",
+								GeneratingEvaluator: "UnBlankDisplayDefault",
+								Device:              DX,
+								DestinationDevice:   destination,
+								DeviceSpecific:      false,
+								EventLog:            []events.EventInfo{eventInfo},
+							})
+						}
+					}
+				}
+				///// MIRROR STUFF /////
+				////////////////////////
 			}
-
 		}
-
 	}
 
 	log.L.Info("[command_evaluators] Evaluating individial displays for unblanking.")
@@ -86,6 +119,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 			}
 
 			eventInfo.Device = device.Name
+			eventInfo.DeviceID = device.ID
 			destination.Device = device
 
 			if structs.HasRole(device, "AudioOut") {
@@ -101,6 +135,39 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 				EventLog:            []events.EventInfo{eventInfo},
 			})
 
+			////////////////////////
+			///// MIRROR STUFF /////
+			if structs.HasRole(device, "MirrorMaster") {
+				for _, port := range device.Ports {
+					if port.ID == "mirror" {
+						DX, err := db.GetDB().GetDevice(port.DestinationDevice)
+						if err != nil {
+							return actions, len(actions), err
+						}
+
+						cmd := DX.GetCommandByName("UnblankDisplay")
+						if len(cmd.ID) < 1 {
+							return actions, len(actions), nil
+						}
+
+						log.L.Info("[command_evaluators] Adding device %+v", DX.Name)
+
+						eventInfo.Device = DX.Name
+						eventInfo.DeviceID = DX.ID
+
+						actions = append(actions, base.ActionStructure{
+							Action:              "UnBlankDisplay",
+							Device:              DX,
+							DestinationDevice:   destination,
+							GeneratingEvaluator: "UnBlankDisplayDefault",
+							DeviceSpecific:      false,
+							EventLog:            []events.EventInfo{eventInfo},
+						})
+					}
+				}
+			}
+			///// MIRROR STUFF /////
+			////////////////////////
 		}
 	}
 
