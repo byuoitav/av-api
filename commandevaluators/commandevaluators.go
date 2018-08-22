@@ -90,7 +90,6 @@ var EVALUATORS = map[string]CommandEvaluator{
 	"MuteDefault":                    &MuteDefault{},
 	"UnMuteDefault":                  &UnMuteDefault{},
 	"SetVolumeDefault":               &SetVolumeDefault{},
-	"SetVolumeTecLite":               &SetVolumeTecLite{},
 	"MuteDSP":                        &MuteDSP{},
 	"UnmuteDSP":                      &UnMuteDSP{},
 	"SetVolumeDSP":                   &SetVolumeDSP{},

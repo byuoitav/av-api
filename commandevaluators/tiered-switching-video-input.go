@@ -98,7 +98,7 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 
 			// validate those devices existed
 			if len(inputID) == 0 || len(outputID) == 0 {
-				return []base.ActionStructure{}, 0, errors.New(fmt.Sprintf("[command_evaluators] no device name mathing '%s' or '%s' found in the room.", d.Name, d.Input))
+				return []base.ActionStructure{}, 0, fmt.Errorf("[command_evaluators] no device name matching '%s' or '%s' found in the room", d.Name, d.Input)
 			}
 
 			tmpActions, err := c.RoutePath(inputID, outputID, graph, callbackEngine, requestor)
@@ -108,6 +108,40 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 
 			log.L.Infof("%v ChangeInput actions generated to change input on %s to %s", len(tmpActions), outputID, inputID)
 			actions = append(actions, tmpActions...)
+
+			////////////////////////
+			///// MIRROR STUFF /////
+			display, err := db.GetDB().GetDevice(outputID)
+			if err != nil {
+				return []base.ActionStructure{}, 0, err
+			}
+
+			if structs.HasRole(display, "MirrorMaster") {
+				for _, port := range display.Ports {
+					if port.ID == "mirror" {
+						DX, err := db.GetDB().GetDevice(port.DestinationDevice)
+						if err != nil {
+							return actions, len(actions), err
+						}
+
+						// cmd := DX.GetCommandByName("ChangeVideoInputTieredSwitcher")
+						// if len(cmd.ID) < 1 {
+						// 	return actions, len(actions), nil
+						// }
+
+						log.L.Debugf("----- I have supposedly found the copycat - %s", DX)
+						tmpActions, err := c.RoutePath(inputID, DX.ID, graph, callbackEngine, requestor)
+						if err != nil {
+							return actions, len(actions), err
+						}
+
+						log.L.Infof("%v ChangeInput actions generated to change input on %s to %s", len(tmpActions), DX, inputID)
+						actions = append(actions, tmpActions...)
+					}
+				}
+			}
+			///// MIRROR STUFF /////
+			////////////////////////
 		}
 	}
 
@@ -118,7 +152,7 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 			inputID := getDeviceIDFromShortname(d.Input, devices)
 
 			if len(inputID) == 0 || len(outputID) == 0 {
-				return []base.ActionStructure{}, 0, errors.New(fmt.Sprintf("[command_evaluators] no device name mathing '%s' or '%s' found in the room.", d.Name, d.Input))
+				return []base.ActionStructure{}, 0, fmt.Errorf("[command_evaluators] no device name matching '%s' or '%s' found in the room", d.Name, d.Input)
 			}
 
 			tmpActions, err := c.RoutePath(inputID, outputID, graph, callbackEngine, requestor)
@@ -201,7 +235,7 @@ func (c *ChangeVideoInputTieredSwitchers) RoutePath(input, output string, graph 
 	}
 
 	if !outDev.Device.Type.Output {
-		msg := fmt.Sprintf("[command_evaluators] Device %v is not an input device in this room", output)
+		msg := fmt.Sprintf("[command_evaluators] Device %v is not an output device in this room", output)
 		log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
 		return []base.ActionStructure{}, errors.New(msg)
 	}
@@ -338,6 +372,9 @@ func (c *ChangeVideoInputTieredSwitchers) GenerateActionsFromPath(path []inputgr
 			if err != nil {
 				return toReturn, err
 			}
+			if len(tempAction.Action) == 0 {
+				continue
+			}
 
 			toReturn = append(toReturn, tempAction)
 		}
@@ -365,6 +402,7 @@ func generateActionForAVIPReceiver(tx, rx inputgraph.Node, destination structs.D
 		Type:           events.CORESTATE,
 		EventCause:     events.USERINPUT,
 		Device:         destination.Name,
+		DeviceID:       destination.ID,
 		EventInfoKey:   "input",
 		EventInfoValue: selected,
 		Requestor:      requestor,
@@ -414,6 +452,11 @@ func generateActionForNonSwitch(prev, cur inputgraph.Node, destination structs.D
 		return base.ActionStructure{}, errors.New(msg)
 	}
 
+	cmd := destination.GetCommandByName("ChangeInput")
+	if len(cmd.ID) < 1 {
+		return base.ActionStructure{}, nil
+	}
+
 	m := make(map[string]string)
 	m["port"] = in
 
@@ -421,6 +464,7 @@ func generateActionForNonSwitch(prev, cur inputgraph.Node, destination structs.D
 		Type:           events.CORESTATE,
 		EventCause:     events.USERINPUT,
 		Device:         destination.Name,
+		DeviceID:       destination.ID,
 		EventInfoKey:   "input",
 		EventInfoValue: selected,
 		Requestor:      requestor,
@@ -487,6 +531,7 @@ func generateActionForSwitch(prev, cur, next inputgraph.Node, destination struct
 		Type:           events.CORESTATE,
 		EventCause:     events.USERINPUT,
 		Device:         destination.Name,
+		DeviceID:       destination.ID,
 		EventInfoKey:   "input",
 		EventInfoValue: selected,
 		Requestor:      requestor,

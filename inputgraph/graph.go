@@ -211,6 +211,20 @@ func GetVideoDeviceReachability(room structs.Room) (ReachableRoomConfig, *nerr.E
 		}
 		if structs.HasRole(device, "VideoOut") {
 			outputs = append(outputs, device.Name)
+
+			////////////////////////
+			///// MIRROR STUFF /////
+			if structs.HasRole(device, "MirrorMaster") {
+				for _, port := range device.Ports {
+					if port.ID == "mirror" {
+						log.L.Debugf("WE ARE HERE! WE ARE HERE! - %s", port.DestinationDevice)
+						name := strings.Split(port.DestinationDevice, "-")[2]
+						outputs = append(outputs, name)
+					}
+				}
+			}
+			///// MIRROR STUFF /////
+			////////////////////////
 		}
 	}
 
