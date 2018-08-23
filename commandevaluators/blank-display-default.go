@@ -85,7 +85,7 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 							}
 
 							cmd := DX.GetCommandByName("BlankDisplay")
-							if cmd.ID == "BlankDisplay" {
+							if cmd.ID != "BlankDisplay" {
 								return actions, len(actions), nil
 							} else {
 								log.L.Info("[command_evaluators] Adding device %+v", DX.Name)
