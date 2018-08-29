@@ -85,23 +85,23 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 							}
 
 							cmd := DX.GetCommandByName("BlankDisplay")
-							if len(cmd.ID) < 1 {
+							if cmd.ID != "BlankDisplay" {
 								return actions, len(actions), nil
+							} else {
+								log.L.Info("[command_evaluators] Adding device %+v", DX.Name)
+
+								eventInfo.Device = DX.Name
+								eventInfo.DeviceID = DX.ID
+
+								actions = append(actions, base.ActionStructure{
+									Action:              "BlankDisplay",
+									Device:              DX,
+									DestinationDevice:   destination,
+									GeneratingEvaluator: "BlankDisplayDefault",
+									DeviceSpecific:      false,
+									EventLog:            []events.EventInfo{eventInfo},
+								})
 							}
-
-							log.L.Info("[command_evaluators] Adding device %+v", DX.Name)
-
-							eventInfo.Device = DX.Name
-							eventInfo.DeviceID = DX.ID
-
-							actions = append(actions, base.ActionStructure{
-								Action:              "BlankDisplay",
-								Device:              DX,
-								DestinationDevice:   destination,
-								GeneratingEvaluator: "BlankDisplayDefault",
-								DeviceSpecific:      false,
-								EventLog:            []events.EventInfo{eventInfo},
-							})
 						}
 					}
 				}
