@@ -40,12 +40,19 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 			return
 		}
 
-		log.L.Info("[command_evaluators] Setting power to 'standby' state for all devices with a 'standby' power state, that are also output devices.")
+		log.L.Debugf("[command_evaluators] Setting power to 'standby' state for all devices with a 'standby' power state, that are also output devices.")
 		for _, device := range devices {
 
 			if device.Type.Output {
+				//check to see if it has the standby command
 
-				log.L.Infof("[command_evaluators] Adding device %+v", device.Name)
+				cmd := device.GetCommandByName("Standby")
+				if len(cmd.ID) < 1 {
+					log.L.Debugf("Device %v doesn't have standby command. Skipping.")
+					continue
+				}
+
+				log.L.Debugf("[command_evaluators] Adding device %+v from room-wide standby", device.Name)
 
 				dest := base.DestinationDevice{
 					Device: device,
