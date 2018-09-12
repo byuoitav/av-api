@@ -85,23 +85,24 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 							}
 
 							cmd := DX.GetCommandByName("BlankDisplay")
-							if cmd.ID != "BlankDisplay" {
+							log.L.Info(cmd)
+							if len(cmd.ID) == 0 || cmd.ID != "BlankDisplay" {
 								return actions, len(actions), nil
-							} else {
-								log.L.Info("[command_evaluators] Adding device %+v", DX.Name)
-
-								eventInfo.Device = DX.Name
-								eventInfo.DeviceID = DX.ID
-
-								actions = append(actions, base.ActionStructure{
-									Action:              "BlankDisplay",
-									Device:              DX,
-									DestinationDevice:   destination,
-									GeneratingEvaluator: "BlankDisplayDefault",
-									DeviceSpecific:      false,
-									EventLog:            []events.EventInfo{eventInfo},
-								})
 							}
+
+							log.L.Info("[command_evaluators] Adding device %+v", DX.Name)
+
+							eventInfo.Device = DX.Name
+							eventInfo.DeviceID = DX.ID
+
+							actions = append(actions, base.ActionStructure{
+								Action:              "BlankDisplay",
+								Device:              DX,
+								DestinationDevice:   destination,
+								GeneratingEvaluator: "BlankDisplayDefault",
+								DeviceSpecific:      false,
+								EventLog:            []events.EventInfo{eventInfo},
+							})
 						}
 					}
 				}
@@ -151,6 +152,12 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 					if port.ID == "mirror" {
 						DX, err := db.GetDB().GetDevice(port.DestinationDevice)
 						if err != nil {
+							return actions, len(actions), nil
+						}
+
+						cmd := DX.GetCommandByName("BlankDisplay")
+						log.L.Info(cmd)
+						if cmd.ID != "BlankDisplay" {
 							return actions, len(actions), nil
 						}
 
