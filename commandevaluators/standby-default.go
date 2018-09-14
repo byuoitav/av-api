@@ -171,7 +171,7 @@ func (s *StandbyDefault) evaluateDevice(device base.Device, destination base.Des
 
 						cmd := DX.GetCommandByName("Standby")
 						if len(cmd.ID) < 1 {
-							return actions, nil
+							continue
 						}
 
 						log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)

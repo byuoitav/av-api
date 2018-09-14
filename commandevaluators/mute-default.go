@@ -82,7 +82,7 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 
 							cmd := DX.GetCommandByName("MuteDefault")
 							if len(cmd.ID) < 1 {
-								return actions, len(actions), nil
+								continue
 							}
 
 							log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)
@@ -145,7 +145,7 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 
 						cmd := DX.GetCommandByName("MuteDefault")
 						if len(cmd.ID) < 1 {
-							return actions, len(actions), nil
+							continue
 						}
 
 						log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)

@@ -112,7 +112,7 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Actio
 
 							cmd := DX.GetCommandByName("MuteDSP")
 							if len(cmd.ID) < 1 {
-								return actions, len(actions), nil
+								continue
 							}
 
 							log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)

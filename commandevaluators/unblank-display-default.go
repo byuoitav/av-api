@@ -79,7 +79,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 
 							cmd := DX.GetCommandByName("UnblankDisplay")
 							if len(cmd.ID) < 1 {
-								return actions, len(actions), nil
+								continue
 							}
 
 							log.L.Info("[command_evaluators] Adding device %+v", DX.Name)
@@ -147,7 +147,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 
 						cmd := DX.GetCommandByName("UnblankDisplay")
 						if len(cmd.ID) < 1 {
-							return actions, len(actions), nil
+							continue
 						}
 
 						log.L.Info("[command_evaluators] Adding device %+v", DX.Name)

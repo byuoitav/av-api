@@ -56,7 +56,7 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor
 
 						cmd := DX.GetCommandByName("ChangeVideoInputVideoSwitcher")
 						if len(cmd.ID) < 1 {
-							return actionList, len(actionList), nil
+							continue
 						}
 
 						mirrorAction, err := GetSwitcherAndCreateAction(room, DX, room.CurrentVideoInput, "ChangeVideoInputVideoSwitcher", requestor)
@@ -106,7 +106,7 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor
 
 							cmd := DX.GetCommandByName("ChangeVideoInputVideoSwitcher")
 							if len(cmd.ID) < 1 {
-								return actionList, len(actionList), nil
+								continue
 							}
 
 							mirrorAction, err := GetSwitcherAndCreateAction(room, DX, display.Input, "ChangeVideoInputVideoSwitcher", requestor)
@@ -154,7 +154,7 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor
 
 							cmd := DX.GetCommandByName("ChangeVideoInputVideoSwitcher")
 							if len(cmd.ID) < 1 {
-								return actionList, len(actionList), nil
+								continue
 							}
 
 							mirrorAction, err := GetSwitcherAndCreateAction(room, DX, audioDevice.Input, "ChangeVideoInputVideoSwitcher", requestor)

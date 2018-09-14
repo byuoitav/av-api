@@ -111,7 +111,7 @@ func (p *SetVolumeDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.
 
 								cmd := DX.GetCommandByName("SetVolumeDSP")
 								if len(cmd.ID) < 1 {
-									return actions, len(actions), nil
+									continue
 								}
 
 								log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)
