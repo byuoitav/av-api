@@ -190,7 +190,7 @@ func (p *PowerOnDefault) evaluateDevice(device base.Device,
 
 						cmd := DX.GetCommandByName("PowerOn")
 						if len(cmd.ID) < 1 {
-							return actions, nil
+							continue
 						}
 
 						log.L.Info("[command_evaluators] Adding device %+v", DX.Name)

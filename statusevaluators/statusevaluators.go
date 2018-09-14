@@ -84,6 +84,8 @@ func generateStandardStatusCommand(devices []structs.Device, evaluatorName strin
 				})
 				count++
 
+				////////////////////////
+				///// MIRROR STUFF /////
 				if structs.HasRole(device, "MirrorMaster") {
 					for _, port := range device.Ports {
 						if port.ID == "mirror" {
@@ -94,7 +96,7 @@ func generateStandardStatusCommand(devices []structs.Device, evaluatorName strin
 
 							cmd := DX.GetCommandByName(commandName)
 							if len(cmd.ID) < 1 {
-								return output, count, nil
+								continue
 							}
 
 							destinationDevice.Device = DX
@@ -111,7 +113,8 @@ func generateStandardStatusCommand(devices []structs.Device, evaluatorName strin
 						}
 					}
 				}
-
+				///// MIRROR STUFF /////
+				////////////////////////
 			}
 
 		}

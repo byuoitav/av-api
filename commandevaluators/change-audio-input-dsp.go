@@ -97,7 +97,7 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) (
 
 							cmd := DX.GetCommandByName("ChangeAudioInputDSP")
 							if len(cmd.ID) < 1 {
-								return actions, len(actions), nil
+								continue
 							}
 
 							log.L.Infof("[command_evaluators] Adding device %+v", DX.Name)

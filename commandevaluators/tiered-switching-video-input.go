@@ -124,12 +124,6 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 							return actions, len(actions), err
 						}
 
-						// cmd := DX.GetCommandByName("ChangeVideoInputTieredSwitcher")
-						// if len(cmd.ID) < 1 {
-						// 	return actions, len(actions), nil
-						// }
-
-						log.L.Debugf("----- I have supposedly found the copycat - %s", DX)
 						tmpActions, err := c.RoutePath(inputID, DX.ID, graph, callbackEngine, requestor)
 						if err != nil {
 							return actions, len(actions), err
