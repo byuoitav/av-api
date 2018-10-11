@@ -20,6 +20,10 @@ func PublishHealth(e events.Event) {
 func Publish(e events.Event, Error bool) error {
 	var err error
 
+	if len(e.Event.EventInfoValue) == 0 || len(e.Event.EventInfoValue) == 0 {
+		return nil
+	}
+
 	// Add some more information to the Event, such as hostname and a timestamp.
 	e.Timestamp = time.Now().Format(time.RFC3339)
 	if len(os.Getenv("LOCAL_ENVIRONMENT")) > 0 {
