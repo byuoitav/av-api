@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"os"
 
@@ -10,11 +9,10 @@ import (
 	"github.com/byuoitav/av-api/handlers"
 	"github.com/byuoitav/av-api/health"
 	avapi "github.com/byuoitav/av-api/init"
-	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common"
 	ei "github.com/byuoitav/common/events"
 	"github.com/byuoitav/common/log"
-	si "github.com/byuoitav/device-monitoring-microservice/statusinfrastructure"
-	jh "github.com/jessemillar/health"
+	"github.com/byuoitav/common/status"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 )
@@ -31,15 +29,14 @@ func main() {
 	}()
 
 	port := ":8000"
-	router := echo.New()
+	router := common.NewRouter()
 	router.Pre(middleware.RemoveTrailingSlash())
 	router.Use(middleware.CORS())
 
 	// Use the `secure` routing group to require authentication
 	secure := router.Group("", echo.WrapMiddleware(authmiddleware.Authenticate))
 
-	router.GET("/health", echo.WrapHandler(http.HandlerFunc(jh.Check)))
-	router.GET("/mstatus", GetStatus)
+	router.GET("/mstatus", status.DefaultMStatusHandler)
 	secure.GET("/status", health.Status)
 
 	// PUT requests
@@ -60,28 +57,4 @@ func main() {
 	go health.StartupCheckAndReport()
 
 	router.StartServer(&server)
-}
-
-// GetStatus returns the status and version number of this instance of the API.
-func GetStatus(context echo.Context) error {
-	var s si.Status
-	var err error
-
-	s.Version, err = si.GetVersion("version.txt")
-	if err != nil {
-		return context.JSON(http.StatusOK, "Failed to open version.txt")
-	}
-
-	// Test a database retrieval to assess the status.
-	vals, err := db.GetDB().GetAllBuildings()
-	if len(vals) < 1 || err != nil {
-		s.Status = si.StatusDead
-		s.StatusInfo = fmt.Sprintf("Unable to access database. Error: %s", err)
-	} else {
-		s.Status = si.StatusOK
-		s.StatusInfo = ""
-	}
-	log.L.Info("Getting Mstatus")
-
-	return context.JSON(http.StatusOK, s)
 }
