@@ -12,7 +12,7 @@ import (
 	"github.com/byuoitav/common"
 	ei "github.com/byuoitav/common/events"
 	"github.com/byuoitav/common/log"
-	"github.com/byuoitav/common/status"
+	"github.com/byuoitav/common/status/databasestatus"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 )
@@ -36,7 +36,7 @@ func main() {
 	// Use the `secure` routing group to require authentication
 	secure := router.Group("", echo.WrapMiddleware(authmiddleware.Authenticate))
 
-	router.GET("/mstatus", status.DefaultMStatusHandler)
+	router.GET("/mstatus", databasestatus.Handler)
 	secure.GET("/status", health.Status)
 
 	// PUT requests
