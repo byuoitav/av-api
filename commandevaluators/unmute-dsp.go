@@ -16,13 +16,14 @@ d) media devices connected to the DSP have the role "AudioOut"
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/byuoitav/common/log"
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/common/db"
-	ei "github.com/byuoitav/common/events"
 	"github.com/byuoitav/common/structs"
+	"github.com/byuoitav/common/v2/events"
 )
 
 // UnMuteDSP implements the CommandEvaluator struct/
@@ -34,12 +35,18 @@ func (p *UnMuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Act
 	log.L.Info("[command_evaluators] Evaluating PUT body for UNMUTE command in DSP context...")
 
 	var actions []base.ActionStructure
-	eventInfo := ei.EventInfo{
-		Type:           ei.CORESTATE,
-		EventCause:     ei.USERINPUT,
-		EventInfoKey:   "muted",
-		EventInfoValue: "false",
-		Requestor:      requestor,
+
+	eventInfo := events.Event{
+		Key:   "muted",
+		Value: "false",
+		User:  requestor,
+	}
+
+	eventInfo.EventTags = append(eventInfo.EventTags, events.CoreState, events.UserGenerated)
+
+	eventInfo.AffectedRoom = events.BasicRoomInfo{
+		BuildingID: room.Building,
+		RoomID:     fmt.Sprintf("%s-%s", room.Building, room.Room),
 	}
 
 	if room.Muted != nil && !(*room.Muted) {
@@ -151,7 +158,7 @@ func (p *UnMuteDSP) GetIncompatibleCommands() []string {
 // GetGeneralUnMuteRequestActionsDSP generates a list of actions based on the given room and event information.
 //assumes only one DSP, but allows for the possiblity of multiple devices not routed through the DSP
 //room-wide mute requests DO NOT include mics
-func GetGeneralUnMuteRequestActionsDSP(room base.PublicRoom, eventInfo ei.EventInfo) ([]base.ActionStructure, error) {
+func GetGeneralUnMuteRequestActionsDSP(room base.PublicRoom, eventInfo events.Event) ([]base.ActionStructure, error) {
 
 	log.L.Info("[command_evaluators] Generating actions for room-wide \"UnMute\" request")
 
@@ -205,7 +212,7 @@ func GetGeneralUnMuteRequestActionsDSP(room base.PublicRoom, eventInfo ei.EventI
 
 // GetMicUnMuteAction generates an action based on the room, microphone and event information.
 //assumes the mic is only connected to a single DSP
-func GetMicUnMuteAction(mic structs.Device, room base.PublicRoom, eventInfo ei.EventInfo) (base.ActionStructure, error) {
+func GetMicUnMuteAction(mic structs.Device, room base.PublicRoom, eventInfo events.Event) (base.ActionStructure, error) {
 
 	log.L.Infof("[command_evaluators] Generating action for command \"UnMute\" on microphone %s", mic.Name)
 
@@ -237,8 +244,21 @@ func GetMicUnMuteAction(mic structs.Device, room base.PublicRoom, eventInfo ei.E
 
 		if port.SourceDevice == mic.ID {
 			parameters["input"] = port.ID
-			eventInfo.Device = mic.Name
-			eventInfo.DeviceID = mic.ID
+
+			eventInfo.AffectedRoom = events.BasicRoomInfo{
+				BuildingID: room.Building,
+				RoomID:     fmt.Sprintf("%s-%s", room.Building, room.Room),
+			}
+
+			deviceInfo := strings.Split(mic.ID, "-")
+
+			eventInfo.TargetDevice = events.BasicDeviceInfo{
+				BasicRoomInfo: events.BasicRoomInfo{
+					BuildingID: deviceInfo[0],
+					RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
+				},
+				DeviceID: mic.ID,
+			}
 
 			return base.ActionStructure{
 				Action:              "UnMute",
@@ -246,7 +266,7 @@ func GetMicUnMuteAction(mic structs.Device, room base.PublicRoom, eventInfo ei.E
 				Device:              dsp,
 				DestinationDevice:   destination,
 				DeviceSpecific:      true,
-				EventLog:            []ei.EventInfo{eventInfo},
+				EventLog:            []events.Event{eventInfo},
 				Parameters:          parameters,
 			}, nil
 		}
@@ -257,7 +277,7 @@ func GetMicUnMuteAction(mic structs.Device, room base.PublicRoom, eventInfo ei.E
 }
 
 // GetDSPMediaUnMuteAction generates a list of actions based on the room, DSP, and event information.
-func GetDSPMediaUnMuteAction(dsp structs.Device, room base.PublicRoom, eventInfo ei.EventInfo, deviceSpecific bool) ([]base.ActionStructure, error) {
+func GetDSPMediaUnMuteAction(dsp structs.Device, room base.PublicRoom, eventInfo events.Event, deviceSpecific bool) ([]base.ActionStructure, error) {
 	toReturn := []base.ActionStructure{}
 
 	destination := base.DestinationDevice{
@@ -285,8 +305,21 @@ func GetDSPMediaUnMuteAction(dsp structs.Device, room base.PublicRoom, eventInfo
 		if structs.HasRole(sourceDevice, "AudioOut") || structs.HasRole(sourceDevice, "VideoSwitcher") {
 
 			parameters["input"] = port.ID
-			eventInfo.Device = dsp.Name
-			eventInfo.DeviceID = dsp.ID
+
+			eventInfo.AffectedRoom = events.BasicRoomInfo{
+				BuildingID: room.Building,
+				RoomID:     fmt.Sprintf("%s-%s", room.Building, room.Room),
+			}
+
+			deviceInfo := strings.Split(dsp.ID, "-")
+
+			eventInfo.TargetDevice = events.BasicDeviceInfo{
+				BasicRoomInfo: events.BasicRoomInfo{
+					BuildingID: deviceInfo[0],
+					RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
+				},
+				DeviceID: dsp.ID,
+			}
 
 			toReturn = append(toReturn, base.ActionStructure{
 				Action:              "UnMute",
@@ -294,7 +327,7 @@ func GetDSPMediaUnMuteAction(dsp structs.Device, room base.PublicRoom, eventInfo
 				Device:              dsp,
 				DestinationDevice:   destination,
 				DeviceSpecific:      deviceSpecific,
-				EventLog:            []ei.EventInfo{eventInfo},
+				EventLog:            []events.Event{eventInfo},
 				Parameters:          parameters,
 			})
 		}
@@ -304,12 +337,24 @@ func GetDSPMediaUnMuteAction(dsp structs.Device, room base.PublicRoom, eventInfo
 }
 
 // GetDisplayUnMuteAction generates an action based on the display, room, and event information.
-func GetDisplayUnMuteAction(device structs.Device, room base.PublicRoom, eventInfo ei.EventInfo, deviceSpecific bool) (base.ActionStructure, error) {
+func GetDisplayUnMuteAction(device structs.Device, room base.PublicRoom, eventInfo events.Event, deviceSpecific bool) (base.ActionStructure, error) {
 
 	log.L.Infof("[command_evaluators] Generating action for command \"UnMute\" for device %s external to DSP", device.Name)
 
-	eventInfo.Device = device.Name
-	eventInfo.DeviceID = device.ID
+	eventInfo.AffectedRoom = events.BasicRoomInfo{
+		BuildingID: room.Building,
+		RoomID:     fmt.Sprintf("%s-%s", room.Building, room.Room),
+	}
+
+	deviceInfo := strings.Split(device.ID, "-")
+
+	eventInfo.TargetDevice = events.BasicDeviceInfo{
+		BasicRoomInfo: events.BasicRoomInfo{
+			BuildingID: deviceInfo[0],
+			RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
+		},
+		DeviceID: device.ID,
+	}
 
 	destination := base.DestinationDevice{
 		Device:      device,
@@ -326,6 +371,6 @@ func GetDisplayUnMuteAction(device structs.Device, room base.PublicRoom, eventIn
 		Device:              device,
 		DestinationDevice:   destination,
 		DeviceSpecific:      deviceSpecific,
-		EventLog:            []ei.EventInfo{eventInfo},
+		EventLog:            []events.Event{eventInfo},
 	}, nil
 }

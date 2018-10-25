@@ -9,9 +9,9 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	se "github.com/byuoitav/av-api/statusevaluators"
-	"github.com/byuoitav/common/events"
 	"github.com/byuoitav/common/log"
 	"github.com/byuoitav/common/structs"
+	"github.com/byuoitav/common/v2/events"
 	"github.com/fatih/color"
 )
 
@@ -104,8 +104,8 @@ func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse
 			if output.ErrorMessage != nil {
 				msg := fmt.Sprintf("problem querying status of device: %s with destination %s: %s", output.SourceDevice.Name, output.DestinationDevice.Name, *output.ErrorMessage)
 				log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
-				cause := events.INTERNAL
-				base.PublishError(msg, cause)
+				cause := events.Error
+				base.PublishError(msg, cause, output.SourceDevice.ID)
 			}
 			//base.Log("[state] appending status: %v of %s to output", output.Status, output.DestinationDevice.Name)
 			outputs = append(outputs, output)

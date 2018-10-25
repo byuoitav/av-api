@@ -10,20 +10,20 @@ import (
 	"github.com/byuoitav/av-api/health"
 	avapi "github.com/byuoitav/av-api/init"
 	"github.com/byuoitav/common"
-	ei "github.com/byuoitav/common/events"
 	"github.com/byuoitav/common/log"
 	"github.com/byuoitav/common/status/databasestatus"
+	"github.com/byuoitav/common/v2/events"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 )
 
 func main() {
-	base.EventNode = ei.NewEventNode("AV-API", os.Getenv("EVENT_ROUTER_ADDRESS"), []string{})
+	base.EventNode = events.NewEventNode("AV-API", os.Getenv("EVENT_ROUTER_ADDRESS"), []string{})
 
 	go func() {
 		err := avapi.CheckRoomInitialization()
 		if err != nil {
-			base.PublishError("Fail to run init script. Terminating. ERROR:"+err.Error(), ei.INTERNAL)
+			base.PublishError("Fail to run init script. Terminating. ERROR:"+err.Error(), events.Error, os.Getenv("PI_HOSTNAME"))
 			log.L.Errorf("Could not initialize room. Error: %v\n", err.Error())
 		}
 	}()

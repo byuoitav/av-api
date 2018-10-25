@@ -9,8 +9,8 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/common/db"
-	"github.com/byuoitav/common/events"
 	"github.com/byuoitav/common/structs"
+	"github.com/byuoitav/common/v2/events"
 )
 
 //MuteDefault implements the CommandEvaluation struct.
@@ -29,13 +29,13 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 		AudioDevice: true,
 	}
 
-	eventInfo := events.EventInfo{
-		Type:           events.CORESTATE,
-		EventCause:     events.USERINPUT,
-		EventInfoKey:   "muted",
-		EventInfoValue: "true",
-		Requestor:      requestor,
+	eventInfo := events.Event{
+		Key:   "muted",
+		Value: "true",
+		User:  requestor,
 	}
+
+	eventInfo.EventTags = append(eventInfo.EventTags, events.CoreState, events.UserGenerated)
 
 	if room.Muted != nil && *room.Muted {
 
@@ -53,8 +53,20 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 			if device.Type.Output {
 				log.L.Infof("[command_evaluators] Adding device %+v", device.Name)
 
-				eventInfo.Device = device.Name
-				eventInfo.DeviceID = device.ID
+				eventInfo.AffectedRoom = events.BasicRoomInfo{
+					BuildingID: room.Building,
+					RoomID:     roomID,
+				}
+
+				deviceInfo := strings.Split(device.ID, "-")
+				eventInfo.TargetDevice = events.BasicDeviceInfo{
+					BasicRoomInfo: events.BasicRoomInfo{
+						BuildingID: deviceInfo[0],
+						RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
+					},
+					DeviceID: device.ID,
+				}
+
 				destination.Device = device
 
 				if structs.HasRole(device, "VideoOut") {
@@ -67,7 +79,7 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 					Device:              device,
 					DestinationDevice:   destination,
 					DeviceSpecific:      false,
-					EventLog:            []events.EventInfo{eventInfo},
+					EventLog:            []events.Event{eventInfo},
 				})
 
 				////////////////////////
@@ -87,8 +99,19 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 
 							log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)
 
-							eventInfo.Device = DX.Name
-							eventInfo.DeviceID = DX.ID
+							eventInfo.AffectedRoom = events.BasicRoomInfo{
+								BuildingID: room.Building,
+								RoomID:     roomID,
+							}
+
+							deviceInfo := strings.Split(DX.ID, "-")
+							eventInfo.TargetDevice = events.BasicDeviceInfo{
+								BasicRoomInfo: events.BasicRoomInfo{
+									BuildingID: deviceInfo[0],
+									RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
+								},
+								DeviceID: device.ID,
+							}
 
 							actions = append(actions, base.ActionStructure{
 								Action:              "Mute",
@@ -96,7 +119,7 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 								Device:              DX,
 								DestinationDevice:   destination,
 								DeviceSpecific:      false,
-								EventLog:            []events.EventInfo{eventInfo},
+								EventLog:            []events.Event{eventInfo},
 							})
 						}
 					}
@@ -121,7 +144,15 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 				return []base.ActionStructure{}, 0, err
 			}
 
-			eventInfo.Device = device.Name
+			deviceInfo := strings.Split(device.ID, "-")
+			eventInfo.TargetDevice = events.BasicDeviceInfo{
+				BasicRoomInfo: events.BasicRoomInfo{
+					BuildingID: deviceInfo[0],
+					RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
+				},
+				DeviceID: device.ID,
+			}
+
 			destination.Device = device
 
 			actions = append(actions, base.ActionStructure{
@@ -130,7 +161,7 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 				Device:              device,
 				DestinationDevice:   destination,
 				DeviceSpecific:      true,
-				EventLog:            []events.EventInfo{eventInfo},
+				EventLog:            []events.Event{eventInfo},
 			})
 
 			////////////////////////
@@ -150,8 +181,14 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 
 						log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)
 
-						eventInfo.Device = DX.Name
-						eventInfo.DeviceID = DX.ID
+						deviceInfo := strings.Split(DX.ID, "-")
+						eventInfo.TargetDevice = events.BasicDeviceInfo{
+							BasicRoomInfo: events.BasicRoomInfo{
+								BuildingID: deviceInfo[0],
+								RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
+							},
+							DeviceID: device.ID,
+						}
 
 						actions = append(actions, base.ActionStructure{
 							Action:              "Mute",
@@ -159,7 +196,7 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 							Device:              DX,
 							DestinationDevice:   destination,
 							DeviceSpecific:      true,
-							EventLog:            []events.EventInfo{eventInfo},
+							EventLog:            []events.Event{eventInfo},
 						})
 					}
 				}

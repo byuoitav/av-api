@@ -15,9 +15,9 @@ import (
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/gateway"
 	se "github.com/byuoitav/av-api/statusevaluators"
-	ei "github.com/byuoitav/common/events"
 	"github.com/byuoitav/common/log"
 	"github.com/byuoitav/common/structs"
+	"github.com/byuoitav/common/v2/events"
 	"github.com/fatih/color"
 )
 
@@ -51,7 +51,7 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 		if err != nil {
 			msg := fmt.Sprintf("unable to replace parameters for %s: %s", command.Action.ID, err.Error())
 			log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
-			base.PublishError(msg, ei.INTERNAL)
+			base.PublishError(msg, events.Error, command.Device.ID)
 			continue
 		}
 
@@ -61,7 +61,7 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 		if err != nil {
 			msg := fmt.Sprintf("unable to set gateway for %s: %s", command.Action.ID, err.Error())
 			log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
-			base.PublishError(msg, ei.INTERNAL)
+			base.PublishError(msg, events.Error, command.Device.ID)
 			continue
 		}
 
@@ -92,7 +92,7 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 		if response.StatusCode != 200 {
 			msg := fmt.Sprintf("non-200 response code: %d, message: %s", response.StatusCode, string(body))
 			log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
-			base.PublishError(msg, ei.INTERNAL)
+			base.PublishError(msg, events.Error, command.Device.ID)
 			continue
 		}
 
@@ -105,7 +105,7 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 			output.ErrorMessage = &msg
 			outputs = append(outputs, output)
 			log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
-			base.PublishError(msg, ei.INTERNAL)
+			base.PublishError(msg, events.Error, command.Device.ID)
 			continue
 		}
 
@@ -267,20 +267,8 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 	}
 
 	//TODO: we need to find some way to check against the correct response value, just as a further validation
-
-	roomID := strings.Split(action.Device.GetDeviceRoomID(), "-")
 	for _, event := range action.EventLog {
-		base.SendEvent(
-			event.Type,
-			event.EventCause,
-			event.Device,
-			roomID[1],
-			roomID[0],
-			event.EventInfoKey,
-			event.EventInfoValue,
-			event.Requestor,
-			false,
-		)
+		base.SendEvent(event, false)
 	}
 
 	log.L.Infof("%s", color.HiGreenString("[state] sent command %s to device %s.", action.Action, action.Device.Name))
@@ -359,15 +347,28 @@ func PublishError(message string, action base.ActionStructure, requestor string)
 
 	roomID := strings.Split(action.Device.GetDeviceRoomID(), "-")
 
-	base.SendEvent(
-		ei.ERROR,
-		ei.USERINPUT,
-		action.Device.ID,
-		roomID[1],
-		roomID[0],
-		action.Action,
-		message,
-		requestor,
-		true)
+	roomInfo := events.BasicRoomInfo{
+		BuildingID: roomID[0],
+		RoomID:     fmt.Sprintf("%s-%s", roomID[0], roomID[1]),
+	}
 
+	deviceInfo := strings.Split(action.Device.ID, "-")
+
+	e := events.Event{
+		AffectedRoom: roomInfo,
+		TargetDevice: events.BasicDeviceInfo{
+			BasicRoomInfo: events.BasicRoomInfo{
+				BuildingID: deviceInfo[0],
+				RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
+			},
+			DeviceID: action.Device.ID,
+		},
+		Key:   action.Action,
+		Value: message,
+		User:  requestor,
+	}
+
+	e.EventTags = append(e.EventTags, events.Error, events.UserGenerated)
+
+	base.SendEvent(e, true)
 }

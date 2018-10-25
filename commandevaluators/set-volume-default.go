@@ -4,13 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/byuoitav/common/log"
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/common/db"
-	"github.com/byuoitav/common/events"
 	"github.com/byuoitav/common/structs"
+	"github.com/byuoitav/common/v2/events"
 )
 
 // SetVolumeDefault implements the CommandEvaluation struct.
@@ -22,12 +23,19 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 
 	var actions []base.ActionStructure
 
-	eventInfo := events.EventInfo{
-		Type:         events.CORESTATE,
-		EventCause:   events.USERINPUT,
-		EventInfoKey: "volume",
-		Requestor:    requestor,
+	// eventInfo := events.EventInfo{
+	// 	Type:         events.CORESTATE,
+	// 	EventCause:   events.USERINPUT,
+	// 	EventInfoKey: "volume",
+	// 	Requestor:    requestor,
+	// }
+
+	eventInfo := events.Event{
+		Key:  "volume",
+		User: requestor,
 	}
+
+	eventInfo.EventTags = append(eventInfo.EventTags, events.CoreState, events.UserGenerated)
 
 	destination := base.DestinationDevice{
 		AudioDevice: true,
@@ -51,10 +59,23 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 				parameters := make(map[string]string)
 				parameters["level"] = fmt.Sprintf("%v", *room.Volume)
 
-				eventInfo.EventInfoValue = fmt.Sprintf("%v", *room.Volume)
+				eventInfo.Value = fmt.Sprintf("%v", *room.Volume)
 
-				eventInfo.Device = device.Name
-				eventInfo.DeviceID = device.ID
+				eventInfo.AffectedRoom = events.BasicRoomInfo{
+					BuildingID: room.Building,
+					RoomID:     roomID,
+				}
+
+				deviceInfo := strings.Split(device.ID, "-")
+
+				eventInfo.TargetDevice = events.BasicDeviceInfo{
+					BasicRoomInfo: events.BasicRoomInfo{
+						BuildingID: deviceInfo[0],
+						RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
+					},
+					DeviceID: device.ID,
+				}
+
 				destination.Device = device
 
 				if structs.HasRole(device, "VideoOut") {
@@ -68,7 +89,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 					Device:              device,
 					DestinationDevice:   destination,
 					DeviceSpecific:      false,
-					EventLog:            []events.EventInfo{eventInfo},
+					EventLog:            []events.Event{eventInfo},
 				})
 
 				////////////////////////
@@ -95,7 +116,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 								Device:              DX,
 								DestinationDevice:   destination,
 								DeviceSpecific:      false,
-								EventLog:            []events.EventInfo{eventInfo},
+								EventLog:            []events.Event{eventInfo},
 							})
 						}
 					}
@@ -129,9 +150,23 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 				parameters["level"] = fmt.Sprintf("%v", *audioDevice.Volume)
 				log.L.Info("[command_evaluators] %+v", parameters)
 
-				eventInfo.EventInfoValue = fmt.Sprintf("%v", *audioDevice.Volume)
-				eventInfo.Device = device.Name
-				eventInfo.DeviceID = device.ID
+				eventInfo.Value = fmt.Sprintf("%v", *room.Volume)
+
+				eventInfo.AffectedRoom = events.BasicRoomInfo{
+					BuildingID: room.Building,
+					RoomID:     fmt.Sprintf("%s-%s", room.Building, room.Room),
+				}
+
+				deviceInfo := strings.Split(device.ID, "-")
+
+				eventInfo.TargetDevice = events.BasicDeviceInfo{
+					BasicRoomInfo: events.BasicRoomInfo{
+						BuildingID: deviceInfo[0],
+						RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
+					},
+					DeviceID: device.ID,
+				}
+
 				destination.Device = device
 
 				if structs.HasRole(device, "VideoOut") {
@@ -145,7 +180,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 					DestinationDevice:   destination,
 					DeviceSpecific:      true,
 					Parameters:          parameters,
-					EventLog:            []events.EventInfo{eventInfo},
+					EventLog:            []events.Event{eventInfo},
 				})
 
 				////////////////////////
@@ -172,7 +207,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 								DestinationDevice:   destination,
 								DeviceSpecific:      true,
 								Parameters:          parameters,
-								EventLog:            []events.EventInfo{eventInfo},
+								EventLog:            []events.Event{eventInfo},
 							})
 						}
 					}

@@ -9,8 +9,8 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/common/db"
-	"github.com/byuoitav/common/events"
 	"github.com/byuoitav/common/structs"
+	"github.com/byuoitav/common/v2/events"
 	"github.com/fatih/color"
 )
 
@@ -27,13 +27,13 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 	log.L.Infof("[command_evaluators] Requestor: %s", requestor)
 	color.Unset()
 
-	eventInfo := events.EventInfo{
-		Type:           events.CORESTATE,
-		EventCause:     events.USERINPUT,
-		EventInfoKey:   "power",
-		EventInfoValue: "on",
-		Requestor:      requestor,
+	eventInfo := events.Event{
+		Key:   "power",
+		Value: "on",
+		User:  requestor,
 	}
+
+	eventInfo.EventTags = append(eventInfo.EventTags, events.CoreState, events.UserGenerated)
 
 	var devices []structs.Device
 	if strings.EqualFold(room.Power, "on") {
@@ -66,8 +66,15 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 
 				log.L.Info("[command_evaluators] Adding device %+v", device.Name)
 
-				eventInfo.Device = device.Name
-				eventInfo.DeviceID = device.ID
+				deviceInfo := strings.Split(device.ID, "-")
+
+				eventInfo.TargetDevice = events.BasicDeviceInfo{
+					BasicRoomInfo: events.BasicRoomInfo{
+						BuildingID: deviceInfo[0],
+						RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
+					},
+					DeviceID: device.ID,
+				}
 
 				actions = append(actions, base.ActionStructure{
 					Action:              "PowerOn",
@@ -75,7 +82,7 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 					DestinationDevice:   destination,
 					GeneratingEvaluator: "PowerOnDefault",
 					DeviceSpecific:      false,
-					EventLog:            []events.EventInfo{eventInfo},
+					EventLog:            []events.Event{eventInfo},
 				})
 
 			}
@@ -140,7 +147,7 @@ func (p *PowerOnDefault) evaluateDevice(device base.Device,
 	devices []structs.Device,
 	room string,
 	building string,
-	eventInfo events.EventInfo) ([]base.ActionStructure, error) {
+	eventInfo events.Event) ([]base.ActionStructure, error) {
 
 	// Check if we even need to start anything
 	if strings.EqualFold(device.Power, "on") {
@@ -166,7 +173,16 @@ func (p *PowerOnDefault) evaluateDevice(device base.Device,
 				destination.Display = true
 			}
 
-			eventInfo.Device = dev.Name
+			deviceInfo := strings.Split(dev.ID, "-")
+
+			eventInfo.TargetDevice = events.BasicDeviceInfo{
+				BasicRoomInfo: events.BasicRoomInfo{
+					BuildingID: deviceInfo[0],
+					RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
+				},
+				DeviceID: dev.ID,
+			}
+
 			destination.Device = dev
 
 			actions = append(actions, base.ActionStructure{
@@ -175,7 +191,7 @@ func (p *PowerOnDefault) evaluateDevice(device base.Device,
 				DestinationDevice:   destination,
 				GeneratingEvaluator: "PowerOnDefault",
 				DeviceSpecific:      true,
-				EventLog:            []events.EventInfo{eventInfo},
+				EventLog:            []events.Event{eventInfo},
 			})
 
 			////////////////////////
@@ -195,8 +211,15 @@ func (p *PowerOnDefault) evaluateDevice(device base.Device,
 
 						log.L.Info("[command_evaluators] Adding device %+v", DX.Name)
 
-						eventInfo.Device = DX.Name
-						eventInfo.DeviceID = DX.ID
+						deviceInfo := strings.Split(DX.ID, "-")
+
+						eventInfo.TargetDevice = events.BasicDeviceInfo{
+							BasicRoomInfo: events.BasicRoomInfo{
+								BuildingID: deviceInfo[0],
+								RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
+							},
+							DeviceID: DX.ID,
+						}
 
 						actions = append(actions, base.ActionStructure{
 							Action:              "PowerOn",
@@ -204,7 +227,7 @@ func (p *PowerOnDefault) evaluateDevice(device base.Device,
 							DestinationDevice:   destination,
 							GeneratingEvaluator: "PowerOnDefault",
 							DeviceSpecific:      false,
-							EventLog:            []events.EventInfo{eventInfo},
+							EventLog:            []events.Event{eventInfo},
 						})
 					}
 				}

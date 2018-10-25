@@ -15,6 +15,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/byuoitav/common/log"
 
@@ -22,7 +23,7 @@ import (
 	"github.com/byuoitav/common/db"
 	"github.com/byuoitav/common/structs"
 
-	ei "github.com/byuoitav/common/events"
+	ei "github.com/byuoitav/common/v2/events"
 )
 
 // SetVolumeDSP implements the CommandEvaluation struct.
@@ -33,12 +34,12 @@ func (p *SetVolumeDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.
 
 	log.L.Info("[command_evaluators] Evaluating SetVolume command in DSP context...")
 
-	eventInfo := ei.EventInfo{
-		Type:         ei.CORESTATE,
-		EventCause:   ei.USERINPUT,
-		EventInfoKey: "volume",
-		Requestor:    requestor,
+	eventInfo := ei.Event{
+		Key:  "volume",
+		User: requestor,
 	}
+
+	eventInfo.EventTags = append(eventInfo.EventTags, ei.CoreState, ei.UserGenerated)
 
 	var actions []base.ActionStructure
 
@@ -46,7 +47,7 @@ func (p *SetVolumeDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.
 
 		log.L.Info("[command_evaluators] Room-wide request detected")
 
-		eventInfo.EventInfoValue = strconv.Itoa(*room.Volume)
+		eventInfo.Value = strconv.Itoa(*room.Volume)
 
 		actions, err := GetGeneralVolumeRequestActionsDSP(room, eventInfo)
 		if err != nil {
@@ -64,7 +65,7 @@ func (p *SetVolumeDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.
 
 			if audioDevice.Volume != nil {
 
-				eventInfo.EventInfoValue = strconv.Itoa(*audioDevice.Volume)
+				eventInfo.Value = strconv.Itoa(*audioDevice.Volume)
 
 				deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, audioDevice.Name)
 				device, err := db.GetDB().GetDevice(deviceID)
@@ -173,7 +174,7 @@ func (p *SetVolumeDSP) GetIncompatibleCommands() (incompatibleActions []string) 
 }
 
 // GetGeneralVolumeRequestActionsDSP generates a list of actions based on the room and DSP info.
-func GetGeneralVolumeRequestActionsDSP(room base.PublicRoom, eventInfo ei.EventInfo) ([]base.ActionStructure, error) {
+func GetGeneralVolumeRequestActionsDSP(room base.PublicRoom, eventInfo ei.Event) ([]base.ActionStructure, error) {
 
 	log.L.Info("[command_evaluators] Generating actions for room-wide \"SetVolume\" request")
 
@@ -229,7 +230,7 @@ func GetGeneralVolumeRequestActionsDSP(room base.PublicRoom, eventInfo ei.EventI
 // GetMicVolumeAction generates an action based on the room, microphone and event information.
 //we assume microphones are only connected to a DSP
 //commands regarding microphones are only issued to DSP
-func GetMicVolumeAction(mic structs.Device, room base.PublicRoom, eventInfo ei.EventInfo, volume int) (base.ActionStructure, error) {
+func GetMicVolumeAction(mic structs.Device, room base.PublicRoom, eventInfo ei.Event, volume int) (base.ActionStructure, error) {
 
 	log.L.Info("[command_evaluators] Identified microphone volume request")
 
@@ -267,9 +268,22 @@ func GetMicVolumeAction(mic structs.Device, room base.PublicRoom, eventInfo ei.E
 
 		if port.SourceDevice == mic.ID {
 
-			eventInfo.EventInfoValue = strconv.Itoa(volume)
-			eventInfo.Device = mic.Name
-			eventInfo.DeviceID = mic.ID
+			eventInfo.AffectedRoom = ei.BasicRoomInfo{
+				BuildingID: room.Building,
+				RoomID:     fmt.Sprintf("%s-%s", room.Building, room.Room),
+			}
+
+			eventInfo.Value = strconv.Itoa(volume)
+			deviceInfo := strings.Split(mic.ID, "-")
+
+			eventInfo.TargetDevice = ei.BasicDeviceInfo{
+				BasicRoomInfo: ei.BasicRoomInfo{
+					BuildingID: deviceInfo[0],
+					RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
+				},
+				DeviceID: mic.ID,
+			}
+
 			parameters["level"] = strconv.Itoa(volume)
 			parameters["input"] = port.ID
 
@@ -279,7 +293,7 @@ func GetMicVolumeAction(mic structs.Device, room base.PublicRoom, eventInfo ei.E
 				Device:              dsp,
 				DestinationDevice:   destination,
 				DeviceSpecific:      true,
-				EventLog:            []ei.EventInfo{eventInfo},
+				EventLog:            []ei.Event{eventInfo},
 				Parameters:          parameters,
 			}, nil
 		}
@@ -289,7 +303,7 @@ func GetMicVolumeAction(mic structs.Device, room base.PublicRoom, eventInfo ei.E
 }
 
 // GetDSPMediaVolumeAction generates a list of actions based on the room, DSP, and event information.
-func GetDSPMediaVolumeAction(dsp structs.Device, room base.PublicRoom, eventInfo ei.EventInfo, volume int) ([]base.ActionStructure, error) { //commands are issued to whatever port doesn't have a mic connected
+func GetDSPMediaVolumeAction(dsp structs.Device, room base.PublicRoom, eventInfo ei.Event, volume int) ([]base.ActionStructure, error) { //commands are issued to whatever port doesn't have a mic connected
 	log.L.Infof("[command_evaluators] %v", volume)
 
 	log.L.Info("[command_evaluators] Generating action for command SetVolume on media routed through DSP")
@@ -299,9 +313,24 @@ func GetDSPMediaVolumeAction(dsp structs.Device, room base.PublicRoom, eventInfo
 	for _, port := range dsp.Ports {
 		parameters := make(map[string]string)
 		parameters["level"] = fmt.Sprintf("%v", volume)
-		eventInfo.EventInfoValue = fmt.Sprintf("%v", volume)
-		eventInfo.Device = dsp.Name
-		eventInfo.DeviceID = dsp.ID
+
+		eventInfo.Value = fmt.Sprintf("%v", volume)
+
+		eventInfo.AffectedRoom = ei.BasicRoomInfo{
+			BuildingID: room.Building,
+			RoomID:     fmt.Sprintf("%s-%s", room.Building, room.Room),
+		}
+
+		eventInfo.Value = strconv.Itoa(volume)
+		deviceInfo := strings.Split(dsp.ID, "-")
+
+		eventInfo.TargetDevice = ei.BasicDeviceInfo{
+			BasicRoomInfo: ei.BasicRoomInfo{
+				BuildingID: deviceInfo[0],
+				RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
+			},
+			DeviceID: dsp.ID,
+		}
 
 		deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, port.SourceDevice)
 		sourceDevice, err := db.GetDB().GetDevice(deviceID)
@@ -325,7 +354,7 @@ func GetDSPMediaVolumeAction(dsp structs.Device, room base.PublicRoom, eventInfo
 				Device:              dsp,
 				DestinationDevice:   destination,
 				DeviceSpecific:      true,
-				EventLog:            []ei.EventInfo{eventInfo},
+				EventLog:            []ei.Event{eventInfo},
 				Parameters:          parameters,
 			}
 
@@ -338,7 +367,7 @@ func GetDSPMediaVolumeAction(dsp structs.Device, room base.PublicRoom, eventInfo
 }
 
 // GetDisplayVolumeAction generates an action based on the room, display and event information.
-func GetDisplayVolumeAction(device structs.Device, room base.PublicRoom, eventInfo ei.EventInfo, volume int) (base.ActionStructure, error) { //commands are issued to devices, e.g. they aren't connected to the DSP
+func GetDisplayVolumeAction(device structs.Device, room base.PublicRoom, eventInfo ei.Event, volume int) (base.ActionStructure, error) { //commands are issued to devices, e.g. they aren't connected to the DSP
 
 	log.L.Infof("[command_evaluators] Generating action for SetVolume on device %s external to DSP", device.Name)
 
@@ -353,9 +382,24 @@ func GetDisplayVolumeAction(device structs.Device, room base.PublicRoom, eventIn
 		destination.Display = true
 	}
 
-	eventInfo.EventInfoValue = strconv.Itoa(volume)
-	eventInfo.Device = device.Name
-	eventInfo.DeviceID = device.ID
+	eventInfo.Value = strconv.Itoa(volume)
+
+	eventInfo.AffectedRoom = ei.BasicRoomInfo{
+		BuildingID: room.Building,
+		RoomID:     fmt.Sprintf("%s-%s", room.Building, room.Room),
+	}
+
+	eventInfo.Value = strconv.Itoa(volume)
+	deviceInfo := strings.Split(device.ID, "-")
+
+	eventInfo.TargetDevice = ei.BasicDeviceInfo{
+		BasicRoomInfo: ei.BasicRoomInfo{
+			BuildingID: deviceInfo[0],
+			RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
+		},
+		DeviceID: device.ID,
+	}
+
 	parameters["level"] = strconv.Itoa(volume)
 
 	action := base.ActionStructure{
@@ -364,7 +408,7 @@ func GetDisplayVolumeAction(device structs.Device, room base.PublicRoom, eventIn
 		Device:              device,
 		DestinationDevice:   destination,
 		DeviceSpecific:      true,
-		EventLog:            []ei.EventInfo{eventInfo},
+		EventLog:            []ei.Event{eventInfo},
 		Parameters:          parameters,
 	}
 

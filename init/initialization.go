@@ -43,7 +43,7 @@ func CheckRoomInitialization() error {
 
 	splitValues := strings.Split(hostname, "-")
 	roomID := fmt.Sprintf("%v-%v", splitValues[0], splitValues[1])
-	log.L.Info("[init] Room %v", roomID)
+	log.L.Infof("[init] Room %v", roomID)
 
 	attempts := 0
 

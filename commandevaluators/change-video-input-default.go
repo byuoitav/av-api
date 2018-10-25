@@ -8,8 +8,8 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/common/db"
-	"github.com/byuoitav/common/events"
 	"github.com/byuoitav/common/structs"
+	"github.com/byuoitav/common/v2/events"
 )
 
 //ChangeVideoInputDefault is struct that implements the CommandEvaluation struct
@@ -123,14 +123,28 @@ func generateChangeInputByDevice(dev base.Device, room, building, generatingEval
 		destination.Display = true
 	}
 
-	eventInfo := events.EventInfo{
-		Type:           events.CORESTATE,
-		EventCause:     events.USERINPUT,
-		Device:         dev.Name,
-		EventInfoKey:   "input",
-		EventInfoValue: input.Name,
-		Requestor:      requestor,
+	deviceInfo := strings.Split(output.ID, "-")
+
+	roomInfo := events.BasicRoomInfo{
+		BuildingID: building,
+		RoomID:     roomID,
 	}
+
+	eventInfo := events.Event{
+		TargetDevice: events.BasicDeviceInfo{
+			BasicRoomInfo: events.BasicRoomInfo{
+				BuildingID: deviceInfo[0],
+				RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
+			},
+			DeviceID: output.ID,
+		},
+		AffectedRoom: roomInfo,
+		Key:          "input",
+		Value:        input.ID,
+		User:         requestor,
+	}
+
+	eventInfo.EventTags = append(eventInfo.EventTags, events.CoreState, events.UserGenerated)
 
 	action = base.ActionStructure{
 		Action:              "ChangeInput",
@@ -140,7 +154,7 @@ func generateChangeInputByDevice(dev base.Device, room, building, generatingEval
 		Parameters:          paramMap,
 		DeviceSpecific:      true,
 		Overridden:          false,
-		EventLog:            []events.EventInfo{eventInfo},
+		EventLog:            []events.Event{eventInfo},
 	}
 
 	return
@@ -187,15 +201,28 @@ func generateChangeInputByRole(role, input, room, building, generatingEvaluator,
 			dest.Display = true
 		}
 
-		eventInfo := events.EventInfo{
-			Type:           events.USERACTION,
-			EventCause:     events.USERINPUT,
-			Device:         d.Name,
-			DeviceID:       d.ID,
-			EventInfoKey:   "input",
-			EventInfoValue: inputDevice.Name,
-			Requestor:      requestor,
+		deviceInfo := strings.Split(d.ID, "-")
+
+		roomInfo := events.BasicRoomInfo{
+			BuildingID: building,
+			RoomID:     roomID,
 		}
+
+		eventInfo := events.Event{
+			TargetDevice: events.BasicDeviceInfo{
+				BasicRoomInfo: events.BasicRoomInfo{
+					BuildingID: deviceInfo[0],
+					RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
+				},
+				DeviceID: d.ID,
+			},
+			AffectedRoom: roomInfo,
+			Key:          "input",
+			Value:        inputDevice.ID,
+			User:         requestor,
+		}
+
+		eventInfo.EventTags = append(eventInfo.EventTags, events.CoreState, events.UserGenerated)
 
 		action := base.ActionStructure{
 			Action:              "ChangeInput",
@@ -205,7 +232,7 @@ func generateChangeInputByRole(role, input, room, building, generatingEvaluator,
 			Parameters:          paramMap,
 			DeviceSpecific:      false,
 			Overridden:          false,
-			EventLog:            []events.EventInfo{eventInfo},
+			EventLog:            []events.Event{eventInfo},
 		}
 
 		actions = append(actions, action)
