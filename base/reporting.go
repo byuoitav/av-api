@@ -1,15 +1,12 @@
 package base
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/byuoitav/central-event-system/hub/base"
 	"github.com/byuoitav/central-event-system/messenger"
-	"github.com/byuoitav/common/log"
 	"github.com/byuoitav/common/v2/events"
 )
 
@@ -48,16 +45,7 @@ func SendEvent(e events.Event) error {
 		e.AddToTags(os.Getenv("LOCAL_ENVIRONMENT"))
 	}
 
-	eventBytes, err := json.Marshal(e)
-	if err != nil {
-		log.L.Errorf("failed to marshal event : %s", err.Error())
-		return err
-	}
-
-	Messenger.SendEvent(base.EventWrapper{
-		Room:  fmt.Sprintf("%s-%s", e.AffectedRoom.BuildingID, e.AffectedRoom.RoomID),
-		Event: eventBytes,
-	})
+	Messenger.SendEvent(e)
 
 	return err
 }
