@@ -123,28 +123,15 @@ func generateChangeInputByDevice(dev base.Device, room, building, generatingEval
 		destination.Display = true
 	}
 
-	deviceInfo := strings.Split(output.ID, "-")
-
-	roomInfo := events.BasicRoomInfo{
-		BuildingID: building,
-		RoomID:     roomID,
-	}
-
 	eventInfo := events.Event{
-		TargetDevice: events.BasicDeviceInfo{
-			BasicRoomInfo: events.BasicRoomInfo{
-				BuildingID: deviceInfo[0],
-				RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
-			},
-			DeviceID: output.ID,
-		},
-		AffectedRoom: roomInfo,
+		TargetDevice: events.GenerateBasicDeviceInfo(output.ID),
+		AffectedRoom: events.GenerateBasicRoomInfo(roomID),
 		Key:          "input",
 		Value:        input.ID,
 		User:         requestor,
 	}
 
-	eventInfo.EventTags = append(eventInfo.EventTags, events.CoreState, events.UserGenerated)
+	eventInfo.AddToTags(events.CoreState, events.UserGenerated)
 
 	action = base.ActionStructure{
 		Action:              "ChangeInput",
@@ -201,28 +188,15 @@ func generateChangeInputByRole(role, input, room, building, generatingEvaluator,
 			dest.Display = true
 		}
 
-		deviceInfo := strings.Split(d.ID, "-")
-
-		roomInfo := events.BasicRoomInfo{
-			BuildingID: building,
-			RoomID:     roomID,
-		}
-
 		eventInfo := events.Event{
-			TargetDevice: events.BasicDeviceInfo{
-				BasicRoomInfo: events.BasicRoomInfo{
-					BuildingID: deviceInfo[0],
-					RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
-				},
-				DeviceID: d.ID,
-			},
-			AffectedRoom: roomInfo,
+			TargetDevice: events.GenerateBasicDeviceInfo(d.ID),
+			AffectedRoom: events.GenerateBasicRoomInfo(roomID),
 			Key:          "input",
 			Value:        inputDevice.ID,
 			User:         requestor,
 		}
 
-		eventInfo.EventTags = append(eventInfo.EventTags, events.CoreState, events.UserGenerated)
+		eventInfo.AddToTags(events.CoreState, events.UserGenerated)
 
 		action := base.ActionStructure{
 			Action:              "ChangeInput",

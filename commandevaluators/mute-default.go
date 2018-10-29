@@ -35,7 +35,7 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 		User:  requestor,
 	}
 
-	eventInfo.EventTags = append(eventInfo.EventTags, events.CoreState, events.UserGenerated)
+	eventInfo.AddToTags(events.CoreState, events.UserGenerated)
 
 	if room.Muted != nil && *room.Muted {
 
@@ -53,19 +53,9 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 			if device.Type.Output {
 				log.L.Infof("[command_evaluators] Adding device %+v", device.Name)
 
-				eventInfo.AffectedRoom = events.BasicRoomInfo{
-					BuildingID: room.Building,
-					RoomID:     roomID,
-				}
+				eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
 
-				deviceInfo := strings.Split(device.ID, "-")
-				eventInfo.TargetDevice = events.BasicDeviceInfo{
-					BasicRoomInfo: events.BasicRoomInfo{
-						BuildingID: deviceInfo[0],
-						RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
-					},
-					DeviceID: device.ID,
-				}
+				eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(device.ID)
 
 				destination.Device = device
 
@@ -99,19 +89,9 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 
 							log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)
 
-							eventInfo.AffectedRoom = events.BasicRoomInfo{
-								BuildingID: room.Building,
-								RoomID:     roomID,
-							}
+							eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
 
-							deviceInfo := strings.Split(DX.ID, "-")
-							eventInfo.TargetDevice = events.BasicDeviceInfo{
-								BasicRoomInfo: events.BasicRoomInfo{
-									BuildingID: deviceInfo[0],
-									RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
-								},
-								DeviceID: device.ID,
-							}
+							eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(DX.ID)
 
 							actions = append(actions, base.ActionStructure{
 								Action:              "Mute",
@@ -139,19 +119,16 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 
 			//get the device
 			deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, audioDevice.Name)
+			roomID := fmt.Sprintf("%s-%s", room.Building, room.Room)
+
 			device, err := db.GetDB().GetDevice(deviceID)
 			if err != nil {
 				return []base.ActionStructure{}, 0, err
 			}
 
-			deviceInfo := strings.Split(device.ID, "-")
-			eventInfo.TargetDevice = events.BasicDeviceInfo{
-				BasicRoomInfo: events.BasicRoomInfo{
-					BuildingID: deviceInfo[0],
-					RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
-				},
-				DeviceID: device.ID,
-			}
+			eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
+
+			eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(device.ID)
 
 			destination.Device = device
 
@@ -181,14 +158,9 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 
 						log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)
 
-						deviceInfo := strings.Split(DX.ID, "-")
-						eventInfo.TargetDevice = events.BasicDeviceInfo{
-							BasicRoomInfo: events.BasicRoomInfo{
-								BuildingID: deviceInfo[0],
-								RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
-							},
-							DeviceID: device.ID,
-						}
+						eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
+
+						eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(DX.ID)
 
 						actions = append(actions, base.ActionStructure{
 							Action:              "Mute",

@@ -16,7 +16,6 @@ d) media devices connected to the DSP have the role "AudioOut"
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/byuoitav/common/log"
 
@@ -42,12 +41,9 @@ func (p *UnMuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Act
 		User:  requestor,
 	}
 
-	eventInfo.EventTags = append(eventInfo.EventTags, events.CoreState, events.UserGenerated)
+	eventInfo.AddToTags(events.CoreState, events.UserGenerated)
 
-	eventInfo.AffectedRoom = events.BasicRoomInfo{
-		BuildingID: room.Building,
-		RoomID:     fmt.Sprintf("%s-%s", room.Building, room.Room),
-	}
+	eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(fmt.Sprintf("%s-%s", room.Building, room.Room))
 
 	if room.Muted != nil && !(*room.Muted) {
 
@@ -245,20 +241,9 @@ func GetMicUnMuteAction(mic structs.Device, room base.PublicRoom, eventInfo even
 		if port.SourceDevice == mic.ID {
 			parameters["input"] = port.ID
 
-			eventInfo.AffectedRoom = events.BasicRoomInfo{
-				BuildingID: room.Building,
-				RoomID:     fmt.Sprintf("%s-%s", room.Building, room.Room),
-			}
+			eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
 
-			deviceInfo := strings.Split(mic.ID, "-")
-
-			eventInfo.TargetDevice = events.BasicDeviceInfo{
-				BasicRoomInfo: events.BasicRoomInfo{
-					BuildingID: deviceInfo[0],
-					RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
-				},
-				DeviceID: mic.ID,
-			}
+			eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(mic.ID)
 
 			return base.ActionStructure{
 				Action:              "UnMute",
@@ -306,20 +291,9 @@ func GetDSPMediaUnMuteAction(dsp structs.Device, room base.PublicRoom, eventInfo
 
 			parameters["input"] = port.ID
 
-			eventInfo.AffectedRoom = events.BasicRoomInfo{
-				BuildingID: room.Building,
-				RoomID:     fmt.Sprintf("%s-%s", room.Building, room.Room),
-			}
+			eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(fmt.Sprintf("%s-%s", room.Building, room.Room))
 
-			deviceInfo := strings.Split(dsp.ID, "-")
-
-			eventInfo.TargetDevice = events.BasicDeviceInfo{
-				BasicRoomInfo: events.BasicRoomInfo{
-					BuildingID: deviceInfo[0],
-					RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
-				},
-				DeviceID: dsp.ID,
-			}
+			eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(dsp.ID)
 
 			toReturn = append(toReturn, base.ActionStructure{
 				Action:              "UnMute",
@@ -341,20 +315,9 @@ func GetDisplayUnMuteAction(device structs.Device, room base.PublicRoom, eventIn
 
 	log.L.Infof("[command_evaluators] Generating action for command \"UnMute\" for device %s external to DSP", device.Name)
 
-	eventInfo.AffectedRoom = events.BasicRoomInfo{
-		BuildingID: room.Building,
-		RoomID:     fmt.Sprintf("%s-%s", room.Building, room.Room),
-	}
+	eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(fmt.Sprintf("%s-%s", room.Building, room.Room))
 
-	deviceInfo := strings.Split(device.ID, "-")
-
-	eventInfo.TargetDevice = events.BasicDeviceInfo{
-		BasicRoomInfo: events.BasicRoomInfo{
-			BuildingID: deviceInfo[0],
-			RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
-		},
-		DeviceID: device.ID,
-	}
+	eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(device.ID)
 
 	destination := base.DestinationDevice{
 		Device:      device,

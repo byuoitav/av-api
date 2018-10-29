@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/byuoitav/common/log"
 
@@ -23,19 +22,14 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 
 	var actions []base.ActionStructure
 
-	// eventInfo := events.EventInfo{
-	// 	Type:         events.CORESTATE,
-	// 	EventCause:   events.USERINPUT,
-	// 	EventInfoKey: "volume",
-	// 	Requestor:    requestor,
-	// }
+	roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
 
 	eventInfo := events.Event{
 		Key:  "volume",
 		User: requestor,
 	}
 
-	eventInfo.EventTags = append(eventInfo.EventTags, events.CoreState, events.UserGenerated)
+	eventInfo.AddToTags(events.CoreState, events.UserGenerated)
 
 	destination := base.DestinationDevice{
 		AudioDevice: true,
@@ -46,7 +40,6 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 
 		log.L.Info("[command_evaluators] General volume request detected.")
 
-		roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
 		devices, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "AudioOut")
 		if err != nil {
 			return []base.ActionStructure{}, 0, err
@@ -61,20 +54,9 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 
 				eventInfo.Value = fmt.Sprintf("%v", *room.Volume)
 
-				eventInfo.AffectedRoom = events.BasicRoomInfo{
-					BuildingID: room.Building,
-					RoomID:     roomID,
-				}
+				eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
 
-				deviceInfo := strings.Split(device.ID, "-")
-
-				eventInfo.TargetDevice = events.BasicDeviceInfo{
-					BasicRoomInfo: events.BasicRoomInfo{
-						BuildingID: deviceInfo[0],
-						RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
-					},
-					DeviceID: device.ID,
-				}
+				eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(device.ID)
 
 				destination.Device = device
 
@@ -106,6 +88,10 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 							if len(cmd.ID) < 1 {
 								continue
 							}
+
+							eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
+
+							eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(DX.ID)
 
 							log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)
 
@@ -152,20 +138,9 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 
 				eventInfo.Value = fmt.Sprintf("%v", *room.Volume)
 
-				eventInfo.AffectedRoom = events.BasicRoomInfo{
-					BuildingID: room.Building,
-					RoomID:     fmt.Sprintf("%s-%s", room.Building, room.Room),
-				}
+				eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
 
-				deviceInfo := strings.Split(device.ID, "-")
-
-				eventInfo.TargetDevice = events.BasicDeviceInfo{
-					BasicRoomInfo: events.BasicRoomInfo{
-						BuildingID: deviceInfo[0],
-						RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
-					},
-					DeviceID: device.ID,
-				}
+				eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(device.ID)
 
 				destination.Device = device
 
@@ -197,6 +172,10 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 							if len(cmd.ID) < 1 {
 								continue
 							}
+
+							eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
+
+							eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(DX.ID)
 
 							log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)
 

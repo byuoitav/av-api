@@ -62,19 +62,8 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 					destination.AudioDevice = true
 				}
 
-				event.AffectedRoom = events.BasicRoomInfo{
-					BuildingID: room.Building,
-					RoomID:     roomID,
-				}
-
-				deviceInfo := strings.Split(device.ID, "-")
-				event.TargetDevice = events.BasicDeviceInfo{
-					BasicRoomInfo: events.BasicRoomInfo{
-						BuildingID: deviceInfo[0],
-						RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
-					},
-					DeviceID: device.ID,
-				}
+				event.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
+				event.TargetDevice = events.GenerateBasicDeviceInfo(device.ID)
 
 				actions = append(actions, base.ActionStructure{
 					Action:              "BlankDisplay",
@@ -103,14 +92,7 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 
 							log.L.Info("[command_evaluators] Adding device %v", DX.Name)
 
-							deviceInfo := strings.Split(DX.ID, "-")
-							event.TargetDevice = events.BasicDeviceInfo{
-								BasicRoomInfo: events.BasicRoomInfo{
-									BuildingID: deviceInfo[0],
-									RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
-								},
-								DeviceID: device.ID,
-							}
+							event.TargetDevice = events.GenerateBasicDeviceInfo(DX.ID)
 
 							actions = append(actions, base.ActionStructure{
 								Action:              "BlankDisplay",
@@ -152,14 +134,7 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 				destination.AudioDevice = true
 			}
 
-			deviceInfo := strings.Split(device.ID, "-")
-			event.TargetDevice = events.BasicDeviceInfo{
-				BasicRoomInfo: events.BasicRoomInfo{
-					BuildingID: deviceInfo[0],
-					RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
-				},
-				DeviceID: device.ID,
-			}
+			event.TargetDevice = events.GenerateBasicDeviceInfo(device.ID)
 
 			actions = append(actions, base.ActionStructure{
 				Action:              "BlankDisplay",
@@ -188,14 +163,7 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 
 						log.L.Info("[command_evaluators] Adding mirror device %v", DX.Name)
 
-						deviceInfo := strings.Split(DX.ID, "-")
-						event.TargetDevice = events.BasicDeviceInfo{
-							BasicRoomInfo: events.BasicRoomInfo{
-								BuildingID: deviceInfo[0],
-								RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
-							},
-							DeviceID: device.ID,
-						}
+						event.TargetDevice = events.GenerateBasicDeviceInfo(DX.ID)
 
 						actions = append(actions, base.ActionStructure{
 							Action:              "BlankDisplay",

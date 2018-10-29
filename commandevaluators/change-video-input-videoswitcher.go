@@ -210,38 +210,15 @@ func GetSwitcherAndCreateAction(room base.PublicRoom, device structs.Device, sel
 			m := make(map[string]string)
 			m["output"] = port.ID
 
-			// eventInfo := events.EventInfo{
-			// 	Type:           events.CORESTATE,
-			// 	EventCause:     events.USERINPUT,
-			// 	Device:         device.Name,
-			// 	DeviceID:       device.ID,
-			// 	EventInfoKey:   "input",
-			// 	EventInfoValue: selectedInput,
-			// 	Requestor:      requestor,
-			// }
-
-			deviceInfo := strings.Split(device.ID, "-")
-
-			roomInfo := events.BasicRoomInfo{
-				BuildingID: room.Building,
-				RoomID:     roomID,
-			}
-
 			eventInfo := events.Event{
-				TargetDevice: events.BasicDeviceInfo{
-					BasicRoomInfo: events.BasicRoomInfo{
-						BuildingID: deviceInfo[0],
-						RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
-					},
-					DeviceID: device.ID,
-				},
-				AffectedRoom: roomInfo,
+				TargetDevice: events.GenerateBasicDeviceInfo(device.ID),
+				AffectedRoom: events.GenerateBasicRoomInfo(roomID),
 				Key:          "input",
 				Value:        selectedInput,
 				User:         requestor,
 			}
 
-			eventInfo.EventTags = append(eventInfo.EventTags, events.CoreState, events.UserGenerated)
+			eventInfo.AddToTags(events.CoreState, events.UserGenerated)
 
 			destination := base.DestinationDevice{
 				Device: device,
