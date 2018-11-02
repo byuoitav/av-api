@@ -136,7 +136,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 				parameters["level"] = fmt.Sprintf("%v", *audioDevice.Volume)
 				log.L.Info("[command_evaluators] %+v", parameters)
 
-				eventInfo.Value = fmt.Sprintf("%v", *room.Volume)
+				eventInfo.Value = fmt.Sprintf("%v", *audioDevice.Volume)
 
 				eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
 
