@@ -36,9 +36,9 @@ func CheckRoomInitialization() error {
 	  or buildling hyphen room. e.g. ITB-1001D
 	*/
 
-	hostname := os.Getenv("PI_HOSTNAME")
+	hostname := os.Getenv("SYSTEM_ID")
 	if len(hostname) == 0 {
-		log.L.Fatal("PI_HOSTNAME is not set.")
+		log.L.Fatal("SYSTEM_ID is not set.")
 	}
 
 	splitValues := strings.Split(hostname, "-")
