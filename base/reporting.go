@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	hubBase "github.com/byuoitav/central-event-system/hub/base"
 	"github.com/byuoitav/central-event-system/messenger"
 	"github.com/byuoitav/common/v2/events"
 )
@@ -45,7 +46,7 @@ func SendEvent(e events.Event) error {
 		e.AddToTags(os.Getenv("LOCAL_ENVIRONMENT"))
 	}
 
-	Messenger.SendEvent(e)
+	Messenger.SendEvent(hubBase.WrapEvent(e))
 
 	return err
 }
