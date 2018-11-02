@@ -6,6 +6,8 @@ services:
             - "8000:8000"
         environment:
             - PI_HOSTNAME=$PI_HOSTNAME
+            - SYSTEM_ID=$SYSTEM_ID
+            - HUB_ADDRESS=$HUB_ADDRESS
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
             - EVENT_ROUTER_ADDRESS=$EVENT_ROUTER_ADDRESS
@@ -98,10 +100,12 @@ services:
             - "8888:8888"
         environment:
             - PI_HOSTNAME=$PI_HOSTNAME
+            - SYSTEM_ID=$SYSTEM_ID
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - HELP_SLACKBOT_WEBHOOK=$HELP_SLACKBOT_WEBHOOK
             - UI_CONFIGURATION_ADDRESS=$UI_CONFIGURATION_ADDRESS
             - EVENT_ROUTER_ADDRESS=$EVENT_ROUTER_ADDRESS
+            - HUB_ADDRESS=$HUB_ADDRESS
             - DB_ADDRESS=$DB_ADDRESS
             - DB_USERNAME=$DB_USERNAME
             - DB_PASSWORD=$DB_PASSWORD
@@ -114,6 +118,7 @@ services:
             - "7000:7000"
         environment:
             - PI_HOSTNAME=$PI_HOSTNAME
+            - SYSTEM_ID=$SYSTEM_ID
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
             - DB_ADDRESS=$DB_ADDRESS
@@ -130,6 +135,7 @@ services:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - ELASTIC_API_EVENTS=$ELASTIC_API_EVENTS
             - EVENT_ROUTER_ADDRESS=$EVENT_ROUTER_ADDRESS
+            - HUB_ADDRESS=$HUB_ADDRESS
         network_mode: "host"
         restart: always
         tty: true
@@ -143,17 +149,20 @@ services:
             - ELASTIC_API_EVENTS_DEV=$ELASTIC_API_EVENTS_DEV
             - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
             - PI_HOSTNAME=$PI_HOSTNAME
+            - SYSTEM_ID=$SYSTEM_ID
             - EVENT_ROUTER_ADDRESS=$EVENT_ROUTER_ADDRESS
+            - HUB_ADDRESS=$HUB_ADDRESS
         network_mode: "host"
-    just-add-power-hdip-ms:
-        image: byuoitav/just-add-power-hdip-ms:${DOCKER_HUB_TAG}
-        ports:
-            - "8022:8022"
-        environment:
-            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
-            - PI_HOSTNAME=$PI_HOSTNAME
-        network_mode: "host"
-        tty: true
+        #just-add-power-hdip-ms:
+        #    image: byuoitav/just-add-power-hdip-ms:${DOCKER_HUB_TAG}
+        #    ports:
+        #        - "8022:8022"
+        #    environment:
+        #        - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+        #        - PI_HOSTNAME=$PI_HOSTNAME
+        #        - SYSTEM_ID=$SYSTEM_ID
+        #    network_mode: "host"
+        #    tty: true
         #    couch-db:
         #        image: treehouses/rpi-couchdb:2.1.1
         #        ports:
@@ -170,6 +179,7 @@ services:
         #            - "7012:7012"
         #        environment:
         #            - PI_HOSTNAME=$PI_HOSTNAME
+        #            - SYSTEM_ID=$SYSTEM_ID
         #            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
         #            - COUCH_ADDR=$COUCH_ADDR
         #            - COUCH_USER=$COUCH_USER
