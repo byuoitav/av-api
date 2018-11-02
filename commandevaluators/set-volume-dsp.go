@@ -39,7 +39,7 @@ func (p *SetVolumeDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.
 		User: requestor,
 	}
 
-	eventInfo.EventTags = append(eventInfo.EventTags, ei.CoreState, ei.UserGenerated)
+	eventInfo.AddToTags(ei.CoreState, ei.UserGenerated)
 
 	var actions []base.ActionStructure
 

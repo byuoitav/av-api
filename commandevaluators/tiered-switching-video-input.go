@@ -397,38 +397,17 @@ func generateActionForAVIPReceiver(room base.PublicRoom, tx, rx inputgraph.Node,
 	m := make(map[string]string)
 	m["transmitter"] = tx.Device.Address
 
-	// eventInfo := events.EventInfo{
-	// 	Type:           events.CORESTATE,
-	// 	EventCause:     events.USERINPUT,
-	// 	Device:         destination.Name,
-	// 	DeviceID:       destination.ID,
-	// 	EventInfoKey:   "input",
-	// 	EventInfoValue: selected,
-	// 	Requestor:      requestor,
-	// }
-
 	eventInfo := events.Event{
 		Key:   "input",
 		Value: selected,
 		User:  requestor,
 	}
 
-	eventInfo.EventTags = append(eventInfo.EventTags, events.CoreState, events.UserGenerated)
+	eventInfo.AddToTags(events.CoreState, events.UserGenerated)
 
-	eventInfo.AffectedRoom = events.BasicRoomInfo{
-		BuildingID: room.Building,
-		RoomID:     fmt.Sprintf("%s-%s", room.Building, room.Room),
-	}
+	eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(fmt.Sprintf("%s-%s", room.Building, room.Room))
 
-	deviceInfo := strings.Split(destination.ID, "-")
-
-	eventInfo.TargetDevice = events.BasicDeviceInfo{
-		BasicRoomInfo: events.BasicRoomInfo{
-			BuildingID: deviceInfo[0],
-			RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
-		},
-		DeviceID: destination.ID,
-	}
+	eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(destination.ID)
 
 	destStruct := base.DestinationDevice{
 		Device: destination,
@@ -488,22 +467,11 @@ func generateActionForNonSwitch(room base.PublicRoom, prev, cur inputgraph.Node,
 		User:  requestor,
 	}
 
-	eventInfo.EventTags = append(eventInfo.EventTags, events.CoreState, events.UserGenerated)
+	eventInfo.AddToTags(events.CoreState, events.UserGenerated)
 
-	eventInfo.AffectedRoom = events.BasicRoomInfo{
-		BuildingID: room.Building,
-		RoomID:     fmt.Sprintf("%s-%s", room.Building, room.Room),
-	}
+	eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(fmt.Sprintf("%s-%s", room.Building, room.Room))
 
-	deviceInfo := strings.Split(destination.ID, "-")
-
-	eventInfo.TargetDevice = events.BasicDeviceInfo{
-		BasicRoomInfo: events.BasicRoomInfo{
-			BuildingID: deviceInfo[0],
-			RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
-		},
-		DeviceID: destination.ID,
-	}
+	eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(destination.ID)
 
 	destStruct := base.DestinationDevice{
 		Device: destination,
@@ -562,38 +530,17 @@ func generateActionForSwitch(room base.PublicRoom, prev, cur, next inputgraph.No
 
 	log.L.Infof("params: %v", m)
 
-	// eventInfo := events.EventInfo{
-	// 	Type:           events.CORESTATE,
-	// 	EventCause:     events.USERINPUT,
-	// 	Device:         destination.Name,
-	// 	DeviceID:       destination.ID,
-	// 	EventInfoKey:   "input",
-	// 	EventInfoValue: selected,
-	// 	Requestor:      requestor,
-	// }
-
 	eventInfo := events.Event{
 		Key:   "input",
 		Value: selected,
 		User:  requestor,
 	}
 
-	eventInfo.EventTags = append(eventInfo.EventTags, events.CoreState, events.UserGenerated)
+	eventInfo.AddToTags(events.CoreState, events.UserGenerated)
 
-	eventInfo.AffectedRoom = events.BasicRoomInfo{
-		BuildingID: room.Building,
-		RoomID:     fmt.Sprintf("%s-%s", room.Building, room.Room),
-	}
+	eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(fmt.Sprintf("%s-%s", room.Building, room.Room))
 
-	deviceInfo := strings.Split(destination.ID, "-")
-
-	eventInfo.TargetDevice = events.BasicDeviceInfo{
-		BasicRoomInfo: events.BasicRoomInfo{
-			BuildingID: deviceInfo[0],
-			RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
-		},
-		DeviceID: destination.ID,
-	}
+	eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(destination.ID)
 
 	destStruct := base.DestinationDevice{
 		Device: destination,

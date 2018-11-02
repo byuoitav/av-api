@@ -268,7 +268,7 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 
 	//TODO: we need to find some way to check against the correct response value, just as a further validation
 	for _, event := range action.EventLog {
-		base.SendEvent(event, false)
+		base.SendEvent(event)
 	}
 
 	log.L.Infof("%s", color.HiGreenString("[state] sent command %s to device %s.", action.Action, action.Device.Name))
@@ -345,30 +345,15 @@ func PublishError(message string, action base.ActionStructure, requestor string)
 
 	log.L.Errorf("[error] publishing error: %s...", message)
 
-	roomID := strings.Split(action.Device.GetDeviceRoomID(), "-")
-
-	roomInfo := events.BasicRoomInfo{
-		BuildingID: roomID[0],
-		RoomID:     fmt.Sprintf("%s-%s", roomID[0], roomID[1]),
-	}
-
-	deviceInfo := strings.Split(action.Device.ID, "-")
-
 	e := events.Event{
-		AffectedRoom: roomInfo,
-		TargetDevice: events.BasicDeviceInfo{
-			BasicRoomInfo: events.BasicRoomInfo{
-				BuildingID: deviceInfo[0],
-				RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
-			},
-			DeviceID: action.Device.ID,
-		},
-		Key:   action.Action,
-		Value: message,
-		User:  requestor,
+		TargetDevice: events.GenerateBasicDeviceInfo(action.Device.ID),
+		AffectedRoom: events.GenerateBasicRoomInfo(action.Device.GetDeviceRoomID()),
+		Key:          action.Action,
+		Value:        message,
+		User:         requestor,
 	}
 
-	e.EventTags = append(e.EventTags, events.Error, events.UserGenerated)
+	e.AddToTags(events.Error, events.UserGenerated)
 
-	base.SendEvent(e, true)
+	base.SendEvent(e)
 }

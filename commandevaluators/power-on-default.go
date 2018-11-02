@@ -33,7 +33,7 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 		User:  requestor,
 	}
 
-	eventInfo.EventTags = append(eventInfo.EventTags, events.CoreState, events.UserGenerated)
+	eventInfo.AddToTags(events.CoreState, events.UserGenerated)
 
 	var devices []structs.Device
 	if strings.EqualFold(room.Power, "on") {
@@ -66,15 +66,9 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 
 				log.L.Info("[command_evaluators] Adding device %+v", device.Name)
 
-				deviceInfo := strings.Split(device.ID, "-")
+				eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
 
-				eventInfo.TargetDevice = events.BasicDeviceInfo{
-					BasicRoomInfo: events.BasicRoomInfo{
-						BuildingID: deviceInfo[0],
-						RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
-					},
-					DeviceID: device.ID,
-				}
+				eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(device.ID)
 
 				actions = append(actions, base.ActionStructure{
 					Action:              "PowerOn",
@@ -149,6 +143,8 @@ func (p *PowerOnDefault) evaluateDevice(device base.Device,
 	building string,
 	eventInfo events.Event) ([]base.ActionStructure, error) {
 
+	roomID := fmt.Sprintf("%s-%s", building, room)
+
 	// Check if we even need to start anything
 	if strings.EqualFold(device.Power, "on") {
 		// check if we already added it
@@ -173,15 +169,9 @@ func (p *PowerOnDefault) evaluateDevice(device base.Device,
 				destination.Display = true
 			}
 
-			deviceInfo := strings.Split(dev.ID, "-")
+			eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
 
-			eventInfo.TargetDevice = events.BasicDeviceInfo{
-				BasicRoomInfo: events.BasicRoomInfo{
-					BuildingID: deviceInfo[0],
-					RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
-				},
-				DeviceID: dev.ID,
-			}
+			eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(dev.ID)
 
 			destination.Device = dev
 
@@ -211,15 +201,9 @@ func (p *PowerOnDefault) evaluateDevice(device base.Device,
 
 						log.L.Info("[command_evaluators] Adding device %+v", DX.Name)
 
-						deviceInfo := strings.Split(DX.ID, "-")
+						eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
 
-						eventInfo.TargetDevice = events.BasicDeviceInfo{
-							BasicRoomInfo: events.BasicRoomInfo{
-								BuildingID: deviceInfo[0],
-								RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
-							},
-							DeviceID: DX.ID,
-						}
+						eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(DX.ID)
 
 						actions = append(actions, base.ActionStructure{
 							Action:              "PowerOn",

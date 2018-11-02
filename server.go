@@ -9,8 +9,11 @@ import (
 	"github.com/byuoitav/av-api/handlers"
 	"github.com/byuoitav/av-api/health"
 	avapi "github.com/byuoitav/av-api/init"
+	hub "github.com/byuoitav/central-event-system/hub/base"
+	"github.com/byuoitav/central-event-system/messenger"
 	"github.com/byuoitav/common"
 	"github.com/byuoitav/common/log"
+	"github.com/byuoitav/common/nerr"
 	"github.com/byuoitav/common/status/databasestatus"
 	"github.com/byuoitav/common/v2/events"
 	"github.com/labstack/echo"
@@ -18,7 +21,12 @@ import (
 )
 
 func main() {
-	base.EventNode = events.NewEventNode("AV-API", os.Getenv("EVENT_ROUTER_ADDRESS"), []string{})
+	var nerr *nerr.E
+	base.Messenger, nerr = messenger.BuildMessenger(os.Getenv("HUB_ADDRESS"), hub.Messenger, 1000)
+	if nerr != nil {
+		log.L.Errorf("there was a problem building the messenger : %s", nerr.String())
+		return
+	}
 
 	go func() {
 		err := avapi.CheckRoomInitialization()

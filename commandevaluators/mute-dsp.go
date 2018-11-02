@@ -48,7 +48,7 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Actio
 		User:  requestor,
 	}
 
-	eventInfo.EventTags = append(eventInfo.EventTags, ei.CoreState, ei.UserGenerated)
+	eventInfo.AddToTags(ei.CoreState, ei.UserGenerated)
 
 	destination := base.DestinationDevice{
 		AudioDevice: true,

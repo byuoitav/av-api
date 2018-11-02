@@ -29,12 +29,9 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 		User:  requestor,
 	}
 
-	eventInfo.EventTags = append(eventInfo.EventTags, events.CoreState, events.UserGenerated)
+	roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
 
-	eventInfo.AffectedRoom = events.BasicRoomInfo{
-		BuildingID: room.Building,
-		RoomID:     fmt.Sprintf("%s-%s", room.Building, room.Room),
-	}
+	eventInfo.AddToTags(events.CoreState, events.UserGenerated)
 
 	destination := base.DestinationDevice{AudioDevice: true}
 
@@ -43,7 +40,6 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 
 		log.L.Info("[command_evaluators] Room-wide UnMute request recieved. Retrieving all devices")
 
-		roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
 		devices, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "AudioOut")
 		if err != nil {
 			return []base.ActionStructure{}, 0, err
@@ -57,15 +53,9 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 
 				log.L.Infof("[command_evaluators] Adding device %+v", device.Name)
 
-				deviceInfo := strings.Split(device.ID, "-")
+				eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
 
-				eventInfo.TargetDevice = events.BasicDeviceInfo{
-					BasicRoomInfo: events.BasicRoomInfo{
-						BuildingID: deviceInfo[0],
-						RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
-					},
-					DeviceID: device.ID,
-				}
+				eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(device.ID)
 
 				destination.Device = device
 
@@ -96,6 +86,10 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 							if len(cmd.ID) < 1 {
 								continue
 							}
+
+							eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
+
+							eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(DX.ID)
 
 							log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)
 
@@ -131,15 +125,9 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 				return []base.ActionStructure{}, 0, err
 			}
 
-			deviceInfo := strings.Split(device.ID, "-")
+			eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
 
-			eventInfo.TargetDevice = events.BasicDeviceInfo{
-				BasicRoomInfo: events.BasicRoomInfo{
-					BuildingID: deviceInfo[0],
-					RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
-				},
-				DeviceID: device.ID,
-			}
+			eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(device.ID)
 
 			destination.Device = device
 
