@@ -31,7 +31,7 @@ func main() {
 	go func() {
 		err := avapi.CheckRoomInitialization()
 		if err != nil {
-			base.PublishError("Fail to run init script. Terminating. ERROR:"+err.Error(), events.Error, os.Getenv("PI_HOSTNAME"))
+			base.PublishError("Fail to run init script. Terminating. ERROR:"+err.Error(), events.Error, os.Getenv("SYSTEM_ID"))
 			log.L.Errorf("Could not initialize room. Error: %v\n", err.Error())
 		}
 	}()

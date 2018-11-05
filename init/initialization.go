@@ -22,7 +22,7 @@ func CheckRoomInitialization() error {
 	log.L.Info("[init] Initializing.")
 
 	//Check if local
-	if len(os.Getenv("LOCAL_ENVIRONMENT")) < 1 {
+	if len(os.Getenv("ROOM_SYSTEM")) < 1 {
 		log.L.Info("[init] Not a local instance of the API.")
 		log.L.Info("[init] Done.")
 		return nil

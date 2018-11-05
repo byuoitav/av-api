@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	hubBase "github.com/byuoitav/central-event-system/hub/base"
 	"github.com/byuoitav/central-event-system/messenger"
 	"github.com/byuoitav/common/v2/events"
 )
@@ -29,9 +28,11 @@ func SendEvent(e events.Event) error {
 
 	// Add some more information to the Event, such as hostname and a timestamp.
 	e.Timestamp = time.Now()
-	if len(os.Getenv("LOCAL_ENVIRONMENT")) > 0 {
+	if len(os.Getenv("ROOM_SYSTEM")) > 0 {
 		e.GeneratingSystem = os.Getenv("SYSTEM_ID")
+		// +deploy not_required
 		if len(os.Getenv("DEVELOPMENT_HOSTNAME")) > 0 {
+			// +deploy not_required
 			e.GeneratingSystem = os.Getenv("DEVELOPMENT_HOSTNAME")
 		}
 	} else {
@@ -42,11 +43,11 @@ func SendEvent(e events.Event) error {
 		return err
 	}
 
-	if len(os.Getenv("LOCAL_ENVIRONMENT")) > 0 {
-		e.AddToTags(os.Getenv("LOCAL_ENVIRONMENT"))
+	if len(os.Getenv("ROOM_SYSTEM")) > 0 {
+		e.AddToTags(events.RoomSystem)
 	}
 
-	Messenger.SendEvent(hubBase.WrapEvent(e))
+	Messenger.SendEvent(e)
 
 	return err
 }

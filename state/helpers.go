@@ -232,7 +232,8 @@ func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoi
 		return se.StatusResponse{ErrorMessage: &msg}
 	}
 
-	if len(os.Getenv("LOCAL_ENVIRONMENT")) == 0 {
+	if len(os.Getenv("ROOM_SYSTEM")) == 0 {
+		//TODO: do new auth stuff .
 		token, err := bearertoken.GetToken()
 		if err != nil {
 			return se.StatusResponse{}

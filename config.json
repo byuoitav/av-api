@@ -2,11 +2,12 @@
     "name": "av-api",
     "port": ":8000",
     "env-vars": [
+        "BYPASS_AUTH",
         "DB_ADDRESS",
         "DB_PASSWORD",
         "DB_USERNAME",
-        "EVENT_ROUTER_ADDRESS",
-        "LOCAL_ENVIRONMENT",
-        "PI_HOSTNAME"
+        "HUB_ADDRESS",
+        "ROOM_SYSTEM",
+        "SYSTEM_ID"
     ]
 }

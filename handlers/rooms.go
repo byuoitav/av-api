@@ -65,9 +65,9 @@ func SetRoomState(context echo.Context) error {
 		color.Unset()
 		report, err = state.SetRoomState(roomInQuestion, context.RealIP())
 	} else if strings.Contains(hn[0], "localhost") {
-		log.L.Debugf("REQUESTOR: %s", os.Getenv("PI_HOSTNAME"))
+		log.L.Debugf("REQUESTOR: %s", os.Getenv("SYSTEM_ID"))
 		color.Unset()
-		report, err = state.SetRoomState(roomInQuestion, os.Getenv("PI_HOSTNAME"))
+		report, err = state.SetRoomState(roomInQuestion, os.Getenv("SYSTEM_ID"))
 	} else {
 		log.L.Debugf("REQUESTOR: %s", hn[0])
 		color.Unset()
