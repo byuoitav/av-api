@@ -13,13 +13,22 @@ import (
 	"github.com/byuoitav/av-api/state"
 	"github.com/byuoitav/common/db"
 	"github.com/byuoitav/common/log"
+	"github.com/byuoitav/common/v2/auth"
 	"github.com/fatih/color"
 	"github.com/labstack/echo"
 )
 
 func GetRoomState(context echo.Context) error {
-
 	building, room := context.Param("building"), context.Param("room")
+
+	if ok, err := auth.CheckRolesForReceivedRequest(context, "read-state", building+"-"+room, "room"); !ok {
+		if err != nil {
+			log.L.Warnf("Unauthorized error: %v", err.Error())
+			return context.JSON(http.StatusUnauthorized, "not authorized")
+		}
+
+		return context.String(http.StatusUnauthorized, "not authorized")
+	}
 
 	status, err := state.GetRoomState(building, room)
 	if err != nil {
