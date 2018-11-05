@@ -112,14 +112,15 @@ services:
         network_mode: "host"
         restart: always
         tty: true
-    event-router-microservice:
-        image: byuoitav/event-router-microservice:${DOCKER_HUB_TAG}
+    central-event-hub:
+        image: byuoitav/central-event-hub:${DOCKER_HUB_TAG}
         ports:
-            - "7000:7000"
+            - "7100:7100"
         environment:
-            - PI_HOSTNAME=$PI_HOSTNAME
             - SYSTEM_ID=$SYSTEM_ID
-            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+            - DEV_HUB="true"
+            - STOP_REPLICATION="true"
+            - ROOM_SYSTEM="true"
             - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
             - DB_ADDRESS=$DB_ADDRESS
             - DB_USERNAME=$DB_USERNAME
