@@ -130,6 +130,9 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 				Display: true,
 			}
 
+			event.AffectedRoom = events.GenerateBasicRoomInfo(fmt.Sprintf("%s-%s", room.Building, room.Room))
+			event.TargetDevice = events.GenerateBasicDeviceInfo(destination.ID)
+
 			if structs.HasRole(device, "AudioOut") {
 				destination.AudioDevice = true
 			}
