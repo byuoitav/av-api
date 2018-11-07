@@ -62,8 +62,8 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 					destination.AudioDevice = true
 				}
 
-				event.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
-				event.TargetDevice = events.GenerateBasicDeviceInfo(device.ID)
+				event.AffectedRoom = events.GenerateBasicRoomInfo(fmt.Sprintf("%s-%s", room.Building, room.Room))
+				event.TargetDevice = events.GenerateBasicDeviceInfo(destination.ID)
 
 				actions = append(actions, base.ActionStructure{
 					Action:              "BlankDisplay",

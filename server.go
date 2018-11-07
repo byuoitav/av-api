@@ -20,6 +20,7 @@ import (
 
 func main() {
 	var nerr *nerr.E
+
 	base.Messenger, nerr = messenger.BuildMessenger(os.Getenv("HUB_ADDRESS"), hub.Messenger, 1000)
 	if nerr != nil {
 		log.L.Errorf("there was a problem building the messenger : %s", nerr.String())
