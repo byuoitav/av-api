@@ -354,7 +354,7 @@ func PublishError(message string, action base.ActionStructure, requestor string)
 		User:         requestor,
 	}
 
-	e.AddToTags(events.Error, events.UserGenerated)
+	e.AddToTags(events.Error)
 
 	base.SendEvent(e)
 }

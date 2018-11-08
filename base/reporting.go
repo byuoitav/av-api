@@ -25,6 +25,10 @@ func SendEvent(e events.Event) error {
 	if len(e.Key) == 0 || len(e.Value) == 0 {
 		return nil
 	}
+	if len(e.EventTags) == 0 {
+		e.EventTags = []string{events.CoreState}
+
+	}
 
 	// Add some more information to the Event, such as hostname and a timestamp.
 	e.Timestamp = time.Now()
