@@ -1,0 +1,16 @@
+{
+    "name": "av-api",
+    "port": ":8000",
+    "env-vars": [
+        "BYPASS_AUTH",
+        "DB_ADDRESS",
+        "DB_PASSWORD",
+        "DB_USERNAME",
+        "ENDPOINT_ACCESS_KEY",
+        "ENDPOINT_AUTHORIZATION_URL",
+        "ENDPOINT_USERNAME",
+        "HUB_ADDRESS",
+        "ROOM_SYSTEM",
+        "SYSTEM_ID"
+    ]
+}

@@ -4,26 +4,33 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/byuoitav/authmiddleware"
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/handlers"
 	"github.com/byuoitav/av-api/health"
 	avapi "github.com/byuoitav/av-api/init"
+	hub "github.com/byuoitav/central-event-system/hub/base"
+	"github.com/byuoitav/central-event-system/messenger"
 	"github.com/byuoitav/common"
-	ei "github.com/byuoitav/common/events"
 	"github.com/byuoitav/common/log"
-	"github.com/byuoitav/common/status"
-	"github.com/labstack/echo"
+	"github.com/byuoitav/common/nerr"
+	"github.com/byuoitav/common/status/databasestatus"
+	"github.com/byuoitav/common/v2/events"
 	"github.com/labstack/echo/middleware"
 )
 
 func main() {
-	base.EventNode = ei.NewEventNode("AV-API", os.Getenv("EVENT_ROUTER_ADDRESS"), []string{})
+	var nerr *nerr.E
+
+	base.Messenger, nerr = messenger.BuildMessenger(os.Getenv("HUB_ADDRESS"), hub.Messenger, 1000)
+	if nerr != nil {
+		log.L.Errorf("there was a problem building the messenger : %s", nerr.String())
+		return
+	}
 
 	go func() {
 		err := avapi.CheckRoomInitialization()
 		if err != nil {
-			base.PublishError("Fail to run init script. Terminating. ERROR:"+err.Error(), ei.INTERNAL)
+			base.PublishError("Fail to run init script. Terminating. ERROR:"+err.Error(), events.Error, os.Getenv("SYSTEM_ID"))
 			log.L.Errorf("Could not initialize room. Error: %v\n", err.Error())
 		}
 	}()
@@ -33,21 +40,21 @@ func main() {
 	router.Pre(middleware.RemoveTrailingSlash())
 	router.Use(middleware.CORS())
 
-	// Use the `secure` routing group to require authentication
-	secure := router.Group("", echo.WrapMiddleware(authmiddleware.Authenticate))
+	// Use the `router` routing group to require authentication
+	//	router := router.Group("", echo.WrapMiddleware(authmiddleware.Authenticate))
 
-	router.GET("/mstatus", status.DefaultMStatusHandler)
-	secure.GET("/status", health.Status)
+	router.GET("/mstatus", databasestatus.Handler)
+	router.GET("/status", health.Status)
 
 	// PUT requests
-	secure.PUT("/buildings/:building/rooms/:room", handlers.SetRoomState)
+	router.PUT("/buildings/:building/rooms/:room", handlers.SetRoomState)
 
 	// room status
-	secure.GET("/buildings/:building/rooms/:room", handlers.GetRoomState)
-	secure.GET("/buildings/:building/rooms/:room/configuration", handlers.GetRoomByNameAndBuilding)
+	router.GET("/buildings/:building/rooms/:room", handlers.GetRoomState)
+	router.GET("/buildings/:building/rooms/:room/configuration", handlers.GetRoomByNameAndBuilding)
 
-	secure.PUT("/log-level/:level", log.SetLogLevel)
-	secure.GET("/log-level", log.GetLogLevel)
+	router.PUT("/log-level/:level", log.SetLogLevel)
+	router.GET("/log-level", log.GetLogLevel)
 
 	server := http.Server{
 		Addr:           port,

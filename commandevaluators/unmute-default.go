@@ -9,8 +9,8 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/common/db"
-	"github.com/byuoitav/common/events"
 	"github.com/byuoitav/common/structs"
+	"github.com/byuoitav/common/v2/events"
 )
 
 // UnMuteDefault implements the CommandEvaluator struct.
@@ -22,13 +22,16 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 	log.L.Info("[command_evaluators] Evaluating UnMute command.")
 
 	var actions []base.ActionStructure
-	eventInfo := events.EventInfo{
-		Type:           events.CORESTATE,
-		EventCause:     events.USERINPUT,
-		EventInfoKey:   "muted",
-		EventInfoValue: "false",
-		Requestor:      requestor,
+
+	eventInfo := events.Event{
+		Key:   "muted",
+		Value: "false",
+		User:  requestor,
 	}
+
+	roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
+
+	eventInfo.AddToTags(events.CoreState, events.UserGenerated)
 
 	destination := base.DestinationDevice{AudioDevice: true}
 
@@ -37,7 +40,6 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 
 		log.L.Info("[command_evaluators] Room-wide UnMute request recieved. Retrieving all devices")
 
-		roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
 		devices, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "AudioOut")
 		if err != nil {
 			return []base.ActionStructure{}, 0, err
@@ -51,8 +53,10 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 
 				log.L.Infof("[command_evaluators] Adding device %+v", device.Name)
 
-				eventInfo.Device = device.Name
-				eventInfo.DeviceID = device.ID
+				eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
+
+				eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(device.ID)
+
 				destination.Device = device
 
 				if structs.HasRole(device, "VideoOut") {
@@ -65,7 +69,7 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 					Device:              device,
 					DestinationDevice:   destination,
 					DeviceSpecific:      false,
-					EventLog:            []events.EventInfo{eventInfo},
+					EventLog:            []events.Event{eventInfo},
 				})
 
 				////////////////////////
@@ -83,6 +87,10 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 								continue
 							}
 
+							eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
+
+							eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(DX.ID)
+
 							log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)
 
 							actions = append(actions, base.ActionStructure{
@@ -91,7 +99,7 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 								Device:              DX,
 								DestinationDevice:   destination,
 								DeviceSpecific:      false,
-								EventLog:            []events.EventInfo{eventInfo},
+								EventLog:            []events.Event{eventInfo},
 							})
 						}
 					}
@@ -117,8 +125,10 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 				return []base.ActionStructure{}, 0, err
 			}
 
-			eventInfo.Device = device.Name
-			eventInfo.DeviceID = device.ID
+			eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
+
+			eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(device.ID)
+
 			destination.Device = device
 
 			if structs.HasRole(device, "VideoOut") {
@@ -131,7 +141,7 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 				Device:              device,
 				DestinationDevice:   destination,
 				DeviceSpecific:      true,
-				EventLog:            []events.EventInfo{eventInfo},
+				EventLog:            []events.Event{eventInfo},
 			})
 
 		}

@@ -9,8 +9,8 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/common/db"
-	"github.com/byuoitav/common/events"
 	"github.com/byuoitav/common/structs"
+	"github.com/byuoitav/common/v2/events"
 )
 
 // SetVolumeDefault implements the CommandEvaluation struct.
@@ -22,12 +22,14 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 
 	var actions []base.ActionStructure
 
-	eventInfo := events.EventInfo{
-		Type:         events.CORESTATE,
-		EventCause:   events.USERINPUT,
-		EventInfoKey: "volume",
-		Requestor:    requestor,
+	roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
+
+	eventInfo := events.Event{
+		Key:  "volume",
+		User: requestor,
 	}
+
+	eventInfo.AddToTags(events.CoreState, events.UserGenerated)
 
 	destination := base.DestinationDevice{
 		AudioDevice: true,
@@ -38,7 +40,6 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 
 		log.L.Info("[command_evaluators] General volume request detected.")
 
-		roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
 		devices, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "AudioOut")
 		if err != nil {
 			return []base.ActionStructure{}, 0, err
@@ -51,10 +52,12 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 				parameters := make(map[string]string)
 				parameters["level"] = fmt.Sprintf("%v", *room.Volume)
 
-				eventInfo.EventInfoValue = fmt.Sprintf("%v", *room.Volume)
+				eventInfo.Value = fmt.Sprintf("%v", *room.Volume)
 
-				eventInfo.Device = device.Name
-				eventInfo.DeviceID = device.ID
+				eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
+
+				eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(device.ID)
+
 				destination.Device = device
 
 				if structs.HasRole(device, "VideoOut") {
@@ -68,7 +71,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 					Device:              device,
 					DestinationDevice:   destination,
 					DeviceSpecific:      false,
-					EventLog:            []events.EventInfo{eventInfo},
+					EventLog:            []events.Event{eventInfo},
 				})
 
 				////////////////////////
@@ -86,6 +89,10 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 								continue
 							}
 
+							eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
+
+							eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(DX.ID)
+
 							log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)
 
 							actions = append(actions, base.ActionStructure{
@@ -95,7 +102,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 								Device:              DX,
 								DestinationDevice:   destination,
 								DeviceSpecific:      false,
-								EventLog:            []events.EventInfo{eventInfo},
+								EventLog:            []events.Event{eventInfo},
 							})
 						}
 					}
@@ -129,9 +136,12 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 				parameters["level"] = fmt.Sprintf("%v", *audioDevice.Volume)
 				log.L.Info("[command_evaluators] %+v", parameters)
 
-				eventInfo.EventInfoValue = fmt.Sprintf("%v", *audioDevice.Volume)
-				eventInfo.Device = device.Name
-				eventInfo.DeviceID = device.ID
+				eventInfo.Value = fmt.Sprintf("%v", *audioDevice.Volume)
+
+				eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
+
+				eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(device.ID)
+
 				destination.Device = device
 
 				if structs.HasRole(device, "VideoOut") {
@@ -145,7 +155,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 					DestinationDevice:   destination,
 					DeviceSpecific:      true,
 					Parameters:          parameters,
-					EventLog:            []events.EventInfo{eventInfo},
+					EventLog:            []events.Event{eventInfo},
 				})
 
 				////////////////////////
@@ -163,6 +173,10 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 								continue
 							}
 
+							eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
+
+							eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(DX.ID)
+
 							log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)
 
 							actions = append(actions, base.ActionStructure{
@@ -172,7 +186,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 								DestinationDevice:   destination,
 								DeviceSpecific:      true,
 								Parameters:          parameters,
-								EventLog:            []events.EventInfo{eventInfo},
+								EventLog:            []events.Event{eventInfo},
 							})
 						}
 					}

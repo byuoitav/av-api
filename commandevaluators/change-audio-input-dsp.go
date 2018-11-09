@@ -7,9 +7,9 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/common/db"
-	ei "github.com/byuoitav/common/events"
 	"github.com/byuoitav/common/log"
 	"github.com/byuoitav/common/structs"
+	ei "github.com/byuoitav/common/v2/events"
 )
 
 /**
@@ -37,12 +37,12 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) (
 
 	var actions []base.ActionStructure
 
-	eventInfo := ei.EventInfo{
-		Type:         ei.CORESTATE,
-		EventCause:   ei.USERINPUT,
-		EventInfoKey: "input",
-		Requestor:    requestor,
+	e := ei.Event{
+		Key:  "input",
+		User: requestor,
 	}
+
+	e.EventTags = append(e.EventTags, ei.CoreState, ei.UserGenerated)
 
 	destination := base.DestinationDevice{
 		AudioDevice: true,
@@ -50,7 +50,7 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) (
 
 	if len(room.CurrentAudioInput) > 0 { //
 
-		generalAction, err := GetDSPMediaInputAction(room, eventInfo, room.CurrentAudioInput, false, destination)
+		generalAction, err := GetDSPMediaInputAction(room, e, room.CurrentAudioInput, false, destination)
 		if err != nil {
 			errorMessage := "[command_evaluators] Could not generate actions for room-wide \"ChangeInput\" request: " + err.Error()
 			log.L.Error(errorMessage)
@@ -73,8 +73,14 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) (
 
 				log.L.Infof("[command_evaluators] Adding device %+v", device.Name)
 
-				eventInfo.Device = device.Name
-				eventInfo.DeviceID = device.ID
+				deviceInfo := strings.Split(device.ID, "-")
+				e.TargetDevice = ei.BasicDeviceInfo{
+					BasicRoomInfo: ei.BasicRoomInfo{
+						BuildingID: deviceInfo[0],
+						RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
+					},
+					DeviceID: device.ID,
+				}
 
 				actions = append(actions, base.ActionStructure{
 					Action:              "Mute",
@@ -82,7 +88,7 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) (
 					Device:              device,
 					DestinationDevice:   destination,
 					DeviceSpecific:      false,
-					EventLog:            []ei.EventInfo{eventInfo},
+					EventLog:            []ei.Event{e},
 				})
 
 				////////////////////////
@@ -102,8 +108,14 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) (
 
 							log.L.Infof("[command_evaluators] Adding device %+v", DX.Name)
 
-							eventInfo.Device = DX.Name
-							eventInfo.DeviceID = DX.ID
+							deviceInfo := strings.Split(DX.ID, "-")
+							e.TargetDevice = ei.BasicDeviceInfo{
+								BasicRoomInfo: ei.BasicRoomInfo{
+									BuildingID: deviceInfo[0],
+									RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
+								},
+								DeviceID: device.ID,
+							}
 
 							actions = append(actions, base.ActionStructure{
 								Action:              "Mute",
@@ -111,7 +123,7 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) (
 								Device:              DX,
 								DestinationDevice:   destination,
 								DeviceSpecific:      false,
-								EventLog:            []ei.EventInfo{eventInfo},
+								EventLog:            []ei.Event{e},
 							})
 						}
 					}
@@ -141,7 +153,7 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) (
 
 				if structs.HasRole(device, "DSP") {
 
-					dspAction, err := GetDSPMediaInputAction(room, eventInfo, room.AudioDevices[0].Input, true, destination)
+					dspAction, err := GetDSPMediaInputAction(room, e, room.AudioDevices[0].Input, true, destination)
 					if err != nil {
 						errorMessage := "[command_evaluators] Could not generate actions for specific \"ChangeInput\" requests: " + err.Error()
 						log.L.Error(errorMessage)
@@ -170,7 +182,7 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) (
 }
 
 // GetDSPMediaInputAction determines the devices affected and actions needed for this command.
-func GetDSPMediaInputAction(room base.PublicRoom, eventInfo ei.EventInfo, input string, deviceSpecific bool, destination base.DestinationDevice) (base.ActionStructure, error) {
+func GetDSPMediaInputAction(room base.PublicRoom, event ei.Event, input string, deviceSpecific bool, destination base.DestinationDevice) (base.ActionStructure, error) {
 
 	//get DSP
 	roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
@@ -227,9 +239,16 @@ func GetDSPMediaInputAction(room base.PublicRoom, eventInfo ei.EventInfo, input 
 			parameters["input"] = switcherPorts[0]
 			parameters["output"] = switcherPorts[1]
 
-			eventInfo.Device = switchers[0].Name
-			eventInfo.DeviceID = switchers[0].ID
-			eventInfo.EventInfoValue = input
+			deviceInfo := strings.Split(device.ID, "-")
+			event.TargetDevice = ei.BasicDeviceInfo{
+				BasicRoomInfo: ei.BasicRoomInfo{
+					BuildingID: deviceInfo[0],
+					RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
+				},
+				DeviceID: device.ID,
+			}
+
+			event.Value = input
 
 			destination.Device = device
 
@@ -240,7 +259,7 @@ func GetDSPMediaInputAction(room base.PublicRoom, eventInfo ei.EventInfo, input 
 				DestinationDevice:   destination,
 				DeviceSpecific:      deviceSpecific,
 				Parameters:          parameters,
-				EventLog:            []ei.EventInfo{eventInfo},
+				EventLog:            []ei.Event{event},
 			}, nil
 
 		}
