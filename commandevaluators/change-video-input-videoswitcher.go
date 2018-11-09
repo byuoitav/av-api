@@ -9,8 +9,8 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/common/db"
-	"github.com/byuoitav/common/events"
 	"github.com/byuoitav/common/structs"
+	"github.com/byuoitav/common/v2/events"
 )
 
 /*
@@ -56,7 +56,7 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor
 
 						cmd := DX.GetCommandByName("ChangeVideoInputVideoSwitcher")
 						if len(cmd.ID) < 1 {
-							return actionList, len(actionList), nil
+							continue
 						}
 
 						mirrorAction, err := GetSwitcherAndCreateAction(room, DX, room.CurrentVideoInput, "ChangeVideoInputVideoSwitcher", requestor)
@@ -106,7 +106,7 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor
 
 							cmd := DX.GetCommandByName("ChangeVideoInputVideoSwitcher")
 							if len(cmd.ID) < 1 {
-								return actionList, len(actionList), nil
+								continue
 							}
 
 							mirrorAction, err := GetSwitcherAndCreateAction(room, DX, display.Input, "ChangeVideoInputVideoSwitcher", requestor)
@@ -154,7 +154,7 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor
 
 							cmd := DX.GetCommandByName("ChangeVideoInputVideoSwitcher")
 							if len(cmd.ID) < 1 {
-								return actionList, len(actionList), nil
+								continue
 							}
 
 							mirrorAction, err := GetSwitcherAndCreateAction(room, DX, audioDevice.Input, "ChangeVideoInputVideoSwitcher", requestor)
@@ -210,15 +210,15 @@ func GetSwitcherAndCreateAction(room base.PublicRoom, device structs.Device, sel
 			m := make(map[string]string)
 			m["output"] = port.ID
 
-			eventInfo := events.EventInfo{
-				Type:           events.CORESTATE,
-				EventCause:     events.USERINPUT,
-				Device:         device.Name,
-				DeviceID:       device.ID,
-				EventInfoKey:   "input",
-				EventInfoValue: selectedInput,
-				Requestor:      requestor,
+			eventInfo := events.Event{
+				TargetDevice: events.GenerateBasicDeviceInfo(device.ID),
+				AffectedRoom: events.GenerateBasicRoomInfo(roomID),
+				Key:          "input",
+				Value:        selectedInput,
+				User:         requestor,
 			}
+
+			eventInfo.AddToTags(events.CoreState, events.UserGenerated)
 
 			destination := base.DestinationDevice{
 				Device: device,
@@ -240,7 +240,7 @@ func GetSwitcherAndCreateAction(room base.PublicRoom, device structs.Device, sel
 				Parameters:          m,
 				DeviceSpecific:      false,
 				Overridden:          false,
-				EventLog:            []events.EventInfo{eventInfo},
+				EventLog:            []events.Event{eventInfo},
 			}
 
 			return tempAction, nil

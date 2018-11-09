@@ -13,13 +13,23 @@ import (
 	"github.com/byuoitav/av-api/state"
 	"github.com/byuoitav/common/db"
 	"github.com/byuoitav/common/log"
+	"github.com/byuoitav/common/v2/auth"
 	"github.com/fatih/color"
 	"github.com/labstack/echo"
 )
 
+//GetRoomState to get the current state of a room
 func GetRoomState(context echo.Context) error {
-
 	building, room := context.Param("building"), context.Param("room")
+
+	if ok, err := auth.CheckRolesForReceivedRequest(context, "read-state", building+"-"+room, "room"); !ok {
+		if err != nil {
+			log.L.Warnf("Unauthorized error: %v", err.Error())
+			return context.JSON(http.StatusUnauthorized, "not authorized")
+		}
+
+		return context.String(http.StatusUnauthorized, "not authorized")
+	}
 
 	status, err := state.GetRoomState(building, room)
 	if err != nil {
@@ -31,8 +41,19 @@ func GetRoomState(context echo.Context) error {
 
 //GetRoomByNameAndBuilding is almost identical to GetRoomByName
 func GetRoomByNameAndBuilding(context echo.Context) error {
+	building, roomName := context.Param("building"), context.Param("room")
+
+	if ok, err := auth.CheckRolesForReceivedRequest(context, "read-config", building+"-"+roomName, "room"); !ok {
+		if err != nil {
+			log.L.Warnf("Unauthorized error: %v", err.Error())
+			return context.JSON(http.StatusUnauthorized, "not authorized")
+		}
+
+		return context.String(http.StatusUnauthorized, "not authorized")
+	}
+
 	log.L.Info("Getting room...")
-	room, err := db.GetDB().GetRoom(fmt.Sprintf("%s-%s", context.Param("building"), context.Param("room")))
+	room, err := db.GetDB().GetRoom(fmt.Sprintf("%s-%s", building, roomName))
 	if err != nil {
 		return context.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 	}
@@ -44,8 +65,19 @@ func GetRoomByNameAndBuilding(context echo.Context) error {
 	return context.JSON(http.StatusOK, reachable)
 }
 
+//SetRoomState to update the state of the room
 func SetRoomState(context echo.Context) error {
 	building, room := context.Param("building"), context.Param("room")
+
+	if ok, err := auth.CheckRolesForReceivedRequest(context, "write-state", building+"-"+room, "room"); !ok {
+		if err != nil {
+			log.L.Warnf("Unauthorized error: %v", err.Error())
+			return context.JSON(http.StatusUnauthorized, "not authorized")
+		}
+
+		return context.String(http.StatusUnauthorized, "not authorized")
+	}
+
 	log.L.Infof("%s", color.HiGreenString("[handlers] putting room changes..."))
 
 	var roomInQuestion base.PublicRoom
@@ -65,9 +97,9 @@ func SetRoomState(context echo.Context) error {
 		color.Unset()
 		report, err = state.SetRoomState(roomInQuestion, context.RealIP())
 	} else if strings.Contains(hn[0], "localhost") {
-		log.L.Debugf("REQUESTOR: %s", os.Getenv("PI_HOSTNAME"))
+		log.L.Debugf("REQUESTOR: %s", os.Getenv("SYSTEM_ID"))
 		color.Unset()
-		report, err = state.SetRoomState(roomInQuestion, os.Getenv("PI_HOSTNAME"))
+		report, err = state.SetRoomState(roomInQuestion, os.Getenv("SYSTEM_ID"))
 	} else {
 		log.L.Debugf("REQUESTOR: %s", hn[0])
 		color.Unset()

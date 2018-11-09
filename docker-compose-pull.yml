@@ -5,7 +5,10 @@ services:
         ports:
             - "8000:8000"
         environment:
-            - PI_HOSTNAME=$PI_HOSTNAME
+            - SYSTEM_ID=$SYSTEM_ID
+            - BYPASS_AUTH=true
+            - ENDPOINT_AUTHORIZATION_MICROSERVICE=$ENDPOINT_AUTHORIZATION_MICROSERVICE
+            - HUB_ADDRESS=$HUB_ADDRESS
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
             - EVENT_ROUTER_ADDRESS=$EVENT_ROUTER_ADDRESS
@@ -21,6 +24,7 @@ services:
             - "8005:8005"
         environment:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+            - BYPASS_AUTH=true
             - PJLINK_PORT=$PJLINK_PORT
             - PJLINK_PASS=$PJLINK_PASS
         network_mode: "host"
@@ -32,6 +36,7 @@ services:
             - "8006:8006"
         environment:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+            - BYPASS_AUTH=true
             - CONFIGURATION_DATABASE_USERNAME=$CONFIGURATION_DATABASE_USERNAME
             - CONFIGURATION_DATABASE_PASSWORD=$CONFIGURATION_DATABASE_PASSWORD
             - CONFIGURATION_DATABASE_HOST=$CONFIGURATION_DATABASE_HOST
@@ -46,6 +51,7 @@ services:
             - "8007:8007"
         environment:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+            - BYPASS_AUTH=true
             - SONY_TV_PSK=$SONY_TV_PSK
             - DB_ADDRESS=$DB_ADDRESS
             - DB_USERNAME=$DB_USERNAME
@@ -59,6 +65,7 @@ services:
             - "8009:8009"
         environment:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+            - BYPASS_AUTH=true
         network_mode: "host"
         restart: always
         tty: true
@@ -68,6 +75,7 @@ services:
             - "8011:8011"
         environment:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+            - BYPASS_AUTH=true
         network_mode: "host"
         restart: always
         tty: true
@@ -77,6 +85,7 @@ services:
             - "8014:8014"
         environment:
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+            - BYPASS_AUTH=true
         network_mode: "host"
         restart: always
         tty: true
@@ -85,6 +94,7 @@ services:
         ports:
             - "8012:8012"
         environment:
+            - BYPASS_AUTH=true
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - DB_ADDRESS=$DB_ADDRESS
             - DB_USERNAME=$DB_USERNAME
@@ -97,29 +107,32 @@ services:
         ports:
             - "8888:8888"
         environment:
-            - PI_HOSTNAME=$PI_HOSTNAME
+            - BYPASS_AUTH=true
+            - SYSTEM_ID=$SYSTEM_ID
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - HELP_SLACKBOT_WEBHOOK=$HELP_SLACKBOT_WEBHOOK
             - UI_CONFIGURATION_ADDRESS=$UI_CONFIGURATION_ADDRESS
-            - EVENT_ROUTER_ADDRESS=$EVENT_ROUTER_ADDRESS
+            - HUB_ADDRESS=$HUB_ADDRESS
             - DB_ADDRESS=$DB_ADDRESS
             - DB_USERNAME=$DB_USERNAME
             - DB_PASSWORD=$DB_PASSWORD
         network_mode: "host"
         restart: always
         tty: true
-    event-router-microservice:
-        image: byuoitav/event-router-microservice:${DOCKER_HUB_TAG}
+    central-event-hub:
+        image: byuoitav/central-event-hub:${DOCKER_HUB_TAG}
         ports:
-            - "7000:7000"
+            - "7100:7100"
         environment:
-            - PI_HOSTNAME=$PI_HOSTNAME
-            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+            - BYPASS_AUTH=true
+            - SYSTEM_ID=$SYSTEM_ID
+            - DEV_HUB=true
+            - STOP_REPLICATION=true
+            - ROOM_SYSTEM=true
             - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
             - DB_ADDRESS=$DB_ADDRESS
             - DB_USERNAME=$DB_USERNAME
             - DB_PASSWORD=$DB_PASSWORD
-            - DEV_ROUTER=$DEV_ROUTER
         network_mode: "host"
         tty: true
     event-translator-microservice:
@@ -127,9 +140,11 @@ services:
         ports:
             - "7002:7002"
         environment:
+            - BYPASS_AUTH=true
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - ELASTIC_API_EVENTS=$ELASTIC_API_EVENTS
             - EVENT_ROUTER_ADDRESS=$EVENT_ROUTER_ADDRESS
+            - HUB_ADDRESS=$HUB_ADDRESS
         network_mode: "host"
         restart: always
         tty: true
@@ -138,13 +153,26 @@ services:
         ports:
             - "8013:8013"
         environment:
+            - BYPASS_AUTH=true
             - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
             - ELASTIC_API_EVENTS=$ELASTIC_API_EVENTS
             - ELASTIC_API_EVENTS_DEV=$ELASTIC_API_EVENTS_DEV
             - CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS=$CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS
             - PI_HOSTNAME=$PI_HOSTNAME
+            - SYSTEM_ID=$SYSTEM_ID
             - EVENT_ROUTER_ADDRESS=$EVENT_ROUTER_ADDRESS
+            - HUB_ADDRESS=$HUB_ADDRESS
         network_mode: "host"
+        #just-add-power-hdip-ms:
+        #    image: byuoitav/just-add-power-hdip-ms:${DOCKER_HUB_TAG}
+        #    ports:
+        #        - "8022:8022"
+        #    environment:
+        #        - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+        #        - PI_HOSTNAME=$PI_HOSTNAME
+        #        - SYSTEM_ID=$SYSTEM_ID
+        #    network_mode: "host"
+        #    tty: true
         #    couch-db:
         #        image: treehouses/rpi-couchdb:2.1.1
         #        ports:
@@ -161,6 +189,7 @@ services:
         #            - "7012:7012"
         #        environment:
         #            - PI_HOSTNAME=$PI_HOSTNAME
+        #            - SYSTEM_ID=$SYSTEM_ID
         #            - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
         #            - COUCH_ADDR=$COUCH_ADDR
         #            - COUCH_USER=$COUCH_USER

@@ -14,13 +14,14 @@ c) room-wide requests do not affect microphones
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/byuoitav/common/log"
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/common/db"
-	ei "github.com/byuoitav/common/events"
 	"github.com/byuoitav/common/structs"
+	ei "github.com/byuoitav/common/v2/events"
 )
 
 // MuteDSP implements the CommandEvaluation struct.
@@ -33,13 +34,21 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Actio
 
 	var actions []base.ActionStructure
 
-	eventInfo := ei.EventInfo{
-		Type:           ei.CORESTATE,
-		EventCause:     ei.USERINPUT,
-		EventInfoKey:   "muted",
-		EventInfoValue: "true",
-		Requestor:      requestor,
+	// eventInfo := ei.EventInfo{
+	// 	Type:           ei.CORESTATE,
+	// 	EventCause:     ei.USERINPUT,
+	// 	EventInfoKey:   "muted",
+	// 	EventInfoValue: "true",
+	// 	Requestor:      requestor,
+	// }
+
+	eventInfo := ei.Event{
+		Key:   "muted",
+		Value: "true",
+		User:  requestor,
 	}
+
+	eventInfo.AddToTags(ei.CoreState, ei.UserGenerated)
 
 	destination := base.DestinationDevice{
 		AudioDevice: true,
@@ -112,7 +121,7 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Actio
 
 							cmd := DX.GetCommandByName("MuteDSP")
 							if len(cmd.ID) < 1 {
-								return actions, len(actions), nil
+								continue
 							}
 
 							log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)
@@ -157,7 +166,7 @@ func (p *MuteDSP) GetIncompatibleCommands() []string {
 
 // GetGeneralMuteRequestActionsDSP assumes only one DSP, but allows for the possiblity of multiple devices not routed through the DSP
 //room-wide mute requests DO NOT include mics
-func GetGeneralMuteRequestActionsDSP(room base.PublicRoom, eventInfo ei.EventInfo, destination base.DestinationDevice) ([]base.ActionStructure, error) {
+func GetGeneralMuteRequestActionsDSP(room base.PublicRoom, eventInfo ei.Event, destination base.DestinationDevice) ([]base.ActionStructure, error) {
 
 	log.L.Info("[command_evaluators] Generating actions for room-wide \"Mute\" request")
 
@@ -209,7 +218,7 @@ func GetGeneralMuteRequestActionsDSP(room base.PublicRoom, eventInfo ei.EventInf
 
 // GetMicMuteAction takes the room information and a microphone and generates an action.
 //assumes the mic is only connected to a single DSP
-func GetMicMuteAction(mic structs.Device, room base.PublicRoom, eventInfo ei.EventInfo) (base.ActionStructure, error) {
+func GetMicMuteAction(mic structs.Device, room base.PublicRoom, eventInfo ei.Event) (base.ActionStructure, error) {
 
 	log.L.Infof("[command_evaluators] Generating action for command \"Mute\" on microphone %s", mic.Name)
 
@@ -242,8 +251,16 @@ func GetMicMuteAction(mic structs.Device, room base.PublicRoom, eventInfo ei.Eve
 		if port.SourceDevice == mic.ID {
 
 			parameters["input"] = port.ID
-			eventInfo.Device = mic.Name
-			eventInfo.DeviceID = mic.ID
+
+			deviceInfo := strings.Split(mic.ID, "-")
+
+			eventInfo.TargetDevice = ei.BasicDeviceInfo{
+				BasicRoomInfo: ei.BasicRoomInfo{
+					BuildingID: deviceInfo[0],
+					RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
+				},
+				DeviceID: mic.ID,
+			}
 
 			return base.ActionStructure{
 				Action:              "Mute",
@@ -251,7 +268,7 @@ func GetMicMuteAction(mic structs.Device, room base.PublicRoom, eventInfo ei.Eve
 				Device:              dsp,
 				DestinationDevice:   destination,
 				DeviceSpecific:      true,
-				EventLog:            []ei.EventInfo{eventInfo},
+				EventLog:            []ei.Event{eventInfo},
 				Parameters:          parameters,
 			}, nil
 		}
@@ -261,13 +278,23 @@ func GetMicMuteAction(mic structs.Device, room base.PublicRoom, eventInfo ei.Eve
 }
 
 // GetDSPMediaMuteAction generates a list of actions based on information about the room and the DSP.
-func GetDSPMediaMuteAction(dsp structs.Device, room base.PublicRoom, eventInfo ei.EventInfo, deviceSpecific bool) ([]base.ActionStructure, error) {
+func GetDSPMediaMuteAction(dsp structs.Device, room base.PublicRoom, eventInfo ei.Event, deviceSpecific bool) ([]base.ActionStructure, error) {
 
 	log.L.Info("[command_evaluators] Generating action for command Mute on media routed through DSP")
 
 	var output []base.ActionStructure
-	eventInfo.Device = dsp.Name
-	eventInfo.DeviceID = dsp.ID
+	// eventInfo.Device = dsp.Name
+	// eventInfo.DeviceID = dsp.ID
+
+	deviceInfo := strings.Split(dsp.ID, "-")
+
+	eventInfo.TargetDevice = ei.BasicDeviceInfo{
+		BasicRoomInfo: ei.BasicRoomInfo{
+			BuildingID: deviceInfo[0],
+			RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
+		},
+		DeviceID: dsp.ID,
+	}
 
 	for _, port := range dsp.Ports {
 		parameters := make(map[string]string)
@@ -294,7 +321,7 @@ func GetDSPMediaMuteAction(dsp structs.Device, room base.PublicRoom, eventInfo e
 				Device:              dsp,
 				DestinationDevice:   destination,
 				DeviceSpecific:      deviceSpecific,
-				EventLog:            []ei.EventInfo{eventInfo},
+				EventLog:            []ei.Event{eventInfo},
 				Parameters:          parameters,
 			}
 
@@ -306,12 +333,19 @@ func GetDSPMediaMuteAction(dsp structs.Device, room base.PublicRoom, eventInfo e
 }
 
 // GetDisplayMuteAction generates an action based on the information about the room and display.
-func GetDisplayMuteAction(device structs.Device, room base.PublicRoom, eventInfo ei.EventInfo, deviceSpecific bool) (base.ActionStructure, error) {
+func GetDisplayMuteAction(device structs.Device, room base.PublicRoom, eventInfo ei.Event, deviceSpecific bool) (base.ActionStructure, error) {
 
 	log.L.Infof("Generating action for command \"Mute\" for device %s external to DSP", device.Name)
 
-	eventInfo.Device = device.Name
-	eventInfo.DeviceID = device.ID
+	deviceInfo := strings.Split(device.ID, "-")
+
+	eventInfo.TargetDevice = ei.BasicDeviceInfo{
+		BasicRoomInfo: ei.BasicRoomInfo{
+			BuildingID: deviceInfo[0],
+			RoomID:     fmt.Sprintf("%s-%s", deviceInfo[0], deviceInfo[1]),
+		},
+		DeviceID: device.ID,
+	}
 
 	destination := base.DestinationDevice{
 		Device:      device,
@@ -328,6 +362,6 @@ func GetDisplayMuteAction(device structs.Device, room base.PublicRoom, eventInfo
 		Device:              device,
 		DestinationDevice:   destination,
 		DeviceSpecific:      deviceSpecific,
-		EventLog:            []ei.EventInfo{eventInfo},
+		EventLog:            []ei.Event{eventInfo},
 	}, nil
 }

@@ -9,8 +9,8 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/common/db"
-	"github.com/byuoitav/common/events"
 	"github.com/byuoitav/common/structs"
+	"github.com/byuoitav/common/v2/events"
 )
 
 // StandbyDefault implements the CommandEvaluator struct.
@@ -23,18 +23,21 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 	log.L.Info("[command_evaluators] Evaluating for Standby Command.")
 
 	var devices []structs.Device
-	eventInfo := events.EventInfo{
-		Type:           events.CORESTATE,
-		EventCause:     events.USERINPUT,
-		EventInfoKey:   "power",
-		EventInfoValue: "standby",
-		Requestor:      requestor,
+
+	roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
+
+	eventInfo := events.Event{
+		Key:   "power",
+		Value: "standby",
+		User:  requestor,
 	}
+
+	eventInfo.AddToTags(events.CoreState, events.UserGenerated)
 
 	if strings.EqualFold(room.Power, "standby") {
 
 		log.L.Info("[command_evaluators] Room-wide power set. Retrieving all devices.")
-		roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
+
 		devices, err = db.GetDB().GetDevicesByRoom(roomID)
 		if err != nil {
 			return
@@ -66,15 +69,17 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 					dest.AudioDevice = true
 				}
 
-				eventInfo.Device = device.Name
-				eventInfo.DeviceID = device.ID
+				eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
+
+				eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(device.ID)
+
 				actions = append(actions, base.ActionStructure{
 					Action:              "Standby",
 					Device:              device,
 					DestinationDevice:   dest,
 					GeneratingEvaluator: "StandbyDefault",
 					DeviceSpecific:      false,
-					EventLog:            []events.EventInfo{eventInfo},
+					EventLog:            []events.Event{eventInfo},
 				})
 			}
 		}
@@ -132,9 +137,11 @@ func (s *StandbyDefault) GetIncompatibleCommands() (incompatableActions []string
 }
 
 // Evaluate devices just pulls out the process we do with the audio-devices and displays into one function.
-func (s *StandbyDefault) evaluateDevice(device base.Device, destination base.DestinationDevice, actions []base.ActionStructure, devices []structs.Device, room string, building string, eventInfo events.EventInfo) ([]base.ActionStructure, error) {
+func (s *StandbyDefault) evaluateDevice(device base.Device, destination base.DestinationDevice, actions []base.ActionStructure, devices []structs.Device, room string, building string, eventInfo events.Event) ([]base.ActionStructure, error) {
 	// Check if we even need to start anything
 	if strings.EqualFold(device.Power, "standby") {
+		roomID := fmt.Sprintf("%s-%s", building, room)
+
 		// check if we already added it
 		index := checkActionListForDevice(actions, device.Name, room, building)
 		if index == -1 {
@@ -146,8 +153,10 @@ func (s *StandbyDefault) evaluateDevice(device base.Device, destination base.Des
 				return actions, err
 			}
 
-			eventInfo.Device = dev.Name
-			eventInfo.DeviceID = dev.ID
+			eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
+
+			eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(dev.ID)
+
 			destination.Device = dev
 
 			actions = append(actions, base.ActionStructure{
@@ -156,7 +165,7 @@ func (s *StandbyDefault) evaluateDevice(device base.Device, destination base.Des
 				DestinationDevice:   destination,
 				GeneratingEvaluator: "StandbyDefault",
 				DeviceSpecific:      true,
-				EventLog:            []events.EventInfo{eventInfo},
+				EventLog:            []events.Event{eventInfo},
 			})
 
 			////////////////////////
@@ -171,13 +180,14 @@ func (s *StandbyDefault) evaluateDevice(device base.Device, destination base.Des
 
 						cmd := DX.GetCommandByName("Standby")
 						if len(cmd.ID) < 1 {
-							return actions, nil
+							continue
 						}
 
 						log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)
 
-						eventInfo.Device = DX.Name
-						eventInfo.DeviceID = DX.ID
+						eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
+
+						eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(DX.ID)
 
 						actions = append(actions, base.ActionStructure{
 							Action:              "Standby",
@@ -185,7 +195,7 @@ func (s *StandbyDefault) evaluateDevice(device base.Device, destination base.Des
 							DestinationDevice:   destination,
 							GeneratingEvaluator: "StandbyDefault",
 							DeviceSpecific:      false,
-							EventLog:            []events.EventInfo{eventInfo},
+							EventLog:            []events.Event{eventInfo},
 						})
 					}
 				}

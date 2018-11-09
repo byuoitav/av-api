@@ -1,8 +1,8 @@
 package base
 
 import (
-	ei "github.com/byuoitav/common/events"
 	"github.com/byuoitav/common/structs"
+	ei "github.com/byuoitav/common/v2/events"
 )
 
 //PublicRoom is the struct that is returned (or put) as part of the public API
@@ -50,7 +50,7 @@ type ActionStructure struct {
 	Parameters          map[string]string  `json:"parameters"`
 	DeviceSpecific      bool               `json:"deviceSpecific,omitempty"`
 	Overridden          bool               `json:"overridden"`
-	EventLog            []ei.EventInfo     `json:"events"`
+	EventLog            []ei.Event         `json:"events"`
 	Children            []*ActionStructure `json:"children"`
 	Callback            func(StatusPackage, chan<- StatusPackage) error
 }

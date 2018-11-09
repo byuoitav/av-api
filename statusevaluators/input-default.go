@@ -1,7 +1,6 @@
 package statusevaluators
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -39,7 +38,7 @@ func (p *InputDefault) EvaluateResponse(label string, value interface{}, source 
 	//we need to remap the port value to the device name, for this case, that's just the device plugged into that port, as defined in the port mapping
 	valueString, ok := value.(string)
 	if !ok {
-		return "", nil, errors.New(fmt.Sprintf("incorrect type of response (%v). Expected %s; but got %s", valueString, reflect.TypeOf(""), reflect.TypeOf(value)))
+		return "", nil, fmt.Errorf("incorrect type of response (%v). Expected %s; but got %s", valueString, reflect.TypeOf(""), reflect.TypeOf(value))
 	}
 
 	var inputID string
@@ -52,7 +51,7 @@ func (p *InputDefault) EvaluateResponse(label string, value interface{}, source 
 	}
 
 	if len(inputID) == 0 {
-		return "", nil, errors.New(fmt.Sprintf("missing port of device: %s", valueString))
+		return "", nil, fmt.Errorf("missing port of device: %s", valueString)
 	}
 
 	// match the inputID from the port to a device in the db, and return that devices' name

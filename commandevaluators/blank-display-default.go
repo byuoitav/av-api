@@ -7,9 +7,9 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/common/db"
-	"github.com/byuoitav/common/events"
 	"github.com/byuoitav/common/log"
 	"github.com/byuoitav/common/structs"
+	"github.com/byuoitav/common/v2/events"
 )
 
 // BlankDisplayDefault is struct that implements the CommandEvaluation struct
@@ -24,13 +24,13 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 	var actions []base.ActionStructure
 
 	//build event info
-	eventInfo := events.EventInfo{
-		Type:           events.CORESTATE,
-		EventCause:     events.USERINPUT,
-		EventInfoKey:   "blanked",
-		EventInfoValue: "true",
-		Requestor:      requestor,
+	event := events.Event{
+		Key:   "blanked",
+		Value: "true",
+		User:  requestor,
 	}
+
+	event.EventTags = append(event.EventTags, events.CoreState, events.UserGenerated)
 
 	// Check for room-wide blanking
 	if room.Blanked != nil && *room.Blanked {
@@ -43,7 +43,7 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 			return []base.ActionStructure{}, 0, err
 		}
 
-		log.L.Infof("[command_evaluators] VideoOut devices: %+v\n", devices)
+		log.L.Infof("[command_evaluators] VideoOut devices: %v\n", devices)
 
 		log.L.Info("[command_evaluators] Assigning BlankDisplay commands...")
 		// Currently we only check for output devices
@@ -51,7 +51,7 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 
 			if device.Type.Output {
 
-				log.L.Infof("[command_evaluators] Adding device %+v", device.Name)
+				log.L.Infof("[command_evaluators] Adding device %v", device.Name)
 
 				destination := base.DestinationDevice{
 					Device:  device,
@@ -62,8 +62,8 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 					destination.AudioDevice = true
 				}
 
-				eventInfo.Device = device.Name
-				eventInfo.DeviceID = device.ID
+				event.AffectedRoom = events.GenerateBasicRoomInfo(fmt.Sprintf("%s-%s", room.Building, room.Room))
+				event.TargetDevice = events.GenerateBasicDeviceInfo(destination.ID)
 
 				actions = append(actions, base.ActionStructure{
 					Action:              "BlankDisplay",
@@ -71,7 +71,7 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 					Device:              device,
 					DestinationDevice:   destination,
 					DeviceSpecific:      false,
-					EventLog:            []events.EventInfo{eventInfo},
+					EventLog:            []events.Event{event},
 				})
 
 				////////////////////////
@@ -81,27 +81,27 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 						if port.ID == "mirror" {
 							DX, err := db.GetDB().GetDevice(port.DestinationDevice)
 							if err != nil {
-								return actions, len(actions), nil
+								return []base.ActionStructure{}, 0, err
 							}
 
 							cmd := DX.GetCommandByName("BlankDisplay")
-							if cmd.ID != "BlankDisplay" {
-								return actions, len(actions), nil
-							} else {
-								log.L.Info("[command_evaluators] Adding device %+v", DX.Name)
 
-								eventInfo.Device = DX.Name
-								eventInfo.DeviceID = DX.ID
-
-								actions = append(actions, base.ActionStructure{
-									Action:              "BlankDisplay",
-									Device:              DX,
-									DestinationDevice:   destination,
-									GeneratingEvaluator: "BlankDisplayDefault",
-									DeviceSpecific:      false,
-									EventLog:            []events.EventInfo{eventInfo},
-								})
+							if len(cmd.ID) == 0 || cmd.ID != "BlankDisplay" {
+								continue
 							}
+
+							log.L.Info("[command_evaluators] Adding device %v", DX.Name)
+
+							event.TargetDevice = events.GenerateBasicDeviceInfo(DX.ID)
+
+							actions = append(actions, base.ActionStructure{
+								Action:              "BlankDisplay",
+								Device:              DX,
+								DestinationDevice:   destination,
+								GeneratingEvaluator: "BlankDisplayDefault",
+								DeviceSpecific:      false,
+								EventLog:            []events.Event{event},
+							})
 						}
 					}
 				}
@@ -114,7 +114,7 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 	log.L.Info("[command_evaluators] Evaluating individual displays for blanking.")
 
 	for _, display := range room.Displays {
-		log.L.Infof("[command_evaluators] Adding device %+v", display.Name)
+		log.L.Infof("[command_evaluators] Adding device %v", display.Name)
 
 		if display.Blanked != nil && *display.Blanked {
 
@@ -130,18 +130,22 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 				Display: true,
 			}
 
+			event.AffectedRoom = events.GenerateBasicRoomInfo(fmt.Sprintf("%s-%s", room.Building, room.Room))
+			event.TargetDevice = events.GenerateBasicDeviceInfo(destination.ID)
+
 			if structs.HasRole(device, "AudioOut") {
 				destination.AudioDevice = true
 			}
 
-			eventInfo.Device = device.Name
+			event.TargetDevice = events.GenerateBasicDeviceInfo(device.ID)
+
 			actions = append(actions, base.ActionStructure{
 				Action:              "BlankDisplay",
 				GeneratingEvaluator: "BlankDisplayDefault",
 				Device:              device,
 				DestinationDevice:   destination,
 				DeviceSpecific:      true,
-				EventLog:            []events.EventInfo{eventInfo},
+				EventLog:            []events.Event{event},
 			})
 
 			////////////////////////
@@ -151,13 +155,18 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 					if port.ID == "mirror" {
 						DX, err := db.GetDB().GetDevice(port.DestinationDevice)
 						if err != nil {
-							return actions, len(actions), nil
+							return []base.ActionStructure{}, 0, err
 						}
 
-						log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)
+						cmd := DX.GetCommandByName("BlankDisplay")
 
-						eventInfo.Device = DX.Name
-						eventInfo.DeviceID = DX.ID
+						if cmd.ID != "BlankDisplay" {
+							continue
+						}
+
+						log.L.Info("[command_evaluators] Adding mirror device %v", DX.Name)
+
+						event.TargetDevice = events.GenerateBasicDeviceInfo(DX.ID)
 
 						actions = append(actions, base.ActionStructure{
 							Action:              "BlankDisplay",
@@ -165,7 +174,7 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 							DestinationDevice:   destination,
 							GeneratingEvaluator: "BlankDisplayDefault",
 							DeviceSpecific:      false,
-							EventLog:            []events.EventInfo{eventInfo},
+							EventLog:            []events.Event{event},
 						})
 					}
 				}

@@ -22,7 +22,7 @@ func CheckRoomInitialization() error {
 	log.L.Info("[init] Initializing.")
 
 	//Check if local
-	if len(os.Getenv("LOCAL_ENVIRONMENT")) < 1 {
+	if len(os.Getenv("ROOM_SYSTEM")) < 1 {
 		log.L.Info("[init] Not a local instance of the API.")
 		log.L.Info("[init] Done.")
 		return nil
@@ -36,14 +36,14 @@ func CheckRoomInitialization() error {
 	  or buildling hyphen room. e.g. ITB-1001D
 	*/
 
-	hostname := os.Getenv("PI_HOSTNAME")
+	hostname := os.Getenv("SYSTEM_ID")
 	if len(hostname) == 0 {
-		log.L.Fatal("PI_HOSTNAME is not set.")
+		log.L.Fatal("SYSTEM_ID is not set.")
 	}
 
 	splitValues := strings.Split(hostname, "-")
 	roomID := fmt.Sprintf("%v-%v", splitValues[0], splitValues[1])
-	log.L.Info("[init] Room %v", roomID)
+	log.L.Infof("[init] Room %v", roomID)
 
 	attempts := 0
 
