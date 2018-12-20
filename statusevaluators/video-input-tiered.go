@@ -43,7 +43,7 @@ func (p *InputTieredSwitcher) GenerateCommands(devs []structs.Device) ([]StatusC
 
 	for _, d := range devs {
 		isVS := structs.HasRole(d, "VideoSwitcher")
-		cmd := d.GetCommandByName("STATUS_Input")
+		cmd := d.GetCommandByID("STATUS_Input")
 		if len(cmd.ID) == 0 {
 			if structs.HasRole(d, "MirrorSlave") && d.Ports[0].ID != "mirror" {
 				log.L.Debugf("Adding edge for mirror slave %s", d.ID)
