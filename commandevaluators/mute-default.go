@@ -82,7 +82,7 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 								return actions, len(actions), err
 							}
 
-							cmd := DX.GetCommandByName("MuteDefault")
+							cmd := DX.GetCommandByID("MuteDefault")
 							if len(cmd.ID) < 1 {
 								continue
 							}
@@ -151,7 +151,7 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 							return []base.ActionStructure{}, 0, err
 						}
 
-						cmd := DX.GetCommandByName("MuteDefault")
+						cmd := DX.GetCommandByID("MuteDefault")
 						if len(cmd.ID) < 1 {
 							continue
 						}

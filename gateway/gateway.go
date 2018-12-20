@@ -110,7 +110,7 @@ func processPort(gateway structs.Device, port string) (string, error) {
 	}
 
 	//check for a command that corresponds to the port
-	command := gateway.GetCommandByName(port)
+	command := gateway.GetCommandByID(port)
 
 	if len(command.ID) == 0 {
 		//there was an error

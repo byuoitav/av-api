@@ -54,7 +54,7 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor
 							return []base.ActionStructure{}, 0, err
 						}
 
-						cmd := DX.GetCommandByName("ChangeVideoInputVideoSwitcher")
+						cmd := DX.GetCommandByID("ChangeVideoInputVideoSwitcher")
 						if len(cmd.ID) < 1 {
 							continue
 						}
@@ -104,7 +104,7 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor
 								return actionList, len(actionList), err
 							}
 
-							cmd := DX.GetCommandByName("ChangeVideoInputVideoSwitcher")
+							cmd := DX.GetCommandByID("ChangeVideoInputVideoSwitcher")
 							if len(cmd.ID) < 1 {
 								continue
 							}
@@ -152,7 +152,7 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor
 								return []base.ActionStructure{}, 0, err
 							}
 
-							cmd := DX.GetCommandByName("ChangeVideoInputVideoSwitcher")
+							cmd := DX.GetCommandByID("ChangeVideoInputVideoSwitcher")
 							if len(cmd.ID) < 1 {
 								continue
 							}

@@ -14,8 +14,8 @@ import (
 	"github.com/byuoitav/common/log"
 	"github.com/byuoitav/common/nerr"
 	"github.com/byuoitav/common/status/databasestatus"
+	"github.com/byuoitav/common/v2/auth"
 	"github.com/byuoitav/common/v2/events"
-	"github.com/labstack/echo/middleware"
 )
 
 func main() {
@@ -37,21 +37,16 @@ func main() {
 
 	port := ":8000"
 	router := common.NewRouter()
-	router.Pre(middleware.RemoveTrailingSlash())
-	router.Use(middleware.CORS())
-
-	// Use the `router` routing group to require authentication
-	//	router := router.Group("", echo.WrapMiddleware(authmiddleware.Authenticate))
 
 	router.GET("/mstatus", databasestatus.Handler)
-	router.GET("/status", health.Status)
+	router.GET("/status", databasestatus.Handler)
 
 	// PUT requests
-	router.PUT("/buildings/:building/rooms/:room", handlers.SetRoomState)
+	router.PUT("/buildings/:building/rooms/:room", handlers.SetRoomState, auth.AuthorizeRequest("write-state", "room", handlers.GetRoomResource))
 
 	// room status
-	router.GET("/buildings/:building/rooms/:room", handlers.GetRoomState)
-	router.GET("/buildings/:building/rooms/:room/configuration", handlers.GetRoomByNameAndBuilding)
+	router.GET("/buildings/:building/rooms/:room", handlers.GetRoomState, auth.AuthorizeRequest("read-state", "room", handlers.GetRoomResource))
+	router.GET("/buildings/:building/rooms/:room/configuration", handlers.GetRoomByNameAndBuilding, auth.AuthorizeRequest("read-config", "room", handlers.GetRoomResource))
 
 	router.PUT("/log-level/:level", log.SetLogLevel)
 	router.GET("/log-level", log.GetLogLevel)

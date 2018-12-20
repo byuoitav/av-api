@@ -86,7 +86,7 @@ func (p *InputDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand, 
 				AudioDevice: true,
 			}
 
-			command := switchers[0].GetCommandByName(InputDSPCommand)
+			command := switchers[0].GetCommandByID(InputDSPCommand)
 
 			statusCommand := StatusCommand{
 				Action:            command,
