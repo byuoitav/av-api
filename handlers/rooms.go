@@ -9,9 +9,9 @@ import (
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/helpers"
-	"github.com/byuoitav/av-api/inputgraph"
 	"github.com/byuoitav/av-api/state"
 	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/inputgraph"
 	"github.com/byuoitav/common/log"
 	"github.com/fatih/color"
 	"github.com/labstack/echo"
