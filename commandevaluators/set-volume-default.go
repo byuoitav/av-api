@@ -84,7 +84,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 								return []base.ActionStructure{}, 0, err
 							}
 
-							cmd := DX.GetCommandByName("SetVolume")
+							cmd := DX.GetCommandByID("SetVolume")
 							if len(cmd.ID) < 1 {
 								continue
 							}
@@ -168,7 +168,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 								return actions, len(actions), err
 							}
 
-							cmd := DX.GetCommandByName("SetVolume")
+							cmd := DX.GetCommandByID("SetVolume")
 							if len(cmd.ID) < 1 {
 								continue
 							}

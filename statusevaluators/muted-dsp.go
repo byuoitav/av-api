@@ -135,7 +135,7 @@ func generateMicStatusCommands(mics []structs.Device, evaluator string, command 
 					AudioDevice: true,
 				}
 
-				statusCommand := dsp[0].GetCommandByName(command)
+				statusCommand := dsp[0].GetCommandByID(command)
 
 				parameters := make(map[string]string)
 				parameters["input"] = port.ID
@@ -178,7 +178,7 @@ func generateDSPStatusCommands(dsp []structs.Device, evaluator string, command s
 	parameters := make(map[string]string)
 	parameters["address"] = dsp[0].Address
 
-	statusCommand := dsp[0].GetCommandByName(command)
+	statusCommand := dsp[0].GetCommandByID(command)
 
 	destinationDevice := base.DestinationDevice{
 		Device:      dsp[0],

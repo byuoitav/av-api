@@ -110,7 +110,7 @@ func (p *SetVolumeDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.
 									return actions, len(actions), err
 								}
 
-								cmd := DX.GetCommandByName("SetVolumeDSP")
+								cmd := DX.GetCommandByID("SetVolumeDSP")
 								if len(cmd.ID) < 1 {
 									continue
 								}

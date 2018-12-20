@@ -119,7 +119,7 @@ func (p *MuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.Actio
 								return actions, len(actions), err
 							}
 
-							cmd := DX.GetCommandByName("MuteDSP")
+							cmd := DX.GetCommandByID("MuteDSP")
 							if len(cmd.ID) < 1 {
 								continue
 							}
