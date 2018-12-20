@@ -192,7 +192,7 @@ func generateChangeInputByRole(role, input, room, building, generatingEvaluator,
 			TargetDevice: events.GenerateBasicDeviceInfo(d.ID),
 			AffectedRoom: events.GenerateBasicRoomInfo(roomID),
 			Key:          "input",
-			Value:        inputDevice.ID,
+			Value:        inputDevice.Name,
 			User:         requestor,
 		}
 
