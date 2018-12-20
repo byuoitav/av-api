@@ -94,7 +94,7 @@ func generateStandardStatusCommand(devices []structs.Device, evaluatorName strin
 								return output, count, err
 							}
 
-							cmd := DX.GetCommandByName(commandName)
+							cmd := DX.GetCommandByID(commandName)
 							if len(cmd.ID) < 1 {
 								continue
 							}

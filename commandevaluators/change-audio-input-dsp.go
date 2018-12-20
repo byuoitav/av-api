@@ -101,7 +101,7 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) (
 								return []base.ActionStructure{}, 0, err
 							}
 
-							cmd := DX.GetCommandByName("ChangeAudioInputDSP")
+							cmd := DX.GetCommandByID("ChangeAudioInputDSP")
 							if len(cmd.ID) < 1 {
 								continue
 							}

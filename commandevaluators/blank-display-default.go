@@ -84,7 +84,7 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 								return []base.ActionStructure{}, 0, err
 							}
 
-							cmd := DX.GetCommandByName("BlankDisplay")
+							cmd := DX.GetCommandByID("BlankDisplay")
 
 							if len(cmd.ID) == 0 || cmd.ID != "BlankDisplay" {
 								continue
@@ -158,7 +158,7 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 							return []base.ActionStructure{}, 0, err
 						}
 
-						cmd := DX.GetCommandByName("BlankDisplay")
+						cmd := DX.GetCommandByID("BlankDisplay")
 
 						if cmd.ID != "BlankDisplay" {
 							continue
