@@ -49,7 +49,7 @@ func (s *StandbyDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 			if device.Type.Output {
 				//check to see if it has the standby command
 
-				cmd := device.GetCommandByName("Standby")
+				cmd := device.GetCommandByID("Standby")
 				if len(cmd.ID) < 1 {
 					log.L.Debugf("Device %v doesn't have standby command. Skipping.")
 					continue
@@ -178,7 +178,7 @@ func (s *StandbyDefault) evaluateDevice(device base.Device, destination base.Des
 							return actions, err
 						}
 
-						cmd := DX.GetCommandByName("Standby")
+						cmd := DX.GetCommandByID("Standby")
 						if len(cmd.ID) < 1 {
 							continue
 						}

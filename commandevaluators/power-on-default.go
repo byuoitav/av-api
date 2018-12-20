@@ -194,7 +194,7 @@ func (p *PowerOnDefault) evaluateDevice(device base.Device,
 							return actions, err
 						}
 
-						cmd := DX.GetCommandByName("PowerOn")
+						cmd := DX.GetCommandByID("PowerOn")
 						if len(cmd.ID) < 1 {
 							continue
 						}

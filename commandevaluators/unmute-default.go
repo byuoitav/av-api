@@ -82,7 +82,7 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 								return actions, len(actions), err
 							}
 
-							cmd := DX.GetCommandByName("UnMute")
+							cmd := DX.GetCommandByID("UnMute")
 							if len(cmd.ID) < 1 {
 								continue
 							}
