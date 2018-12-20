@@ -1,11 +1,13 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/helpers"
@@ -54,38 +56,43 @@ func GetRoomByNameAndBuilding(context echo.Context) error {
 // SetRoomState to update the state of the room
 func SetRoomState(context echo.Context) error {
 	building, room := context.Param("building"), context.Param("room")
-
+  
 	log.L.Infof("%s", color.HiGreenString("[handlers] putting room changes..."))
 
 	var roomInQuestion base.PublicRoom
-	err := context.Bind(&roomInQuestion)
+	err := econtext.Bind(&roomInQuestion)
 	if err != nil {
-		return context.JSON(http.StatusBadRequest, helpers.ReturnError(err))
+		return econtext.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 	}
 
 	roomInQuestion.Room = room
 	roomInQuestion.Building = building
 	var report base.PublicRoom
 
-	hn, err := net.LookupAddr(context.RealIP())
-	color.Set(color.FgYellow, color.Bold)
-	if err != nil {
-		log.L.Debugf("REQUESTOR: %s", context.RealIP())
-		color.Unset()
-		report, err = state.SetRoomState(roomInQuestion, context.RealIP())
+	// build timeout context for reverse DNS lookup
+	const timeout = 50 * time.Millisecond
+	ctx, cancel := context.WithTimeout(context.TODO(), timeout)
+	defer cancel()
+
+	// lookup DNS address
+	var r net.Resolver
+	hn, err := r.LookupAddr(ctx, econtext.RealIP())
+
+	if err != nil || len(hn) == 0 {
+		log.L.Debugf("REQUESTOR: %s", econtext.RealIP())
+		report, err = state.SetRoomState(roomInQuestion, econtext.RealIP())
 	} else if strings.Contains(hn[0], "localhost") {
 		log.L.Debugf("REQUESTOR: %s", os.Getenv("SYSTEM_ID"))
 		color.Unset()
 		report, err = state.SetRoomState(roomInQuestion, os.Getenv("SYSTEM_ID"))
 	} else {
 		log.L.Debugf("REQUESTOR: %s", hn[0])
-		color.Unset()
 		report, err = state.SetRoomState(roomInQuestion, hn[0])
 	}
 
 	if err != nil {
 		log.L.Errorf("Error: %s", err.Error())
-		return context.JSON(http.StatusInternalServerError, helpers.ReturnError(err))
+		return econtext.JSON(http.StatusInternalServerError, helpers.ReturnError(err))
 	}
 
 	//hasError := helpers.CheckReport(report)
@@ -96,5 +103,5 @@ func SetRoomState(context echo.Context) error {
 	//	return context.JSON(http.StatusInternalServerError, report)
 	//}
 
-	return context.JSON(http.StatusOK, report)
+	return econtext.JSON(http.StatusOK, report)
 }
