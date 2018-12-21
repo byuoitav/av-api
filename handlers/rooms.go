@@ -1,11 +1,13 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/helpers"
@@ -15,6 +17,10 @@ import (
 	"github.com/byuoitav/common/log"
 	"github.com/fatih/color"
 	"github.com/labstack/echo"
+)
+
+const (
+	timeout = 50 * time.Millisecond
 )
 
 // GetRoomResource returns the resourceID for a request
@@ -52,27 +58,32 @@ func GetRoomByNameAndBuilding(context echo.Context) error {
 }
 
 // SetRoomState to update the state of the room
-func SetRoomState(context echo.Context) error {
-	building, room := context.Param("building"), context.Param("room")
+func SetRoomState(ctx echo.Context) error {
+	building, room := ctx.Param("building"), ctx.Param("room")
 
 	log.L.Infof("%s", color.HiGreenString("[handlers] putting room changes..."))
 
 	var roomInQuestion base.PublicRoom
-	err := context.Bind(&roomInQuestion)
+	err := ctx.Bind(&roomInQuestion)
 	if err != nil {
-		return context.JSON(http.StatusBadRequest, helpers.ReturnError(err))
+		return ctx.JSON(http.StatusBadRequest, helpers.ReturnError(err))
 	}
 
 	roomInQuestion.Room = room
 	roomInQuestion.Building = building
 	var report base.PublicRoom
 
-	hn, err := net.LookupAddr(context.RealIP())
+	gctx, cancel := context.WithTimeout(context.TODO(), timeout)
+	defer cancel()
+
+	r := net.Resolver{}
+	hn, err := r.LookupAddr(gctx, ctx.RealIP())
+
 	color.Set(color.FgYellow, color.Bold)
-	if err != nil {
-		log.L.Debugf("REQUESTOR: %s", context.RealIP())
+	if err != nil || len(hn) == 0 {
+		log.L.Debugf("REQUESTOR: %s", ctx.RealIP())
 		color.Unset()
-		report, err = state.SetRoomState(roomInQuestion, context.RealIP())
+		report, err = state.SetRoomState(roomInQuestion, ctx.RealIP())
 	} else if strings.Contains(hn[0], "localhost") {
 		log.L.Debugf("REQUESTOR: %s", os.Getenv("SYSTEM_ID"))
 		color.Unset()
@@ -85,16 +96,10 @@ func SetRoomState(context echo.Context) error {
 
 	if err != nil {
 		log.L.Errorf("Error: %s", err.Error())
-		return context.JSON(http.StatusInternalServerError, helpers.ReturnError(err))
+		return ctx.JSON(http.StatusInternalServerError, helpers.ReturnError(err))
 	}
-
-	//hasError := helpers.CheckReport(report)
 
 	log.L.Info("Done.\n")
 
-	//if hasError {
-	//	return context.JSON(http.StatusInternalServerError, report)
-	//}
-
-	return context.JSON(http.StatusOK, report)
+	return ctx.JSON(http.StatusOK, report)
 }
