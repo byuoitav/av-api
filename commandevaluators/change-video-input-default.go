@@ -127,7 +127,7 @@ func generateChangeInputByDevice(dev base.Device, room, building, generatingEval
 		TargetDevice: events.GenerateBasicDeviceInfo(output.ID),
 		AffectedRoom: events.GenerateBasicRoomInfo(roomID),
 		Key:          "input",
-		Value:        input.ID,
+		Value:        input.Name,
 		User:         requestor,
 	}
 
