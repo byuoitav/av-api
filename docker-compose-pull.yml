@@ -85,6 +85,8 @@ services:
     environment:
       - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
       - BYPASS_AUTH=true
+      - VIA_USERNAME=$VIA_USERNAME
+      - VIA_PASSWORD=$VIA_PASSWORD
     network_mode: "host"
     restart: always
     tty: true
@@ -160,16 +162,17 @@ services:
       - SYSTEM_ID=$SYSTEM_ID
       - HUB_ADDRESS=$HUB_ADDRESS
     network_mode: "host"
-    #just-add-power-hdip-ms:
-    #    image: byuoitav/just-add-power-hdip-ms:${DOCKER_HUB_TAG}
-    #    ports:
-    #        - "8022:8022"
-    #    environment:
-    #        - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
-    #        - PI_HOSTNAME=$SYSTEM_ID
-    #        - SYSTEM_ID=$SYSTEM_ID
-    #    network_mode: "host"
-    #    tty: true
+  just-add-power-hdip-ms:
+    image: byuoitav/just-add-power-hdip-ms:${DOCKER_HUB_TAG}
+    ports:
+      - "8022:8022"
+    environment:
+      - BYPASS_AUTH=true
+      - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+      - PI_HOSTNAME=$SYSTEM_ID
+      - SYSTEM_ID=$SYSTEM_ID
+    network_mode: "host"
+    tty: true
     #    couch-db:
     #        image: treehouses/rpi-couchdb:2.1.1
     #        ports:
