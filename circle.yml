@@ -1,15 +1,14 @@
 version: 2
 jobs:
-    build:
-        docker:
-            - image: byuoitav/build-env:master
+  build:
+    docker:
+      - image: byuoitav/build-env:master
 
-        working_directory: /go/src/github.com/byuoitav/av-api
+    working_directory: /go/src/github.com/byuoitav/av-api
 
-        steps:
-            - checkout
-            - setup_remote_docker
-            - run: make deps
-            - run: make build
-            - run: make docker
-            - run: ./deploy-aws.sh $CIRCLE_PROJECT_REPONAME $CIRCLE_SHA1 $CIRCLE_BRANCH
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run: make deps
+      - run: make build
+      - run: make docker
