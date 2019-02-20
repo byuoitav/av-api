@@ -14,6 +14,7 @@ services:
       - DB_ADDRESS=$DB_ADDRESS
       - DB_USERNAME=$DB_USERNAME
       - DB_PASSWORD=$DB_PASSWORD
+      - STOP_REPLICATION="true"
     network_mode: "host"
     restart: always
     tty: true
@@ -26,6 +27,7 @@ services:
       - BYPASS_AUTH=true
       - PJLINK_PORT=$PJLINK_PORT
       - PJLINK_PASS=$PJLINK_PASS
+      - STOP_REPLICATION="true"
     network_mode: "host"
     restart: always
     tty: true
@@ -41,6 +43,7 @@ services:
       - CONFIGURATION_DATABASE_HOST=$CONFIGURATION_DATABASE_HOST
       - CONFIGURATION_DATABASE_PORT=$CONFIGURATION_DATABASE_PORT
       - CONFIGURATION_DATABASE_NAME=$CONFIGURATION_DATABASE_NAME
+      - STOP_REPLICATION="true"
     network_mode: "host"
     restart: always
     tty: true
@@ -55,6 +58,7 @@ services:
       - DB_ADDRESS=$DB_ADDRESS
       - DB_USERNAME=$DB_USERNAME
       - DB_PASSWORD=$DB_PASSWORD
+      - STOP_REPLICATION="true"
     network_mode: "host"
     restart: always
     tty: true
@@ -65,6 +69,7 @@ services:
     environment:
       - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
       - BYPASS_AUTH=true
+      - STOP_REPLICATION="true"
     network_mode: "host"
     restart: always
     tty: true
@@ -75,6 +80,7 @@ services:
     environment:
       - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
       - BYPASS_AUTH=true
+      - STOP_REPLICATION="true"
     network_mode: "host"
     restart: always
     tty: true
@@ -87,6 +93,7 @@ services:
       - BYPASS_AUTH=true
       - VIA_USERNAME=$VIA_USERNAME
       - VIA_PASSWORD=$VIA_PASSWORD
+      - STOP_REPLICATION="true"
     network_mode: "host"
     restart: always
     tty: true
@@ -100,6 +107,7 @@ services:
       - DB_ADDRESS=$DB_ADDRESS
       - DB_USERNAME=$DB_USERNAME
       - DB_PASSWORD=$DB_PASSWORD
+      - STOP_REPLICATION="true"
     network_mode: "host"
     restart: always
     tty: true
@@ -117,6 +125,7 @@ services:
       - DB_ADDRESS=$DB_ADDRESS
       - DB_USERNAME=$DB_USERNAME
       - DB_PASSWORD=$DB_PASSWORD
+      - STOP_REPLICATION="true"
     network_mode: "host"
     restart: always
     tty: true
@@ -134,6 +143,7 @@ services:
       - DB_ADDRESS=$DB_ADDRESS
       - DB_USERNAME=$DB_USERNAME
       - DB_PASSWORD=$DB_PASSWORD
+      - STOP_REPLICATION="true"
     network_mode: "host"
     tty: true
   event-translator-microservice:
@@ -145,6 +155,7 @@ services:
       - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
       - ELASTIC_API_EVENTS=$ELASTIC_API_EVENTS
       - HUB_ADDRESS=$HUB_ADDRESS
+      - STOP_REPLICATION="true"
     network_mode: "host"
     restart: always
     tty: true
@@ -161,6 +172,7 @@ services:
       - PI_HOSTNAME=$SYSTEM_ID
       - SYSTEM_ID=$SYSTEM_ID
       - HUB_ADDRESS=$HUB_ADDRESS
+      - STOP_REPLICATION="true"
     network_mode: "host"
   just-add-power-hdip-ms:
     image: byuoitav/just-add-power-hdip-ms:${DOCKER_HUB_TAG}
@@ -170,6 +182,7 @@ services:
       - BYPASS_AUTH=true
       - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
       - PI_HOSTNAME=$SYSTEM_ID
+      - STOP_REPLICATION="true"
       - SYSTEM_ID=$SYSTEM_ID
     network_mode: "host"
     tty: true
