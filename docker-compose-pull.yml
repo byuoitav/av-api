@@ -186,3 +186,14 @@ services:
       - SYSTEM_ID=$SYSTEM_ID
     network_mode: "host"
     tty: true
+  atlona-switcher-ms:
+    image: byuoitav/atlona-switcher-microservice:${DOCKER_HUB_TAG}
+    ports:
+      - "8022:8022"
+    environment:
+      - BYPASS_AUTH=true
+      - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+      - SYSTEM_ID=$SYSTEM_ID
+      - PI_HOSTNAME=$SYSTEM_ID
+    network_mode: "host"
+    tty: true
