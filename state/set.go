@@ -139,19 +139,42 @@ func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusRespon
 		return
 	}
 
-	has, cmd := ce.CheckCommands(action.Device.Type.Commands, action.Action)
-	if !has {
-		errorStr := fmt.Sprintf("[state] Error retrieving the command %s for device %s.", action.Action, action.Device.ID)
-		log.L.Error(errorStr)
-		PublishError(errorStr, action, requestor)
+	/*
+		has, cmd := ce.CheckCommands(action.Device.Type.Commands, action.Action)
+		if !has {
+			errorStr := fmt.Sprintf("[state] Error retrieving the command %s for device %s.", action.Action, action.Device.ID)
+			log.L.Error(errorStr)
+			PublishError(errorStr, action, requestor)
+			control.Done()
+			return
+		}
+
+		endpoint := ReplaceIPAddressEndpoint(cmd.Endpoint.Path, action.Device.Address)
+		endpoint, err := ReplaceParameters(endpoint, action.Parameters)
+		if err != nil {
+			msg := fmt.Sprintf("Error building endpoint for command %s against device %s: %s", action.Action, action.Device.ID, err.Error())
+			log.L.Errorf("%s", color.HiRedString("[state] %s", msg))
+			PublishError(msg, action, requestor)
+			control.Done()
+			return
+		}
+	*/
+
+	url, err := action.Device.BuildCommandURL(action.Action)
+	if err != nil {
+		msg := fmt.Sprintf("unable to execute action '%s' on %s: %s", action.Action, action.Device.ID, err.Error())
+		log.L.Errorf("%s", color.HiRedString("[state] %s", msg))
+		PublishError(msg, action, requestor)
 		control.Done()
 		return
 	}
 
-	endpoint := ReplaceIPAddressEndpoint(cmd.Endpoint.Path, action.Device.Address)
-	endpoint, err := ReplaceParameters(endpoint, action.Parameters)
-	if err != nil {
-		msg := fmt.Sprintf("Error building endpoint for command %s against device %s: %s", action.Action, action.Device.ID, err.Error())
+	url = strings.Replace(url, ":address", action.Device.Address, -1)
+
+	var gerr error
+	url, gerr = ReplaceParameters(url, action.Parameters)
+	if gerr != nil {
+		msg := fmt.Sprintf("unable to execute action '%s' on %s: %s", action.Action, action.Device.ID, gerr.Error())
 		log.L.Errorf("%s", color.HiRedString("[state] %s", msg))
 		PublishError(msg, action, requestor)
 		control.Done()
@@ -159,7 +182,7 @@ func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusRespon
 	}
 
 	//Execute the command.
-	status := ExecuteCommand(action, cmd, endpoint, requestor)
+	status := ExecuteCommand(action, url, requestor)
 
 	log.L.Info("[state] Writing response to channel...")
 	responses <- status

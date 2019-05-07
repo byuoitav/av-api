@@ -197,3 +197,13 @@ services:
       - PI_HOSTNAME=$SYSTEM_ID
     network_mode: "host"
     tty: true
+  qsc-ms:
+    image: byuoitav/qsc-microservice:${DOCKER_HUB_TAG}
+    ports:
+      - "8016:8016"
+    environment:
+      - BYPASS_AUTH=true
+      - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
+      - SYSTEM_ID=$SYSTEM_ID
+    network_mode: "host"
+    tty: true
