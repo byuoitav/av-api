@@ -20,6 +20,10 @@ func PublishHealth(e events.Event) {
 
 // SendEvent sends a pre-made Event to the hub.
 func SendEvent(e events.Event) error {
+	if Messenger == nil {
+		return nil
+	}
+
 	var err error
 
 	if len(e.Key) == 0 || len(e.Value) == 0 {
