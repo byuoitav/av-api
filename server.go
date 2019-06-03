@@ -23,8 +23,7 @@ func main() {
 
 	base.Messenger, nerr = messenger.BuildMessenger(os.Getenv("HUB_ADDRESS"), hub.Messenger, 1000)
 	if nerr != nil {
-		log.L.Errorf("there was a problem building the messenger : %s", nerr.String())
-		return
+		log.L.Errorf("unable to connect to the hub: %s", nerr.String())
 	}
 
 	go func() {
