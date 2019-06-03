@@ -17,7 +17,7 @@ import (
 )
 
 /*
-	With tiered switchers we basically have to build a connection 'graph' and then traverse that graph to get all of the command necessary to fulfil a path from source to destination.
+	With tiered switchers we basically have to build a connection 'graph' and then traverse that graph to get all of the commands necessary to fulfil a path from source to destination.
 */
 
 //ChangeVideoInputTieredSwitchers implements the CommandEvaluator struct.
@@ -66,7 +66,7 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 		return []base.ActionStructure{}, 0, err
 	}
 
-	graph, err := inputgraph.BuildGraph(devices)
+	graph, err := inputgraph.BuildGraph(devices, "video")
 	if err != nil {
 		return []base.ActionStructure{}, 0, err
 	}
