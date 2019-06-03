@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -13,10 +14,8 @@ import (
 
 	"github.com/byuoitav/authmiddleware/bearertoken"
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/av-api/gateway"
 	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/common/log"
-	"github.com/byuoitav/common/structs"
 	"github.com/byuoitav/common/v2/events"
 	"github.com/fatih/color"
 )
@@ -46,20 +45,20 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 		}
 		statusResponseMap := make(map[string]interface{})
 
-		//build url
-		endpoint, err := ReplaceParameters(command.Action.Endpoint.Path, command.Parameters)
-		if err != nil {
-			msg := fmt.Sprintf("unable to replace parameters for %s: %s", command.Action.ID, err.Error())
+		// build url
+		url, lerr := command.Device.BuildCommandURL(command.Action.ID)
+		if lerr != nil {
+			msg := fmt.Sprintf("unable to build command '%s' for %s: %s", command.Action.ID, command.Device.ID, lerr.Error())
 			log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
 			base.PublishError(msg, events.Error, command.Device.ID)
 			continue
 		}
 
-		address := fmt.Sprintf("%s%s", command.Action.Microservice.Address, endpoint)
-
-		url, err := gateway.SetStatusGateway(address, command.Device)
-		if err != nil {
-			msg := fmt.Sprintf("unable to set gateway for %s: %s", command.Action.ID, err.Error())
+		// replace params
+		var gerr error
+		url, gerr = ReplaceParameters(url, command.Parameters)
+		if gerr != nil {
+			msg := fmt.Sprintf("unable to replace parameters for command '%s' on %s: %s", command.Action.ID, command.Device.ID, gerr)
 			log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
 			base.PublishError(msg, events.Error, command.Device.ID)
 			continue
@@ -68,9 +67,9 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 		log.L.Infof("%s", color.HiBlueString("[state] sending request to %s", url))
 		timeout := time.Duration(TIMEOUT * time.Second)
 		client := http.Client{Timeout: timeout}
-		response, err := client.Get(url)
-		if err != nil {
-			msg := fmt.Sprintf("unable to complete request to %s for device %s: %s", url, command.Device.Name, err.Error())
+		response, gerr := client.Get(url)
+		if gerr != nil {
+			msg := fmt.Sprintf("unable to complete request to %s for device %s: %s", url, command.Device.Name, gerr.Error())
 			log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
 			output.ErrorMessage = &msg //do we want to do this? why not just publish the error here?
 			outputs = append(outputs, output)
@@ -79,9 +78,9 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 
 		defer response.Body.Close()
 
-		body, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			msg := fmt.Sprintf("unable to read response from %s for device %s: %s", url, command.Device.Name, err.Error())
+		body, gerr := ioutil.ReadAll(response.Body)
+		if gerr != nil {
+			msg := fmt.Sprintf("unable to read response from %s for device %s: %s", url, command.Device.Name, gerr.Error())
 			log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
 			output.ErrorMessage = &msg
 			outputs = append(outputs, output)
@@ -99,8 +98,8 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 		log.L.Infof("[state] microservice returned: %s for action %s against device %s", string(body), command.Action.ID, command.Device.ID, string(body))
 
 		var status map[string]interface{}
-		err = json.Unmarshal(body, &status)
-		if err != nil {
+		gerr = json.Unmarshal(body, &status)
+		if gerr != nil {
 			msg := fmt.Sprintf("failed to unmarshal response: %s, microservice returned: %s", command.Device.Name, string(body))
 			output.ErrorMessage = &msg
 			outputs = append(outputs, output)
@@ -212,16 +211,9 @@ func processDisplay(device se.Status) (base.Display, error) {
 //returns the state the microservice reports or nothing if the microservice doesn't respond
 //publishes a state event or an error
 //@pre the parameters have been filled, e.g. the endpoint does not contain ":"
-func ExecuteCommand(action base.ActionStructure, command structs.Command, endpoint, requestor string) se.StatusResponse {
+func ExecuteCommand(action base.ActionStructure, url, requestor string) se.StatusResponse {
 	client := &http.Client{
 		Timeout: TIMEOUT * time.Second,
-	}
-	//set the gateway
-	url, err := gateway.SetGateway(command.Microservice.Address+endpoint, action.Device)
-	if err != nil {
-		log.L.Warnf("Couldn't find gated device: %v", err.Error())
-		msg := fmt.Sprintf("unable to reach gated device: %s: %s", action.Device.Name, err.Error())
-		return se.StatusResponse{ErrorMessage: &msg}
 	}
 
 	log.L.Infof("%s", color.HiBlueString("[state] sending request to %s...", url))
@@ -311,11 +303,17 @@ func ReplaceIPAddressEndpoint(path string, address string) string {
 //ReplaceParameters replaces parameters in the command endpoint
 //@pre the endpoint's IP parameter has already been replaced
 //@post the endpoint does not contain ':'
-func ReplaceParameters(endpoint string, parameters map[string]string) (string, error) {
-
+func ReplaceParameters(addr string, parameters map[string]string) (string, error) {
 	if parameters == nil { //should I keep this check?
-		return endpoint, nil
+		return addr, nil
 	}
+
+	u, err := url.Parse(addr)
+	if err != nil {
+		return addr, err
+	}
+
+	endpoint := u.Path
 
 	for k, v := range parameters {
 		toReplace := ":" + k
@@ -331,14 +329,14 @@ func ReplaceParameters(endpoint string, parameters map[string]string) (string, e
 	index := strings.IndexRune(endpoint, ':')
 
 	if index >= 0 {
-
 		if strings.Contains(endpoint[index+1:], ":") {
 			errorString := fmt.Sprintf("not enough parameters provided for command: %s", endpoint) //TODO change this setup?
 			return "", errors.New(errorString)
 		}
 	}
 
-	return endpoint, nil
+	u.Path = endpoint
+	return u.String(), nil
 }
 
 //PublishError creates an Event based on the error message and ActionStructure information, and then sends it to the event messaging system.
