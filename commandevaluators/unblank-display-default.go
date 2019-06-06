@@ -79,7 +79,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 								return actions, len(actions), err
 							}
 
-							cmd := DX.GetCommandByID("UnblankDisplay")
+							cmd := DX.GetCommandByID("UnBlankDisplay")
 							if len(cmd.ID) < 1 {
 								continue
 							}
@@ -150,7 +150,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 							return actions, len(actions), err
 						}
 
-						cmd := DX.GetCommandByID("UnblankDisplay")
+						cmd := DX.GetCommandByID("UnBlankDisplay")
 						if len(cmd.ID) < 1 {
 							continue
 						}
