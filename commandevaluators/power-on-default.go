@@ -210,7 +210,7 @@ func (p *PowerOnDefault) evaluateDevice(device base.Device,
 							Device:              DX,
 							DestinationDevice:   destination,
 							GeneratingEvaluator: "PowerOnDefault",
-							DeviceSpecific:      false,
+							DeviceSpecific:      true,
 							EventLog:            []events.Event{eventInfo},
 						})
 					}

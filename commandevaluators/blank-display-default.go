@@ -96,9 +96,9 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 
 							actions = append(actions, base.ActionStructure{
 								Action:              "BlankDisplay",
+								GeneratingEvaluator: "BlankDisplayDefault",
 								Device:              DX,
 								DestinationDevice:   destination,
-								GeneratingEvaluator: "BlankDisplayDefault",
 								DeviceSpecific:      false,
 								EventLog:            []events.Event{event},
 							})
@@ -170,10 +170,10 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 
 						actions = append(actions, base.ActionStructure{
 							Action:              "BlankDisplay",
+							GeneratingEvaluator: "BlankDisplayDefault",
 							Device:              DX,
 							DestinationDevice:   destination,
-							GeneratingEvaluator: "BlankDisplayDefault",
-							DeviceSpecific:      false,
+							DeviceSpecific:      true,
 							EventLog:            []events.Event{event},
 						})
 					}

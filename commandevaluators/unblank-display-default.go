@@ -163,10 +163,10 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 
 						actions = append(actions, base.ActionStructure{
 							Action:              "UnBlankDisplay",
+							GeneratingEvaluator: "UnBlankDisplayDefault",
 							Device:              DX,
 							DestinationDevice:   destination,
-							GeneratingEvaluator: "UnBlankDisplayDefault",
-							DeviceSpecific:      false,
+							DeviceSpecific:      true,
 							EventLog:            []events.Event{eventInfo},
 						})
 					}

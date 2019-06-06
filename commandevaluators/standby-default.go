@@ -194,7 +194,7 @@ func (s *StandbyDefault) evaluateDevice(device base.Device, destination base.Des
 							Device:              DX,
 							DestinationDevice:   destination,
 							GeneratingEvaluator: "StandbyDefault",
-							DeviceSpecific:      false,
+							DeviceSpecific:      true,
 							EventLog:            []events.Event{eventInfo},
 						})
 					}
