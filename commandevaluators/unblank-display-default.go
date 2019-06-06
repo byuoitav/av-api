@@ -162,7 +162,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 						eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(DX.ID)
 
 						actions = append(actions, base.ActionStructure{
-							Action:              "UnBlankDisplay",
+							Action:              "UnblankDisplay",
 							GeneratingEvaluator: "UnBlankDisplayDefault",
 							Device:              DX,
 							DestinationDevice:   destination,
