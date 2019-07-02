@@ -99,10 +99,12 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 			//Check for a stream url
 			inputDeviceString := d.Input
 			streamDelimiterIndex := strings.Index(inputDeviceString, "|")
+			streamParams := make(map[string]string)
 			if streamDelimiterIndex != -1 {
 				streamChars := []rune(inputDeviceString)
 				streamURL := url.QueryEscape(string(streamChars[(streamDelimiterIndex + 1):len(inputDeviceString)]))
 				inputDeviceString = string(streamChars[0:streamDelimiterIndex])
+				streamParams["streamURL"] = streamURL
 				log.L.Infof("Device %s to display stream %s", inputDeviceString, streamURL)
 			}
 
@@ -120,6 +122,19 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 
 			log.L.Infof("%v ChangeInput actions generated to change input on %s to %s", len(tmpActions), outputID, inputID)
 			actions = append(actions, tmpActions...)
+
+			if streamDelimiterIndex != -1 {
+				actions = append(actions, base.ActionStructure{
+					Action:              "ChangeStream",
+					GeneratingEvaluator: generatingEvaluator,
+					Device:              output,
+					DestinationDevice:   destination,
+					Parameters:          streamParams,
+					DeviceSpecific:      true,
+					Overridden:          false,
+					EventLog:            []events.Event{eventInfo},
+				})
+			}
 
 			////////////////////////
 			///// MIRROR STUFF /////
