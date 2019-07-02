@@ -244,8 +244,10 @@ func (c *ChangeVideoInputTieredSwitchers) Validate(action base.ActionStructure) 
 		ok = true
 	}
 
-	// returns and error if the ChangeInput command doesn't exist or if the command isn't ChangeInput
-	if !ok || action.Action != "ChangeInput" {
+	actionCheck := action.Action == "ChangeInput" || action.Action == "ChangeStream"
+
+	// returns an error if the ChangeInput command doesn't exist or if the command isn't ChangeInput or ChangeStream
+	if !ok || !actionCheck {
 		msg := fmt.Sprintf("[command_evaluators] ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
 		log.L.Error(msg)
 		return errors.New(msg)
