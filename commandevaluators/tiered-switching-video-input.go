@@ -238,6 +238,11 @@ func (c *ChangeVideoInputTieredSwitchers) Validate(action base.ActionStructure) 
 		ok = true
 	}
 
+	if structs.HasRole(action.Device, "STB-Stream-Player") {
+		log.L.Info("Hall pass given to the stream player device")
+		ok = true
+	}
+
 	// returns and error if the ChangeInput command doesn't exist or if the command isn't ChangeInput
 	if !ok || action.Action != "ChangeInput" {
 		msg := fmt.Sprintf("[command_evaluators] ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
