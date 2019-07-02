@@ -238,7 +238,7 @@ func (c *ChangeVideoInputTieredSwitchers) Validate(action base.ActionStructure) 
 		ok = true
 	}
 
-	if structs.HasRole(action.Device, "STB-Stream-Player") {
+	if CheckCommands(action.Device.Type.Commands, "ChangeStream") {
 		log.L.Info("Hall pass given to the stream player device")
 		ok = true
 	}
