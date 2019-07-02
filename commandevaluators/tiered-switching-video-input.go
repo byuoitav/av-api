@@ -238,7 +238,8 @@ func (c *ChangeVideoInputTieredSwitchers) Validate(action base.ActionStructure) 
 		ok = true
 	}
 
-	if CheckCommands(action.Device.Type.Commands, "ChangeStream") {
+	streamCheck, _ := CheckCommands(action.Device.Type.Commands, "ChangeStream")
+	if streamCheck {
 		log.L.Info("Hall pass given to the stream player device")
 		ok = true
 	}
