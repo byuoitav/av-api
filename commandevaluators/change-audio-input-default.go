@@ -37,13 +37,13 @@ func (p *ChangeAudioInputDefault) Evaluate(room base.PublicRoom, requestor strin
 			continue
 		}
 
-		var action base.ActionStructure
+		var action []base.ActionStructure
 
 		action, err = generateChangeInputByDevice(d.Device, room.Room, room.Building, "ChangeAudioInputDefault", requestor)
 		if err != nil {
 			return
 		}
-		actions = append(actions, action)
+		actions = append(actions, action...)
 	}
 	count = len(actions)
 	return

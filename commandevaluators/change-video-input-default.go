@@ -2,6 +2,7 @@ package commandevaluators
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/byuoitav/common/log"
@@ -45,13 +46,13 @@ func (p *ChangeVideoInputDefault) Evaluate(room base.PublicRoom, requestor strin
 			continue
 		}
 
-		var action base.ActionStructure
+		var action []base.ActionStructure
 
 		action, err = generateChangeInputByDevice(d.Device, room.Room, room.Building, "ChangeVideoInputDefault", requestor)
 		if err != nil {
 			return
 		}
-		actions = append(actions, action)
+		actions = append(actions, action...)
 	}
 
 	count = len(actions)
@@ -68,7 +69,7 @@ func (p *ChangeVideoInputDefault) GetIncompatibleCommands() (incompatableActions
 	return
 }
 
-func generateChangeInputByDevice(dev base.Device, room, building, generatingEvaluator, requestor string) (action base.ActionStructure, err error) {
+func generateChangeInputByDevice(dev base.Device, room, building, generatingEvaluator, requestor string) (actions []base.ActionStructure, err error) {
 	var output structs.Device
 	var input structs.Device
 
@@ -78,11 +79,23 @@ func generateChangeInputByDevice(dev base.Device, room, building, generatingEval
 		return
 	}
 
+	inputDeviceString := dev.Input
+
+	//Check for stream delimiter
+	streamParams := make(map[string]string)
+	streamDelimiterIndex := strings.Index(inputDeviceString, "|")
+	if streamDelimiterIndex != -1 {
+		streamChars := []rune(inputDeviceString)
+		streamURL := url.QueryEscape(string(streamChars[(streamDelimiterIndex + 1):len(inputDeviceString)]))
+		inputDeviceString = string(streamChars[0:streamDelimiterIndex])
+		streamParams["streamURL"] = streamURL
+	}
+
 	// get the input/output devices
 	for _, device := range devices {
 		if strings.EqualFold(device.Name, dev.Name) {
 			output = device
-		} else if strings.EqualFold(device.Name, dev.Input) {
+		} else if strings.EqualFold(device.Name, inputDeviceString) {
 			input = device
 		}
 	}
@@ -133,7 +146,7 @@ func generateChangeInputByDevice(dev base.Device, room, building, generatingEval
 
 	eventInfo.AddToTags(events.CoreState, events.UserGenerated)
 
-	action = base.ActionStructure{
+	action := base.ActionStructure{
 		Action:              "ChangeInput",
 		GeneratingEvaluator: generatingEvaluator,
 		Device:              output,
@@ -142,6 +155,21 @@ func generateChangeInputByDevice(dev base.Device, room, building, generatingEval
 		DeviceSpecific:      true,
 		Overridden:          false,
 		EventLog:            []events.Event{eventInfo},
+	}
+
+	actions = append(actions, action)
+
+	if streamDelimiterIndex != -1 {
+		actions = append(actions, base.ActionStructure{
+			Action:              "ChangeStream",
+			GeneratingEvaluator: generatingEvaluator,
+			Device:              output,
+			DestinationDevice:   destination,
+			Parameters:          streamParams,
+			DeviceSpecific:      true,
+			Overridden:          false,
+			EventLog:            []events.Event{eventInfo},
+		})
 	}
 
 	return

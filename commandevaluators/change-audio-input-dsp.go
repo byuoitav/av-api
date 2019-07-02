@@ -170,7 +170,7 @@ func (p *ChangeAudioInputDSP) Evaluate(room base.PublicRoom, requestor string) (
 						log.L.Error(msg)
 						return []base.ActionStructure{}, 0, errors.New(msg)
 					}
-					actions = append(actions, mediaAction)
+					actions = append(actions, mediaAction...)
 				}
 			}
 		}

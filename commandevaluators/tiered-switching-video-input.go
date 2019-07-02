@@ -3,6 +3,7 @@ package commandevaluators
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/byuoitav/common/inputgraph"
@@ -94,7 +95,18 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 		if len(d.Input) > 0 {
 			// get id's of from names of devices
 			outputID := getDeviceIDFromShortname(d.Name, devices)
-			inputID := getDeviceIDFromShortname(d.Input, devices)
+
+			//Check for a stream url
+			inputDeviceString := d.Input
+			streamDelimiterIndex := strings.Index(inputDeviceString, "|")
+			if streamDelimiterIndex != -1 {
+				streamChars := []rune(inputDeviceString)
+				streamURL := url.QueryEscape(string(streamChars[(streamDelimiterIndex + 1):len(inputDeviceString)]))
+				inputDeviceString = string(streamChars[0:streamDelimiterIndex])
+				log.L.Infof("Device %s to display stream %s", inputDeviceString, streamURL)
+			}
+
+			inputID := getDeviceIDFromShortname(inputDeviceString, devices)
 
 			// validate those devices existed
 			if len(inputID) == 0 || len(outputID) == 0 {
