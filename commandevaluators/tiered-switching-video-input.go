@@ -102,9 +102,9 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 			streamParams := make(map[string]string)
 			if streamDelimiterIndex != -1 {
 				streamChars := []rune(inputDeviceString)
-				streamURL := url.QueryEscape(string(streamChars[(streamDelimiterIndex + 1):len(inputDeviceString)]))
+				streamURL := string(streamChars[(streamDelimiterIndex + 1):len(inputDeviceString)])
 				inputDeviceString = string(streamChars[0:streamDelimiterIndex])
-				streamParams["streamURL"] = streamURL
+				streamParams["streamURL"] = url.QueryEscape(streamURL)
 				log.L.Infof("Device %s to display stream %s", inputDeviceString, streamURL)
 			}
 
@@ -124,11 +124,30 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 			actions = append(actions, tmpActions...)
 
 			if streamDelimiterIndex != -1 {
+				streamPlayer, _ := db.GetDB().GetDevice(inputID)
+
+				eventInfo := events.Event{
+					Key:   "input",
+					Value: streamPlayer.Name,
+					User:  requestor,
+				}
+
+				eventInfo.AddToTags(events.CoreState, events.UserGenerated)
+
+				eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(fmt.Sprintf("%s-%s", room.Building, room.Room))
+
+				eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(streamPlayer.ID)
+
+				streamDest := base.DestinationDevice{
+					Device: streamPlayer,
+				}
+
+				log.L.Infof("Generating ChangeStream command for device %s", inputDeviceString)
 				actions = append(actions, base.ActionStructure{
 					Action:              "ChangeStream",
-					GeneratingEvaluator: generatingEvaluator,
-					Device:              output,
-					DestinationDevice:   destination,
+					GeneratingEvaluator: "ChangeVideoInputTieredSwitcher",
+					Device:              streamPlayer,
+					DestinationDevice:   streamDest,
 					Parameters:          streamParams,
 					DeviceSpecific:      true,
 					Overridden:          false,
