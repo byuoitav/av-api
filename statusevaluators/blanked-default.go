@@ -16,18 +16,13 @@ const BlankedDefaultCommand = "STATUS_Blanked"
 type BlankedDefault struct {
 }
 
-// GetDevices returns a list of devices in the given room.
-func (p *BlankedDefault) GetDevices(room structs.Room) ([]structs.Device, error) {
-	return room.Devices, nil
-}
-
 // GenerateCommands generates a list of commands for the given devices.
-func (p *BlankedDefault) GenerateCommands(devices []structs.Device) ([]StatusCommand, int, error) {
-	return generateStandardStatusCommand(devices, BlankedDefaultEvaluator, BlankedDefaultCommand)
+func (p *BlankedDefault) GenerateCommands(room structs.Room) ([]StatusCommand, int, error) {
+	return generateStandardStatusCommand(room.Devices, BlankedDefaultEvaluator, BlankedDefaultCommand)
 }
 
 // EvaluateResponse is supposed to evaluate the response...but it seems like it's just logging a statement...
-func (p *BlankedDefault) EvaluateResponse(label string, value interface{}, Source structs.Device, dest base.DestinationDevice) (string, interface{}, error) {
+func (p *BlankedDefault) EvaluateResponse(room structs.Room, label string, value interface{}, Source structs.Device, dest base.DestinationDevice) (string, interface{}, error) {
 	log.L.Infof("[statusevals] Evaluating response: %s, %s in evaluator %v", label, value, BlankedDefaultEvaluator)
 	return label, value, nil
 }

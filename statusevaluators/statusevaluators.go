@@ -12,15 +12,11 @@ import (
 
 // StatusEvaluator defines the common functions for all StatusEvaluators.
 type StatusEvaluator interface {
-
-	//Identifies relevant devices
-	GetDevices(room structs.Room) ([]structs.Device, error)
-
 	//Generates action list
-	GenerateCommands(devices []structs.Device) ([]StatusCommand, int, error)
+	GenerateCommands(room structs.Room) ([]StatusCommand, int, error)
 
 	//Evaluate Response
-	EvaluateResponse(label string, value interface{}, Source structs.Device, Destination base.DestinationDevice) (string, interface{}, error)
+	EvaluateResponse(room structs.Room, label string, value interface{}, Source structs.Device, Destination base.DestinationDevice) (string, interface{}, error)
 }
 
 // StatusEvaluatorMap is a map of the different StatusEvaluators used.
@@ -122,4 +118,28 @@ func generateStandardStatusCommand(devices []structs.Device, evaluatorName strin
 	}
 	return output, count, nil
 
+}
+
+// FindDevice searches a list of devices for the device specified by the given ID and returns it
+func FindDevice(deviceList []structs.Device, searchID string) structs.Device {
+	for i := range deviceList {
+		if deviceList[i].ID == searchID {
+			return deviceList[i]
+		}
+	}
+
+	return structs.Device{}
+}
+
+// FilterDevicesByRole searches a list of devices for the devices that have the given roles, and returns a new list of those devices
+func FilterDevicesByRole(deviceList []structs.Device, roleID string) []structs.Device {
+	var toReturn []structs.Device
+
+	for _, device := range deviceList {
+		if device.HasRole(roleID) {
+			toReturn = append(toReturn, device)
+		}
+	}
+
+	return toReturn
 }
