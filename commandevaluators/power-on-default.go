@@ -19,7 +19,7 @@ type PowerOnDefault struct {
 }
 
 // Evaluate fulfills the CommmandEvaluation evaluate requirement.
-func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actions []base.ActionStructure, count int, err error) {
+func (p *PowerOnDefault) Evaluate(dbRoom structs.Room, room base.PublicRoom, requestor string) (actions []base.ActionStructure, count int, err error) {
 	count = 0
 
 	log.L.Info("[command_evaluators] Evaluating for PowerOn command.")
@@ -40,15 +40,9 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 
 		log.L.Info("[command_evaluators] Room-wide PowerOn request received. Retrieving all devices.")
 
-		roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
-		devices, err = db.GetDB().GetDevicesByRoom(roomID)
-		if err != nil {
-			return
-		}
-
 		log.L.Info("[command_evaluators] Setting power 'on' state for all output devices.")
 
-		for _, device := range devices {
+		for _, device := range dbRoom.Devices {
 
 			if device.Type.Output {
 
@@ -66,7 +60,7 @@ func (p *PowerOnDefault) Evaluate(room base.PublicRoom, requestor string) (actio
 
 				log.L.Info("[command_evaluators] Adding device %+v", device.Name)
 
-				eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
+				eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(dbRoom.ID)
 
 				eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(device.ID)
 
@@ -210,7 +204,7 @@ func (p *PowerOnDefault) evaluateDevice(device base.Device,
 							Device:              DX,
 							DestinationDevice:   destination,
 							GeneratingEvaluator: "PowerOnDefault",
-							DeviceSpecific:      false,
+							DeviceSpecific:      true,
 							EventLog:            []events.Event{eventInfo},
 						})
 					}

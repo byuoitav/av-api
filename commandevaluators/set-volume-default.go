@@ -18,11 +18,9 @@ type SetVolumeDefault struct {
 }
 
 //Evaluate checks for a volume for the entire room or the volume of a specific device
-func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
+func (*SetVolumeDefault) Evaluate(dbRoom structs.Room, room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 
 	var actions []base.ActionStructure
-
-	roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
 
 	eventInfo := events.Event{
 		Key:  "volume",
@@ -40,10 +38,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 
 		log.L.Info("[command_evaluators] General volume request detected.")
 
-		devices, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "AudioOut")
-		if err != nil {
-			return []base.ActionStructure{}, 0, err
-		}
+		devices := FilterDevicesByRole(dbRoom.Devices, "AudioOut")
 
 		for _, device := range devices {
 
@@ -54,7 +49,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 
 				eventInfo.Value = fmt.Sprintf("%v", *room.Volume)
 
-				eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
+				eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(dbRoom.ID)
 
 				eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(device.ID)
 
@@ -89,7 +84,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 								continue
 							}
 
-							eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
+							eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(dbRoom.ID)
 
 							eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(DX.ID)
 
@@ -127,10 +122,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 				log.L.Info("[command_evaluators] Adding device %+v", audioDevice.Name)
 
 				deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, audioDevice.Name)
-				device, err := db.GetDB().GetDevice(deviceID)
-				if err != nil {
-					return []base.ActionStructure{}, 0, err
-				}
+				device := FindDevice(dbRoom.Devices, deviceID)
 
 				parameters := make(map[string]string)
 				parameters["level"] = fmt.Sprintf("%v", *audioDevice.Volume)
@@ -138,7 +130,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 
 				eventInfo.Value = fmt.Sprintf("%v", *audioDevice.Volume)
 
-				eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
+				eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(dbRoom.ID)
 
 				eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(device.ID)
 
@@ -173,7 +165,7 @@ func (*SetVolumeDefault) Evaluate(room base.PublicRoom, requestor string) ([]bas
 								continue
 							}
 
-							eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
+							eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(dbRoom.ID)
 
 							eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(DX.ID)
 

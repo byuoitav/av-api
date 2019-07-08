@@ -29,7 +29,7 @@ import (
 type UnMuteDSP struct{}
 
 // Evaluate generates a list of actions based on the given room information.
-func (p *UnMuteDSP) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
+func (p *UnMuteDSP) Evaluate(dbRoom structs.Room, room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 
 	log.L.Info("[command_evaluators] Evaluating PUT body for UNMUTE command in DSP context...")
 

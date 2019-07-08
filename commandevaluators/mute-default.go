@@ -19,7 +19,7 @@ type MuteDefault struct {
 
 /*Evaluate takes a public room struct, scans the struct and builds any needed
 actions based on the contents of the struct.*/
-func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
+func (p *MuteDefault) Evaluate(dbRoom structs.Room, room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 
 	log.L.Info("[command_evaluators] Evaluating for Mute command.")
 
@@ -41,11 +41,7 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 
 		log.L.Info("[command_evaluators] Room-wide Mute request recieved. Retrieving all devices.")
 
-		roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
-		devices, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "AudioOut")
-		if err != nil {
-			return []base.ActionStructure{}, 0, err
-		}
+		devices := FilterDevicesByRole(dbRoom.Devices, "AudioOut")
 
 		log.L.Info("[command_evaluators] Muting all devices in room.")
 
@@ -53,7 +49,7 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 			if device.Type.Output {
 				log.L.Infof("[command_evaluators] Adding device %+v", device.Name)
 
-				eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
+				eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(dbRoom.ID)
 
 				eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(device.ID)
 
@@ -89,7 +85,7 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 
 							log.L.Info("[command_evaluators] Adding mirror device %+v", DX.Name)
 
-							eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
+							eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(dbRoom.ID)
 
 							eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(DX.ID)
 
@@ -121,10 +117,7 @@ func (p *MuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.A
 			deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, audioDevice.Name)
 			roomID := fmt.Sprintf("%s-%s", room.Building, room.Room)
 
-			device, err := db.GetDB().GetDevice(deviceID)
-			if err != nil {
-				return []base.ActionStructure{}, 0, err
-			}
+			device := FindDevice(dbRoom.Devices, deviceID)
 
 			eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
 

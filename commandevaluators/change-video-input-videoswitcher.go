@@ -27,18 +27,14 @@ type ChangeVideoInputVideoSwitcher struct {
 }
 
 //Evaluate generates a list of actions based on the information given.
-func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
+func (c *ChangeVideoInputVideoSwitcher) Evaluate(dbRoom structs.Room, room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 	actionList := []base.ActionStructure{}
 
 	if len(room.CurrentVideoInput) != 0 {
-		roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
-		devices, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "VideoOut")
-		if err != nil {
-			return []base.ActionStructure{}, 0, err
-		}
+		devices := FilterDevicesByRole(dbRoom.Devices, "VideoOut")
 
 		for _, device := range devices {
-			action, err := GetSwitcherAndCreateAction(room, device, room.CurrentVideoInput, "ChangeVideoInputVideoSwitcher", requestor)
+			action, err := GetSwitcherAndCreateAction(dbRoom, room, device, room.CurrentVideoInput, "ChangeVideoInputVideoSwitcher", requestor)
 			if err != nil {
 				return []base.ActionStructure{}, 0, err
 			}
@@ -59,7 +55,7 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor
 							continue
 						}
 
-						mirrorAction, err := GetSwitcherAndCreateAction(room, DX, room.CurrentVideoInput, "ChangeVideoInputVideoSwitcher", requestor)
+						mirrorAction, err := GetSwitcherAndCreateAction(dbRoom, room, DX, room.CurrentVideoInput, "ChangeVideoInputVideoSwitcher", requestor)
 						if err != nil {
 							return []base.ActionStructure{}, 0, err
 						}
@@ -82,12 +78,9 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor
 			// if the display has an input, create the action
 			if len(display.Input) != 0 {
 				deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, display.Name)
-				device, err := db.GetDB().GetDevice(deviceID)
-				if err != nil {
-					return []base.ActionStructure{}, 0, err
-				}
+				device := FindDevice(dbRoom.Devices, deviceID)
 
-				action, err := GetSwitcherAndCreateAction(room, device, display.Input, "ChangeVideoInputVideoSwitcher", requestor)
+				action, err := GetSwitcherAndCreateAction(dbRoom, room, device, display.Input, "ChangeVideoInputVideoSwitcher", requestor)
 				if err != nil {
 					return []base.ActionStructure{}, 0, err
 				}
@@ -109,7 +102,7 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor
 								continue
 							}
 
-							mirrorAction, err := GetSwitcherAndCreateAction(room, DX, display.Input, "ChangeVideoInputVideoSwitcher", requestor)
+							mirrorAction, err := GetSwitcherAndCreateAction(dbRoom, room, DX, display.Input, "ChangeVideoInputVideoSwitcher", requestor)
 							if err != nil {
 								return actionList, len(actionList), err
 							}
@@ -130,12 +123,9 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor
 		for _, audioDevice := range room.AudioDevices {
 			if len(audioDevice.Input) != 0 {
 				deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, audioDevice.Name)
-				device, err := db.GetDB().GetDevice(deviceID)
-				if err != nil {
-					return []base.ActionStructure{}, 0, err
-				}
+				device := FindDevice(dbRoom.Devices, deviceID)
 
-				action, err := GetSwitcherAndCreateAction(room, device, audioDevice.Input, "ChangeVideoInputVideoSwitcher", requestor)
+				action, err := GetSwitcherAndCreateAction(dbRoom, room, device, audioDevice.Input, "ChangeVideoInputVideoSwitcher", requestor)
 				if err != nil {
 					continue
 				}
@@ -157,7 +147,7 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor
 								continue
 							}
 
-							mirrorAction, err := GetSwitcherAndCreateAction(room, DX, audioDevice.Input, "ChangeVideoInputVideoSwitcher", requestor)
+							mirrorAction, err := GetSwitcherAndCreateAction(dbRoom, room, DX, audioDevice.Input, "ChangeVideoInputVideoSwitcher", requestor)
 							if err != nil {
 								return []base.ActionStructure{}, 0, err
 							}
@@ -190,13 +180,9 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(room base.PublicRoom, requestor
 
 //GetSwitcherAndCreateAction gets the videoswitcher in a room, matches the destination port to the new port
 // and creates an action
-func GetSwitcherAndCreateAction(room base.PublicRoom, device structs.Device, selectedInput, generatingEvaluator, requestor string) (base.ActionStructure, error) {
+func GetSwitcherAndCreateAction(dbRoom structs.Room, room base.PublicRoom, device structs.Device, selectedInput, generatingEvaluator, requestor string) (base.ActionStructure, error) {
 
-	roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
-	switcher, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "VideoSwitcher")
-	if err != nil {
-		return base.ActionStructure{}, err
-	}
+	switcher := FilterDevicesByRole(dbRoom.Devices, "VideoSwitcher")
 
 	if len(switcher) != 1 {
 		return base.ActionStructure{}, errors.New("[command_evaluators] Too many switchers/none available")
@@ -212,7 +198,7 @@ func GetSwitcherAndCreateAction(room base.PublicRoom, device structs.Device, sel
 
 			eventInfo := events.Event{
 				TargetDevice: events.GenerateBasicDeviceInfo(device.ID),
-				AffectedRoom: events.GenerateBasicRoomInfo(roomID),
+				AffectedRoom: events.GenerateBasicRoomInfo(dbRoom.ID),
 				Key:          "input",
 				Value:        selectedInput,
 				User:         requestor,

@@ -3,6 +3,7 @@ package commandevaluators
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/byuoitav/common/inputgraph"
@@ -25,7 +26,7 @@ type ChangeVideoInputTieredSwitchers struct {
 }
 
 //Evaluate fulfills the CommmandEvaluation evaluate requirement
-func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
+func (c *ChangeVideoInputTieredSwitchers) Evaluate(dbRoom structs.Room, room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 	//so first we need to go through and see if anyone even wants a piece of us, is there an 'input' field that isn't empty.
 
 	has := (len(room.CurrentVideoInput) > 0)
@@ -94,7 +95,20 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 		if len(d.Input) > 0 {
 			// get id's of from names of devices
 			outputID := getDeviceIDFromShortname(d.Name, devices)
-			inputID := getDeviceIDFromShortname(d.Input, devices)
+
+			//Check for a stream url
+			inputDeviceString := d.Input
+			streamDelimiterIndex := strings.Index(inputDeviceString, "|")
+			streamParams := make(map[string]string)
+			if streamDelimiterIndex != -1 {
+				streamChars := []rune(inputDeviceString)
+				streamURL := string(streamChars[(streamDelimiterIndex + 1):len(inputDeviceString)])
+				inputDeviceString = string(streamChars[0:streamDelimiterIndex])
+				streamParams["streamURL"] = url.QueryEscape(streamURL)
+				log.L.Infof("Device %s to display stream %s", inputDeviceString, streamURL)
+			}
+
+			inputID := getDeviceIDFromShortname(inputDeviceString, devices)
 
 			// validate those devices existed
 			if len(inputID) == 0 || len(outputID) == 0 {
@@ -108,6 +122,38 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 
 			log.L.Infof("%v ChangeInput actions generated to change input on %s to %s", len(tmpActions), outputID, inputID)
 			actions = append(actions, tmpActions...)
+
+			if streamDelimiterIndex != -1 {
+				streamPlayer, _ := db.GetDB().GetDevice(inputID)
+
+				eventInfo := events.Event{
+					Key:   "input",
+					Value: streamPlayer.Name,
+					User:  requestor,
+				}
+
+				eventInfo.AddToTags(events.CoreState, events.UserGenerated)
+
+				eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(fmt.Sprintf("%s-%s", room.Building, room.Room))
+
+				eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(streamPlayer.ID)
+
+				streamDest := base.DestinationDevice{
+					Device: streamPlayer,
+				}
+
+				log.L.Infof("Generating ChangeStream command for device %s", inputDeviceString)
+				actions = append(actions, base.ActionStructure{
+					Action:              "ChangeStream",
+					GeneratingEvaluator: "ChangeVideoInputTieredSwitcher",
+					Device:              streamPlayer,
+					DestinationDevice:   streamDest,
+					Parameters:          streamParams,
+					DeviceSpecific:      true,
+					Overridden:          false,
+					EventLog:            []events.Event{eventInfo},
+				})
+			}
 
 			////////////////////////
 			///// MIRROR STUFF /////
@@ -192,8 +238,16 @@ func (c *ChangeVideoInputTieredSwitchers) Validate(action base.ActionStructure) 
 		ok = true
 	}
 
-	// returns and error if the ChangeInput command doesn't exist or if the command isn't ChangeInput
-	if !ok || action.Action != "ChangeInput" {
+	streamCheck, _ := CheckCommands(action.Device.Type.Commands, "ChangeStream")
+	if streamCheck {
+		log.L.Info("Hall pass given to the stream player device")
+		ok = true
+	}
+
+	actionCheck := action.Action == "ChangeInput" || action.Action == "ChangeStream"
+
+	// returns an error if the ChangeInput command doesn't exist or if the command isn't ChangeInput or ChangeStream
+	if !ok || !actionCheck {
 		msg := fmt.Sprintf("[command_evaluators] ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
 		log.L.Error(msg)
 		return errors.New(msg)
