@@ -21,18 +21,13 @@ const DefaultInputCommand = "STATUS_Input"
 type InputDefault struct {
 }
 
-// GetDevices returns a list of devices in the given room.
-func (p *InputDefault) GetDevices(room structs.Room) ([]structs.Device, error) {
-	return room.Devices, nil
-}
-
 // GenerateCommands generates a list of commands for the given devices.
-func (p *InputDefault) GenerateCommands(devices []structs.Device) ([]StatusCommand, int, error) {
-	return generateStandardStatusCommand(devices, DefaultInputEvaluator, DefaultInputCommand)
+func (p *InputDefault) GenerateCommands(room structs.Room) ([]StatusCommand, int, error) {
+	return generateStandardStatusCommand(room.Devices, DefaultInputEvaluator, DefaultInputCommand)
 }
 
 // EvaluateResponse processes the response information that is given.
-func (p *InputDefault) EvaluateResponse(label string, value interface{}, source structs.Device, dest base.DestinationDevice) (string, interface{}, error) {
+func (p *InputDefault) EvaluateResponse(room structs.Room, label string, value interface{}, source structs.Device, dest base.DestinationDevice) (string, interface{}, error) {
 	log.L.Infof("[statusevals] Evaluating response: %s, %s in evaluator %v", label, value, DefaultInputEvaluator)
 
 	//we need to remap the port value to the device name, for this case, that's just the device plugged into that port, as defined in the port mapping

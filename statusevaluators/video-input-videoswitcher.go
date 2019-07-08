@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/common/db"
 	"github.com/byuoitav/common/log"
 	"github.com/byuoitav/common/structs"
 )
@@ -18,13 +17,8 @@ const InputVideoSwitcherEvaluator = "STATUS_InputVideoSwitcher"
 type InputVideoSwitcher struct {
 }
 
-// GetDevices returns a list of devices in the given room.
-func (p *InputVideoSwitcher) GetDevices(room structs.Room) ([]structs.Device, error) {
-	return room.Devices, nil
-}
-
 // GenerateCommands generates a list of commands for the given devices.
-func (p *InputVideoSwitcher) GenerateCommands(devices []structs.Device) ([]StatusCommand, int, error) {
+func (p *InputVideoSwitcher) GenerateCommands(room structs.Room) ([]StatusCommand, int, error) {
 	log.L.Info("[statusevals] Generating status commands from STATUS_Video_Switcher")
 
 	//xuther: we could do this via another call to the database, but looping through is actually faster.
@@ -69,7 +63,7 @@ func (p *InputVideoSwitcher) GenerateCommands(devices []structs.Device) ([]Statu
 
 	var count int
 
-	for _, device := range devices {
+	for _, device := range room.Devices {
 		log.L.Infof("[statusevals] Considering device: %v", device.ID)
 
 		cont := false
@@ -129,15 +123,12 @@ func (p *InputVideoSwitcher) GenerateCommands(devices []structs.Device) ([]Statu
 }
 
 // EvaluateResponse processes the response information that is given.
-func (p *InputVideoSwitcher) EvaluateResponse(label string, value interface{}, source structs.Device, dest base.DestinationDevice) (string, interface{}, error) {
+func (p *InputVideoSwitcher) EvaluateResponse(room structs.Room, label string, value interface{}, source structs.Device, dest base.DestinationDevice) (string, interface{}, error) {
 	log.L.Infof("[statusevals] Evaluating response: %s, %s in evaluator %v", label, value, BlankedDefaultEvaluator)
 
 	//in this case we assume that there's a single video switcher, so first we get the video switcher in the room, then we match source and dest
-	switcherList, err := db.GetDB().GetDevicesByRoomAndRole(source.GetDeviceRoomID(), "VideoSwitcher")
-	if err != nil {
-		log.L.Errorf("[statusevals] Error getting the video switcher: %v", err.Error())
-		return "", nil, err
-	}
+	switcherList := FilterDevicesByRole(room.Devices, "VideoSwitcher")
+
 	if len(switcherList) != 1 {
 		msg := fmt.Sprintf("[statusevals] Invalid room for this evaluator, there are %v switchers in the room, expecting 1", len(switcherList))
 		log.L.Error(msg)

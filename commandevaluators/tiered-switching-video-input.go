@@ -60,14 +60,8 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(dbRoom structs.Room, room bas
 	}
 
 	//get all the devices from the room
-	roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
-	devices, err := db.GetDB().GetDevicesByRoom(roomID)
-	if err != nil {
-		log.L.Infof(color.HiRedString("[command_evaluators] There was an issue getting the devices from the room: %v", err.Error()))
-		return []base.ActionStructure{}, 0, err
-	}
 
-	graph, err := inputgraph.BuildGraph(devices, "video")
+	graph, err := inputgraph.BuildGraph(dbRoom.Devices, "video")
 	if err != nil {
 		return []base.ActionStructure{}, 0, err
 	}
@@ -81,7 +75,7 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(dbRoom structs.Room, room bas
 
 	//if we have a room wide input we need to validate that we can reach all of the outputs with the indicated input.
 	if len(room.CurrentVideoInput) > 0 {
-		actions, _, err = c.ChangeAll(room, room.CurrentVideoInput, devices, graph, callbackEngine, requestor)
+		actions, _, err = c.ChangeAll(room, room.CurrentVideoInput, dbRoom.Devices, graph, callbackEngine, requestor)
 		if err != nil {
 			return []base.ActionStructure{}, 0, err
 		}
@@ -94,7 +88,7 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(dbRoom structs.Room, room bas
 	for _, d := range room.Displays {
 		if len(d.Input) > 0 {
 			// get id's of from names of devices
-			outputID := getDeviceIDFromShortname(d.Name, devices)
+			outputID := getDeviceIDFromShortname(d.Name, dbRoom.Devices)
 
 			//Check for a stream url
 			inputDeviceString := d.Input
@@ -108,7 +102,7 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(dbRoom structs.Room, room bas
 				log.L.Infof("Device %s to display stream %s", inputDeviceString, streamURL)
 			}
 
-			inputID := getDeviceIDFromShortname(inputDeviceString, devices)
+			inputID := getDeviceIDFromShortname(inputDeviceString, dbRoom.Devices)
 
 			// validate those devices existed
 			if len(inputID) == 0 || len(outputID) == 0 {
@@ -124,7 +118,7 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(dbRoom structs.Room, room bas
 			actions = append(actions, tmpActions...)
 
 			if streamDelimiterIndex != -1 {
-				streamPlayer, _ := db.GetDB().GetDevice(inputID)
+				streamPlayer := FindDevice(dbRoom.Devices, inputID)
 
 				eventInfo := events.Event{
 					Key:   "input",
@@ -157,10 +151,7 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(dbRoom structs.Room, room bas
 
 			////////////////////////
 			///// MIRROR STUFF /////
-			display, err := db.GetDB().GetDevice(outputID)
-			if err != nil {
-				return []base.ActionStructure{}, 0, err
-			}
+			display := FindDevice(dbRoom.Devices, outputID)
 
 			if structs.HasRole(display, "MirrorMaster") {
 				for _, port := range display.Ports {
@@ -188,8 +179,8 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(dbRoom structs.Room, room bas
 	// do the same for the audiodevices
 	for _, d := range room.AudioDevices {
 		if len(d.Input) > 0 {
-			outputID := getDeviceIDFromShortname(d.Name, devices)
-			inputID := getDeviceIDFromShortname(d.Input, devices)
+			outputID := getDeviceIDFromShortname(d.Name, dbRoom.Devices)
+			inputID := getDeviceIDFromShortname(d.Input, dbRoom.Devices)
 
 			if len(inputID) == 0 || len(outputID) == 0 {
 				return []base.ActionStructure{}, 0, fmt.Errorf("[command_evaluators] no device name matching '%s' or '%s' found in the room", d.Name, d.Input)
@@ -208,7 +199,7 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(dbRoom structs.Room, room bas
 	callbackEngine.InChan = make(chan base.StatusPackage, len(actions))
 	callbackEngine.ExpectedCount = len(actions)
 	callbackEngine.ExpectedActionCount = len(actions)
-	callbackEngine.Devices = devices
+	callbackEngine.Devices = dbRoom.Devices
 
 	go callbackEngine.StartAggregator()
 

@@ -38,13 +38,8 @@ func (s *StandbyDefault) Evaluate(dbRoom structs.Room, room base.PublicRoom, req
 
 		log.L.Info("[command_evaluators] Room-wide power set. Retrieving all devices.")
 
-		devices, err = db.GetDB().GetDevicesByRoom(roomID)
-		if err != nil {
-			return
-		}
-
 		log.L.Debugf("[command_evaluators] Setting power to 'standby' state for all devices with a 'standby' power state, that are also output devices.")
-		for _, device := range devices {
+		for _, device := range dbRoom.Devices {
 
 			if device.Type.Output {
 				//check to see if it has the standby command

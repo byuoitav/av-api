@@ -20,13 +20,8 @@ const InputTieredSwitcherEvaluator = "STATUS_Tiered_Switching"
 type InputTieredSwitcher struct {
 }
 
-// GetDevices returns a list of devices in the given room.
-func (p *InputTieredSwitcher) GetDevices(room structs.Room) ([]structs.Device, error) {
-	return room.Devices, nil
-}
-
 // GenerateCommands generates a list of commands for the given devices.
-func (p *InputTieredSwitcher) GenerateCommands(devs []structs.Device) ([]StatusCommand, int, error) {
+func (p *InputTieredSwitcher) GenerateCommands(room structs.Room) ([]StatusCommand, int, error) {
 	//look at all the output devices and switchers in the room. we need to generate a status input for every port on every video switcher and every output device.
 	log.L.Debugf("Generating command from the STATUS_TIERED_SWITCHER")
 
@@ -37,11 +32,11 @@ func (p *InputTieredSwitcher) GenerateCommands(devs []structs.Device) ([]StatusC
 	var count int
 
 	log.L.Debugf("Devices to evaluate: ")
-	for _, d := range devs {
+	for _, d := range room.Devices {
 		log.L.Debugf("\t %v", d.ID)
 	}
 
-	for _, d := range devs {
+	for _, d := range room.Devices {
 		isVS := structs.HasRole(d, "VideoSwitcher")
 		cmd := d.GetCommandByID("STATUS_Input")
 		if len(cmd.ID) == 0 {
@@ -114,7 +109,7 @@ func (p *InputTieredSwitcher) GenerateCommands(devs []structs.Device) ([]StatusC
 	callbackEngine.InChan = make(chan base.StatusPackage, len(toReturn))
 	callbackEngine.ExpectedCount = count
 	callbackEngine.ExpectedActionCount = len(toReturn)
-	callbackEngine.Devices = devs
+	callbackEngine.Devices = room.Devices
 
 	for id, port := range mirrorEdges {
 		device, _ := db.GetDB().GetDevice(id)
@@ -131,7 +126,7 @@ func (p *InputTieredSwitcher) GenerateCommands(devs []structs.Device) ([]StatusC
 }
 
 // EvaluateResponse processes the response information that is given.
-func (p *InputTieredSwitcher) EvaluateResponse(str string, face interface{}, dev structs.Device, destDev base.DestinationDevice) (string, interface{}, error) {
+func (p *InputTieredSwitcher) EvaluateResponse(room structs.Room, str string, face interface{}, dev structs.Device, destDev base.DestinationDevice) (string, interface{}, error) {
 	return "", nil, nil
 
 }
