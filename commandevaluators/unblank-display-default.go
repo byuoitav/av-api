@@ -36,11 +36,7 @@ func (p *UnBlankDisplayDefault) Evaluate(dbRoom structs.Room, room base.PublicRo
 
 		log.L.Info("[command_evaluators] Room-wide UnBlank request received. Retrieving all devices.")
 
-		roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
-		devices, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "VideoOut")
-		if err != nil {
-			return []base.ActionStructure{}, 0, err
-		}
+		devices := FilterDevicesByRole(dbRoom.Devices, "VideoOut")
 
 		log.L.Info("[command_evaluators] Un-Blanking all displays in room.")
 
@@ -116,10 +112,7 @@ func (p *UnBlankDisplayDefault) Evaluate(dbRoom structs.Room, room base.PublicRo
 		if display.Blanked != nil && !*display.Blanked {
 
 			deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, display.Name)
-			device, err := db.GetDB().GetDevice(deviceID)
-			if err != nil {
-				return []base.ActionStructure{}, 0, err
-			}
+			device := FindDevice(dbRoom.Devices, deviceID)
 
 			eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(fmt.Sprintf("%s-%s", room.Building, room.Room))
 

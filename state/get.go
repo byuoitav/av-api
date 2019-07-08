@@ -31,14 +31,8 @@ func GenerateStatusCommands(room structs.Room, commandMap map[string]se.StatusEv
 
 			currentEvaluator := se.StatusEvaluatorMap[possibleEvaluator.CodeKey]
 
-			//we can get the number of output devices here
-			devices, err := currentEvaluator.GetDevices(room)
-			if err != nil {
-				return []se.StatusCommand{}, 0, err
-			}
-
 			//we get the number of commands here
-			commands, c, err := currentEvaluator.GenerateCommands(devices)
+			commands, c, err := currentEvaluator.GenerateCommands(room)
 			if err != nil {
 				return []se.StatusCommand{}, 0, err
 			}
@@ -115,7 +109,7 @@ func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse
 }
 
 // EvaluateResponses organizes the responses that are received when the commands are issued.
-func EvaluateResponses(responses []se.StatusResponse, count int) (base.PublicRoom, error) {
+func EvaluateResponses(room structs.Room, responses []se.StatusResponse, count int) (base.PublicRoom, error) {
 
 	log.L.Infof("%s", color.HiBlueString("[state] Evaluating responses..."))
 
@@ -139,7 +133,7 @@ func EvaluateResponses(responses []se.StatusResponse, count int) (base.PublicRoo
 		if resp.Callback == nil {
 			for key, value := range resp.Status {
 				log.L.Infof("[state] Checking generator: %s", resp.Generator)
-				k, v, err := se.StatusEvaluatorMap[resp.Generator].EvaluateResponse(key, value, resp.SourceDevice, resp.DestinationDevice)
+				k, v, err := se.StatusEvaluatorMap[resp.Generator].EvaluateResponse(room, key, value, resp.SourceDevice, resp.DestinationDevice)
 				if err != nil {
 
 					log.L.Errorf("%s", color.HiRedString("[state] problem procesing the response %v - %v with evaluator %v: %s",

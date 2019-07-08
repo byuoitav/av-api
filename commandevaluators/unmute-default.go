@@ -40,10 +40,7 @@ func (p *UnMuteDefault) Evaluate(dbRoom structs.Room, room base.PublicRoom, requ
 
 		log.L.Info("[command_evaluators] Room-wide UnMute request recieved. Retrieving all devices")
 
-		devices, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "AudioOut")
-		if err != nil {
-			return []base.ActionStructure{}, 0, err
-		}
+		devices := FilterDevicesByRole(dbRoom.Devices, "AudioOut")
 
 		log.L.Info("[command_evaluators] UnMuting all devices in room.")
 
@@ -120,10 +117,7 @@ func (p *UnMuteDefault) Evaluate(dbRoom structs.Room, room base.PublicRoom, requ
 		if audioDevice.Muted != nil && !*audioDevice.Muted {
 
 			deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, audioDevice.Name)
-			device, err := db.GetDB().GetDevice(deviceID)
-			if err != nil {
-				return []base.ActionStructure{}, 0, err
-			}
+			device := FindDevice(dbRoom.Devices, deviceID)
 
 			eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
 

@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/common/db"
 	"github.com/byuoitav/common/log"
 	"github.com/byuoitav/common/structs"
 )
@@ -19,28 +18,11 @@ const InputDSPCommand = "STATUS_Input"
 // InputDSP implements the StatusEvaluator struct.
 type InputDSP struct{}
 
-// GetDevices returns a list of devices in the given room.
-func (p *InputDSP) GetDevices(room structs.Room) ([]structs.Device, error) {
-
-	return room.Devices, nil
-}
-
 // GenerateCommands generates a list of commands for the given devices.
-func (p *InputDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand, int, error) {
+func (p *InputDSP) GenerateCommands(room structs.Room) ([]StatusCommand, int, error) {
 
-	var audioDevices, dsps []structs.Device
-	for _, device := range devices {
-
-		if structs.HasRole(device, "AudioOut") {
-
-			audioDevices = append(audioDevices, device)
-		}
-
-		if structs.HasRole(device, "DSP") {
-
-			dsps = append(dsps, device)
-		}
-	}
+	audioDevices := FilterDevicesByRole(room.Devices, "AudioOut")
+	dsps := FilterDevicesByRole(room.Devices, "DSP")
 
 	//business as usual for audioDevices
 	commands, count, err := generateStandardStatusCommand(audioDevices, InputDSPEvaluator, InputDSPCommand)
@@ -58,13 +40,7 @@ func (p *InputDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand, 
 	dsp := dsps[0]
 
 	//get switcher associated with DSP
-
-	switchers, err := db.GetDB().GetDevicesByRoomAndRole(dsp.GetDeviceRoomID(), "VideoSwitcher")
-	if err != nil {
-		errorMessage := "[statusevals] Could not get video switcher in building: " + dsp.GetDeviceRoomID() + " " + err.Error()
-		log.L.Error(errorMessage)
-		return []StatusCommand{}, 0, errors.New(errorMessage)
-	}
+	switchers := FilterDevicesByRole(room.Devices, "VideoSwitcher")
 
 	//validate number of switchers
 	if switchers == nil || len(switchers) != 1 {
@@ -105,7 +81,7 @@ func (p *InputDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand, 
 }
 
 // EvaluateResponse processes the response information that is given.
-func (p *InputDSP) EvaluateResponse(label string, value interface{}, source structs.Device, DestinationDevice base.DestinationDevice) (string, interface{}, error) {
+func (p *InputDSP) EvaluateResponse(room structs.Room, label string, value interface{}, source structs.Device, DestinationDevice base.DestinationDevice) (string, interface{}, error) {
 	for _, port := range DestinationDevice.Ports {
 
 		valueString, ok := value.(string)
