@@ -18,7 +18,7 @@ type UnMuteDefault struct {
 }
 
 // Evaluate generates a list of actions based on the room information.
-func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
+func (p *UnMuteDefault) Evaluate(dbRoom structs.Room, room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 	log.L.Info("[command_evaluators] Evaluating UnMute command.")
 
 	var actions []base.ActionStructure

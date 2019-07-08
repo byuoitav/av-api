@@ -26,7 +26,7 @@ type ChangeVideoInputTieredSwitchers struct {
 }
 
 //Evaluate fulfills the CommmandEvaluation evaluate requirement
-func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
+func (c *ChangeVideoInputTieredSwitchers) Evaluate(dbRoom structs.Room, room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 	//so first we need to go through and see if anyone even wants a piece of us, is there an 'input' field that isn't empty.
 
 	has := (len(room.CurrentVideoInput) > 0)

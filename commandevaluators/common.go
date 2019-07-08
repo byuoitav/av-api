@@ -47,3 +47,27 @@ func markAsOverridden(action base.ActionStructure, structs ...[]*base.ActionStru
 		}
 	}
 }
+
+// FindDevice searches a list of devices for the device specified by the given ID and returns it
+func FindDevice(deviceList []structs.Device, searchID string) structs.Device {
+	for i := range deviceList {
+		if deviceList[i].ID == searchID {
+			return deviceList[i]
+		}
+	}
+
+	return structs.Device{}
+}
+
+// FilterDevicesByRole searches a list of devices for the devices that have the given roles, and returns a new list of those devices
+func FilterDevicesByRole(deviceList []structs.Device, roleID string) []structs.Device {
+	var toReturn []structs.Device
+
+	for _, device := range deviceList {
+		if device.HasRole(roleID) {
+			toReturn = append(toReturn, device)
+		}
+	}
+
+	return toReturn
+}

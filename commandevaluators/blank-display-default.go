@@ -17,7 +17,7 @@ type BlankDisplayDefault struct {
 }
 
 // Evaluate verifies the information for a BlankDisplayDefault object and generates a list of actions based on the command.
-func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
+func (p *BlankDisplayDefault) Evaluate(dbRoom structs.Room, room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 
 	log.L.Info("[command_evaluators] Evaluating BlankDisplay commands...")
 
@@ -37,11 +37,7 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 		log.L.Info("[command_evaluators] Room-wide blank request received. Retrieving all devices...")
 
 		// Get all devices
-		roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
-		devices, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "VideoOut")
-		if err != nil {
-			return []base.ActionStructure{}, 0, err
-		}
+		devices := FilterDevicesByRole(dbRoom.Devices, "VideoOut")
 
 		log.L.Infof("[command_evaluators] VideoOut devices: %v\n", devices)
 
@@ -62,7 +58,7 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 					destination.AudioDevice = true
 				}
 
-				event.AffectedRoom = events.GenerateBasicRoomInfo(fmt.Sprintf("%s-%s", room.Building, room.Room))
+				event.AffectedRoom = events.GenerateBasicRoomInfo(dbRoom.ID)
 				event.TargetDevice = events.GenerateBasicDeviceInfo(destination.ID)
 
 				actions = append(actions, base.ActionStructure{
@@ -120,17 +116,14 @@ func (p *BlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) (
 
 			// Retrieve device information from the database.
 			deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, display.Name)
-			device, err := db.GetDB().GetDevice(deviceID)
-			if err != nil {
-				return []base.ActionStructure{}, 0, err
-			}
+			device := FindDevice(dbRoom.Devices, deviceID)
 
 			destination := base.DestinationDevice{
 				Device:  device,
 				Display: true,
 			}
 
-			event.AffectedRoom = events.GenerateBasicRoomInfo(fmt.Sprintf("%s-%s", room.Building, room.Room))
+			event.AffectedRoom = events.GenerateBasicRoomInfo(dbRoom.ID)
 			event.TargetDevice = events.GenerateBasicDeviceInfo(destination.ID)
 
 			if structs.HasRole(device, "AudioOut") {

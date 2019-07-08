@@ -36,7 +36,7 @@ func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom, requestor st
 			return []base.ActionStructure{}, 0, errors.New(msg)
 		}
 
-		actions, c, err := curEvaluator.Evaluate(bodyRoom, requestor)
+		actions, c, err := curEvaluator.Evaluate(dbRoom, bodyRoom, requestor)
 		if err != nil {
 			return []base.ActionStructure{}, 0, err
 		}
