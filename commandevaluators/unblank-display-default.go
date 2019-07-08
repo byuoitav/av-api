@@ -18,7 +18,7 @@ type UnBlankDisplayDefault struct {
 }
 
 //Evaluate creates UnBlank actions for the entire room and for individual devices
-func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
+func (p *UnBlankDisplayDefault) Evaluate(dbRoom structs.Room, room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 
 	var actions []base.ActionStructure
 
@@ -79,7 +79,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 								return actions, len(actions), err
 							}
 
-							cmd := DX.GetCommandByID("UnblankDisplay")
+							cmd := DX.GetCommandByID("UnBlankDisplay")
 							if len(cmd.ID) < 1 {
 								continue
 							}
@@ -150,7 +150,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 							return actions, len(actions), err
 						}
 
-						cmd := DX.GetCommandByID("UnblankDisplay")
+						cmd := DX.GetCommandByID("UnBlankDisplay")
 						if len(cmd.ID) < 1 {
 							continue
 						}
@@ -162,11 +162,11 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 						eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(DX.ID)
 
 						actions = append(actions, base.ActionStructure{
-							Action:              "UnBlankDisplay",
+							Action:              "UnblankDisplay",
+							GeneratingEvaluator: "UnBlankDisplayDefault",
 							Device:              DX,
 							DestinationDevice:   destination,
-							GeneratingEvaluator: "UnBlankDisplayDefault",
-							DeviceSpecific:      false,
+							DeviceSpecific:      true,
 							EventLog:            []events.Event{eventInfo},
 						})
 					}

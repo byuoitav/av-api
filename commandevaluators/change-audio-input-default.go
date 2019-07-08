@@ -1,13 +1,16 @@
 package commandevaluators
 
-import "github.com/byuoitav/av-api/base"
+import (
+	"github.com/byuoitav/av-api/base"
+	"github.com/byuoitav/common/structs"
+)
 
 //ChangeAudioInputDefault implements the CommandEvaluation struct.
 type ChangeAudioInputDefault struct {
 }
 
 //Evaluate verifies the information for a ChangeAudioInputDefault object and generates a list of actions based on the command.
-func (p *ChangeAudioInputDefault) Evaluate(room base.PublicRoom, requestor string) (actions []base.ActionStructure, count int, err error) {
+func (p *ChangeAudioInputDefault) Evaluate(dbRoom structs.Room, room base.PublicRoom, requestor string) (actions []base.ActionStructure, count int, err error) {
 	count = 0
 
 	if len(room.CurrentAudioInput) > 0 { // Check if the user sent a PUT body changing the current audio input
@@ -16,6 +19,7 @@ func (p *ChangeAudioInputDefault) Evaluate(room base.PublicRoom, requestor strin
 
 		//generate action
 		tempActions, err = generateChangeInputByRole(
+			dbRoom,
 			"AudioOut",
 			room.CurrentVideoInput,
 			room.Room,
@@ -37,13 +41,13 @@ func (p *ChangeAudioInputDefault) Evaluate(room base.PublicRoom, requestor strin
 			continue
 		}
 
-		var action base.ActionStructure
+		var action []base.ActionStructure
 
-		action, err = generateChangeInputByDevice(d.Device, room.Room, room.Building, "ChangeAudioInputDefault", requestor)
+		action, err = generateChangeInputByDevice(dbRoom, d.Device, room.Room, room.Building, "ChangeAudioInputDefault", requestor)
 		if err != nil {
 			return
 		}
-		actions = append(actions, action)
+		actions = append(actions, action...)
 	}
 	count = len(actions)
 	return
