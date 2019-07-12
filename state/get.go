@@ -17,7 +17,6 @@ import (
 
 // GenerateStatusCommands determines the status commands for the type of room that the device is in.
 func GenerateStatusCommands(room structs.Room, commandMap map[string]se.StatusEvaluator) ([]se.StatusCommand, int, error) {
-
 	color.Set(color.FgHiCyan)
 	log.L.Info("[state] generating status commands...")
 	color.Unset()
@@ -26,9 +25,7 @@ func GenerateStatusCommands(room structs.Room, commandMap map[string]se.StatusEv
 	var count int
 
 	for _, possibleEvaluator := range room.Configuration.Evaluators {
-
 		if strings.HasPrefix(possibleEvaluator.CodeKey, se.FLAG) {
-
 			currentEvaluator := se.StatusEvaluatorMap[possibleEvaluator.CodeKey]
 
 			//we get the number of commands here

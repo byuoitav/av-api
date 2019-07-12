@@ -35,7 +35,6 @@ var StatusEvaluatorMap = map[string]StatusEvaluator{
 }
 
 func generateStandardStatusCommand(devices []structs.Device, evaluatorName string, commandName string) ([]StatusCommand, int, error) {
-
 	var count int
 
 	log.L.Infof("[statusevals] Generating status commands from %v", evaluatorName)
@@ -47,7 +46,7 @@ func generateStandardStatusCommand(devices []structs.Device, evaluatorName strin
 		log.L.Infof("[statusevals] Considering device: %s", device.Name)
 
 		for _, command := range device.Type.Commands {
-			if strings.HasPrefix(command.ID, FLAG) && strings.Contains(command.ID, commandName) {
+			if strings.HasPrefix(command.ID, FLAG) && strings.EqualFold(command.ID, commandName) {
 				log.L.Info("[statusevals] Command found")
 
 				//every power command needs an address parameter
