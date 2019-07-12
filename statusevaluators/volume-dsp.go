@@ -26,7 +26,7 @@ func (p *VolumeDSP) GenerateCommands(room structs.Room) ([]StatusCommand, int, e
 
 	commands, count, err := generateStandardStatusCommand(audioDevices, VolumeDSPEvaluator, VolumeDefaultCommand)
 	if err != nil {
-		errorMessage := "[statusevals] Could not generate " + VolumeDSPCommand + "commands for audio devices: " + err.Error()
+		errorMessage := "[statusevals] Could not generate " + VolumeDefaultCommand + "commands for audio devices: " + err.Error()
 		log.L.Error(errorMessage)
 		return []StatusCommand{}, 0, errors.New(errorMessage)
 	}
