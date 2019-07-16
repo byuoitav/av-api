@@ -1,10 +1,15 @@
 package statusevaluators
 
 import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"net/http"
 	"strings"
 	"time"
 
 	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/status"
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/statusevaluators/pathfinder"
@@ -186,17 +191,31 @@ func (p *TieredSwitcherCallback) GetInputPaths(pathfinder pathfinder.SignalPathf
 			log.L.Warnf("No device by name %v in the device list for the callback", k)
 		}
 
+		inputValue := v.Name
+
+		if v.HasRole("STB-Stream-Player") {
+			resp, err := http.Get(fmt.Sprintf("http://%s:8032/stream", v.Address))
+			if err == nil {
+				body, _ := ioutil.ReadAll(resp.Body)
+				var input status.Input
+				err = json.Unmarshal(body, &input)
+				if err != nil {
+				}
+				inputValue = inputValue + "|" + input.Input
+			}
+		}
+
 		destDev := base.DestinationDevice{
 			Device:      outDev,
 			AudioDevice: structs.HasRole(outDev, "AudioOut"),
 			Display:     structs.HasRole(outDev, "VideoOut"),
 		}
-		log.L.Infof(color.HiYellowString("[callback] Sending input %v -> %v", v.Name, k))
+		log.L.Infof(color.HiYellowString("[callback] Sending input %v -> %v", inputValue, k))
 
 		p.OutChan <- base.StatusPackage{
 			Dest:  destDev,
 			Key:   "input",
-			Value: v.Name,
+			Value: inputValue,
 		}
 	}
 	log.L.Info(color.HiYellowString("[callback] Done with evaluation. Closing."))
