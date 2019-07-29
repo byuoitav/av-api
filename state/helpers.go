@@ -274,7 +274,7 @@ func ExecuteCommand(action base.ActionStructure, url, requestor string) se.Statu
 
 	err = json.Unmarshal(body, &status)
 	if err != nil {
-		message := fmt.Sprintf("could not unmarshal response struct: %s", err.Error())
+		message := fmt.Sprintf("could not unmarshal response struct: %s\n\nbody: %s\n", err.Error(), body)
 		PublishError(message, action, requestor)
 	}
 	response := se.StatusResponse{
