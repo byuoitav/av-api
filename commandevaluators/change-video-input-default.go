@@ -72,6 +72,7 @@ func (p *ChangeVideoInputDefault) GetIncompatibleCommands() (incompatableActions
 func generateChangeInputByDevice(dbRoom structs.Room, dev base.Device, room, building, generatingEvaluator, requestor string) (actions []base.ActionStructure, err error) {
 	var output structs.Device
 	var input structs.Device
+	var streamURL string
 
 	inputDeviceString := dev.Input
 
@@ -80,7 +81,7 @@ func generateChangeInputByDevice(dbRoom structs.Room, dev base.Device, room, bui
 	streamDelimiterIndex := strings.Index(inputDeviceString, "|")
 	if streamDelimiterIndex != -1 {
 		streamChars := []rune(inputDeviceString)
-		streamURL := url.QueryEscape(string(streamChars[(streamDelimiterIndex + 1):len(inputDeviceString)]))
+		streamURL = url.QueryEscape(string(streamChars[(streamDelimiterIndex + 1):len(inputDeviceString)]))
 		inputDeviceString = string(streamChars[0:streamDelimiterIndex])
 		streamParams["streamURL"] = streamURL
 	}
@@ -154,6 +155,16 @@ func generateChangeInputByDevice(dbRoom structs.Room, dev base.Device, room, bui
 	actions = append(actions, action)
 
 	if streamDelimiterIndex != -1 {
+		for i := range actions {
+			if actions[i].Action == "ChangeInput" {
+				for j := range actions[i].EventLog {
+					if actions[i].EventLog[j].Key == "input" {
+						actions[i].EventLog[j].Value = fmt.Sprintf("%s|%s", actions[i].EventLog[j].Value, streamURL)
+					}
+				}
+			}
+		}
+
 		actions = append(actions, base.ActionStructure{
 			Action:              "ChangeStream",
 			GeneratingEvaluator: generatingEvaluator,
@@ -162,7 +173,7 @@ func generateChangeInputByDevice(dbRoom structs.Room, dev base.Device, room, bui
 			Parameters:          streamParams,
 			DeviceSpecific:      true,
 			Overridden:          false,
-			EventLog:            []events.Event{eventInfo},
+			EventLog:            []events.Event{},
 		})
 	}
 

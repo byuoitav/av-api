@@ -341,7 +341,6 @@ func ReplaceParameters(addr string, parameters map[string]string) (string, error
 
 //PublishError creates an Event based on the error message and ActionStructure information, and then sends it to the event messaging system.
 func PublishError(message string, action base.ActionStructure, requestor string) {
-
 	log.L.Errorf("[error] publishing error: %s...", message)
 
 	e := events.Event{
