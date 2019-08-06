@@ -1,9 +1,14 @@
 package statusevaluators
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"reflect"
 	"strings"
+
+	"github.com/byuoitav/common/status"
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/common/db"
@@ -51,5 +56,20 @@ func (p *InputDefault) EvaluateResponse(room structs.Room, label string, value i
 
 	// match the inputID from the port to a device in the db, and return that devices' name
 	device, err := db.GetDB().GetDevice(inputID)
-	return label, device.Name, err
+
+	inputValue := device.Name
+
+	if device.HasRole("STB-Stream-Player") {
+		resp, err := http.Get(fmt.Sprintf("http://%s:8032/stream", device.Address))
+		if err == nil {
+			body, _ := ioutil.ReadAll(resp.Body)
+			var input status.Input
+			err = json.Unmarshal(body, &input)
+			if err != nil {
+			}
+			inputValue = inputValue + "|" + input.Input
+		}
+	}
+
+	return label, inputValue, err
 }
