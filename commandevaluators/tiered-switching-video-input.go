@@ -92,11 +92,13 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(dbRoom structs.Room, room bas
 
 			//Check for a stream url
 			inputDeviceString := d.Input
+
+			var streamURL string
 			streamDelimiterIndex := strings.Index(inputDeviceString, "|")
 			streamParams := make(map[string]string)
 			if streamDelimiterIndex != -1 {
 				streamChars := []rune(inputDeviceString)
-				streamURL := string(streamChars[(streamDelimiterIndex + 1):len(inputDeviceString)])
+				streamURL = string(streamChars[(streamDelimiterIndex + 1):len(inputDeviceString)])
 				inputDeviceString = string(streamChars[0:streamDelimiterIndex])
 				streamParams["streamURL"] = url.QueryEscape(streamURL)
 				log.L.Infof("Device %s to display stream %s", inputDeviceString, streamURL)
@@ -120,18 +122,26 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(dbRoom structs.Room, room bas
 			if streamDelimiterIndex != -1 {
 				streamPlayer := FindDevice(dbRoom.Devices, inputID)
 
+				// change the events to reflect the correct url
+				for i := range actions {
+					if actions[i].Action == "ChangeInput" {
+						for j := range actions[i].EventLog {
+							if actions[i].EventLog[j].Key == "input" {
+								actions[i].EventLog[j].Value = fmt.Sprintf("%s|%s", actions[i].EventLog[j].Value, streamURL)
+							}
+						}
+					}
+				}
+
 				eventInfo := events.Event{
-					Key:   "input",
-					Value: streamPlayer.Name,
+					Key:   "changed-stream",
+					Value: streamURL,
 					User:  requestor,
 				}
 
 				eventInfo.AddToTags(events.CoreState, events.UserGenerated)
-
 				eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(fmt.Sprintf("%s-%s", room.Building, room.Room))
-
 				eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(streamPlayer.ID)
-
 				streamDest := base.DestinationDevice{
 					Device: streamPlayer,
 				}
@@ -145,7 +155,7 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(dbRoom structs.Room, room bas
 					Parameters:          streamParams,
 					DeviceSpecific:      true,
 					Overridden:          false,
-					EventLog:            []events.Event{eventInfo},
+					EventLog:            []events.Event{},
 				})
 			}
 
@@ -385,7 +395,6 @@ func (c *ChangeVideoInputTieredSwitchers) GenerateActionsFromPath(room base.Publ
 
 		//we look for a path from last to cur, assuming that the change has to happen on cur. if cur is a videoswitcher we need to check for an in and out port to generate the action
 		if structs.HasRole(cur.Device, "VideoSwitcher") {
-
 			log.L.Infof("[command_evaluators] Generating action for VS %v", cur.ID)
 			//we assume we have an in and out port
 			tempAction, err := generateActionForSwitch(room, last, cur, path[i+1], path[len(path)-1].Device, path[0].Device.Name, callbackEngine, requestor)
@@ -396,7 +405,6 @@ func (c *ChangeVideoInputTieredSwitchers) GenerateActionsFromPath(room base.Publ
 			toReturn = append(toReturn, tempAction)
 
 		} else if structs.HasRole(cur.Device, "av-ip-receiver") {
-
 			log.L.Infof("[command_evaluators] Generating action for AV/IP Receiver %v", cur.ID)
 			// we look back in the path for the av-ip-reciever, that's our boy
 			for j := i; j > 0; j-- {
