@@ -2,12 +2,12 @@ package commandevaluators
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/byuoitav/common/log"
 
 	"github.com/byuoitav/av-api/base"
-	"github.com/byuoitav/common/db"
 	"github.com/byuoitav/common/structs"
 	"github.com/byuoitav/common/v2/events"
 )
@@ -17,13 +17,14 @@ type ChangeVideoInputDefault struct {
 }
 
 //Evaluate fulfills the CommmandEvaluation evaluate requirement.
-func (p *ChangeVideoInputDefault) Evaluate(room base.PublicRoom, requestor string) (actions []base.ActionStructure, count int, err error) {
+func (p *ChangeVideoInputDefault) Evaluate(dbRoom structs.Room, room base.PublicRoom, requestor string) (actions []base.ActionStructure, count int, err error) {
 	count = 0
 	//RoomWideSetVideoInput
 	if len(room.CurrentVideoInput) > 0 { // Check if the user sent a PUT body changing the current video input
 		var tempActions []base.ActionStructure
 
 		tempActions, err = generateChangeInputByRole(
+			dbRoom,
 			"VideoOut",
 			room.CurrentVideoInput,
 			room.Room,
@@ -45,13 +46,13 @@ func (p *ChangeVideoInputDefault) Evaluate(room base.PublicRoom, requestor strin
 			continue
 		}
 
-		var action base.ActionStructure
+		var action []base.ActionStructure
 
-		action, err = generateChangeInputByDevice(d.Device, room.Room, room.Building, "ChangeVideoInputDefault", requestor)
+		action, err = generateChangeInputByDevice(dbRoom, d.Device, room.Room, room.Building, "ChangeVideoInputDefault", requestor)
 		if err != nil {
 			return
 		}
-		actions = append(actions, action)
+		actions = append(actions, action...)
 	}
 
 	count = len(actions)
@@ -68,21 +69,28 @@ func (p *ChangeVideoInputDefault) GetIncompatibleCommands() (incompatableActions
 	return
 }
 
-func generateChangeInputByDevice(dev base.Device, room, building, generatingEvaluator, requestor string) (action base.ActionStructure, err error) {
+func generateChangeInputByDevice(dbRoom structs.Room, dev base.Device, room, building, generatingEvaluator, requestor string) (actions []base.ActionStructure, err error) {
 	var output structs.Device
 	var input structs.Device
+	var streamURL string
 
-	roomID := fmt.Sprintf("%v-%v", building, room)
-	devices, err := db.GetDB().GetDevicesByRoom(roomID)
-	if err != nil {
-		return
+	inputDeviceString := dev.Input
+
+	//Check for stream delimiter
+	streamParams := make(map[string]string)
+	streamDelimiterIndex := strings.Index(inputDeviceString, "|")
+	if streamDelimiterIndex != -1 {
+		streamChars := []rune(inputDeviceString)
+		streamURL = url.QueryEscape(string(streamChars[(streamDelimiterIndex + 1):len(inputDeviceString)]))
+		inputDeviceString = string(streamChars[0:streamDelimiterIndex])
+		streamParams["streamURL"] = streamURL
 	}
 
 	// get the input/output devices
-	for _, device := range devices {
+	for _, device := range dbRoom.Devices {
 		if strings.EqualFold(device.Name, dev.Name) {
 			output = device
-		} else if strings.EqualFold(device.Name, dev.Input) {
+		} else if strings.EqualFold(device.Name, inputDeviceString) {
 			input = device
 		}
 	}
@@ -125,7 +133,7 @@ func generateChangeInputByDevice(dev base.Device, room, building, generatingEval
 
 	eventInfo := events.Event{
 		TargetDevice: events.GenerateBasicDeviceInfo(output.ID),
-		AffectedRoom: events.GenerateBasicRoomInfo(roomID),
+		AffectedRoom: events.GenerateBasicRoomInfo(dbRoom.ID),
 		Key:          "input",
 		Value:        input.Name,
 		User:         requestor,
@@ -133,7 +141,7 @@ func generateChangeInputByDevice(dev base.Device, room, building, generatingEval
 
 	eventInfo.AddToTags(events.CoreState, events.UserGenerated)
 
-	action = base.ActionStructure{
+	action := base.ActionStructure{
 		Action:              "ChangeInput",
 		GeneratingEvaluator: generatingEvaluator,
 		Device:              output,
@@ -144,21 +152,39 @@ func generateChangeInputByDevice(dev base.Device, room, building, generatingEval
 		EventLog:            []events.Event{eventInfo},
 	}
 
+	actions = append(actions, action)
+
+	if streamDelimiterIndex != -1 {
+		for i := range actions {
+			if actions[i].Action == "ChangeInput" {
+				for j := range actions[i].EventLog {
+					if actions[i].EventLog[j].Key == "input" {
+						actions[i].EventLog[j].Value = fmt.Sprintf("%s|%s", actions[i].EventLog[j].Value, streamURL)
+					}
+				}
+			}
+		}
+
+		actions = append(actions, base.ActionStructure{
+			Action:              "ChangeStream",
+			GeneratingEvaluator: generatingEvaluator,
+			Device:              output,
+			DestinationDevice:   destination,
+			Parameters:          streamParams,
+			DeviceSpecific:      true,
+			Overridden:          false,
+			EventLog:            []events.Event{},
+		})
+	}
+
 	return
 }
 
-func generateChangeInputByRole(role, input, room, building, generatingEvaluator, requestor string) (actions []base.ActionStructure, err error) {
-	roomID := fmt.Sprintf("%v-%v", building, room)
-	devicesToChange, err := db.GetDB().GetDevicesByRoomAndRole(roomID, role)
-	if err != nil {
-		return
-	}
+func generateChangeInputByRole(dbRoom structs.Room, role, input, room, building, generatingEvaluator, requestor string) (actions []base.ActionStructure, err error) {
+	devicesToChange := FilterDevicesByRole(dbRoom.Devices, role)
 
 	// get the input device
-	inputDevice, err := db.GetDB().GetDevice(input)
-	if err != nil {
-		return
-	}
+	inputDevice := FindDevice(dbRoom.Devices, input)
 
 	for _, d := range devicesToChange { // Loop through the devices in the room
 		paramMap := make(map[string]string) // Start building parameter map
@@ -190,7 +216,7 @@ func generateChangeInputByRole(role, input, room, building, generatingEvaluator,
 
 		eventInfo := events.Event{
 			TargetDevice: events.GenerateBasicDeviceInfo(d.ID),
-			AffectedRoom: events.GenerateBasicRoomInfo(roomID),
+			AffectedRoom: events.GenerateBasicRoomInfo(dbRoom.ID),
 			Key:          "input",
 			Value:        inputDevice.Name,
 			User:         requestor,

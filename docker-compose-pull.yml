@@ -207,3 +207,13 @@ services:
       - SYSTEM_ID=$SYSTEM_ID
     network_mode: "host"
     tty: true
+  crestron-switcher-ms:
+    image: byuoitav/crestron-switcher-ms:${DOCKER_HUB_TAG}
+    ports:
+      - "8031:8031"
+    environment:
+      - SYSTEM_ID=$SYSTEM_ID
+      - BYPASS_AUTH=true
+      - ROOM_SYSTEM=true
+    network_mode: "host"
+    tty: true

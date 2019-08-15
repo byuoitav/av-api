@@ -17,46 +17,21 @@ const VolumeDSPCommand = "STATUS_VolumeDSP"
 // VolumeDSP implements the StatusEvaluator struct.
 type VolumeDSP struct{}
 
-// GetDevices returns a list of devices in the given room.
-func (p *VolumeDSP) GetDevices(room structs.Room) ([]structs.Device, error) {
-
-	return room.Devices, nil
-}
-
 // GenerateCommands generates a list of commands for the given devices.
-func (p *VolumeDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand, int, error) {
+func (p *VolumeDSP) GenerateCommands(room structs.Room) ([]StatusCommand, int, error) {
 
-	var audioDevices, mics, dsp []structs.Device
-
-	for _, device := range devices {
-
-		log.L.Infof("[statusevals] Considering device: %s", device.ID)
-
-		if structs.HasRole(device, "Microphone") {
-
-			log.L.Infof("[statusevals] Appending %s to mic array...", device.Name)
-			mics = append(mics, device)
-		} else if structs.HasRole(device, "DSP") {
-
-			log.L.Infof("[statusevals] Appending %s to DSP array...", device.Name)
-			dsp = append(dsp, device)
-		} else if structs.HasRole(device, "AudioOut") {
-
-			log.L.Infof("[statusevals] Appending %s to audio devices array...", device.Name)
-			audioDevices = append(audioDevices, device)
-		} else {
-			continue
-		}
-	}
+	audioDevices := FilterDevicesByRole(room.Devices, "AudioOut")
+	dsp := FilterDevicesByRole(room.Devices, "DSP")
+	mics := FilterDevicesByRole(room.Devices, "Microphone")
 
 	commands, count, err := generateStandardStatusCommand(audioDevices, VolumeDSPEvaluator, VolumeDefaultCommand)
 	if err != nil {
-		errorMessage := "[statusevals] Could not generate " + VolumeDSPCommand + "commands for audio devices: " + err.Error()
+		errorMessage := "[statusevals] Could not generate " + VolumeDefaultCommand + "commands for audio devices: " + err.Error()
 		log.L.Error(errorMessage)
 		return []StatusCommand{}, 0, errors.New(errorMessage)
 	}
 
-	micCommands, c, err := generateMicStatusCommands(mics, VolumeDSPEvaluator, VolumeDSPCommand)
+	micCommands, c, err := generateMicStatusCommands(room, mics, VolumeDSPEvaluator, VolumeDSPCommand)
 	if err != nil {
 		errorMessage := "[statusevals] Could not generate " + VolumeDSPCommand + "commands for microphones: " + err.Error()
 		log.L.Error(errorMessage)
@@ -66,7 +41,7 @@ func (p *VolumeDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand,
 	count += c
 	commands = append(commands, micCommands...)
 
-	dspCommands, c, err := generateDSPStatusCommands(dsp, VolumeDSPEvaluator, VolumeDSPCommand)
+	dspCommands, c, err := generateDSPStatusCommands(room, dsp, VolumeDSPEvaluator, VolumeDSPCommand)
 	if err != nil {
 		errorMessage := "[statusevals] Could not generate " + VolumeDSPCommand + "commands for DSP: " + err.Error()
 		log.L.Error(errorMessage)
@@ -80,7 +55,7 @@ func (p *VolumeDSP) GenerateCommands(devices []structs.Device) ([]StatusCommand,
 }
 
 // EvaluateResponse processes the response information that is given.
-func (p *VolumeDSP) EvaluateResponse(label string, value interface{}, source structs.Device, destination base.DestinationDevice) (string, interface{}, error) {
+func (p *VolumeDSP) EvaluateResponse(room structs.Room, label string, value interface{}, source structs.Device, destination base.DestinationDevice) (string, interface{}, error) {
 
 	const ScaleFactor = 3
 	const MINIMUM = 45

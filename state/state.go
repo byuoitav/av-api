@@ -34,7 +34,7 @@ func GetRoomState(building string, roomName string) (base.PublicRoom, error) {
 		return base.PublicRoom{}, err
 	}
 
-	roomStatus, err := EvaluateResponses(responses, count)
+	roomStatus, err := EvaluateResponses(room, responses, count)
 	if err != nil {
 		return base.PublicRoom{}, err
 	}
@@ -72,7 +72,7 @@ func SetRoomState(target base.PublicRoom, requestor string) (base.PublicRoom, er
 	}
 
 	//here's where we then pass that information through so that we can make a decent decision.
-	report, err := EvaluateResponses(responses, count)
+	report, err := EvaluateResponses(room, responses, count)
 	if err != nil {
 		return base.PublicRoom{}, err
 	}

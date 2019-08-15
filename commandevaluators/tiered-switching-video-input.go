@@ -3,6 +3,7 @@ package commandevaluators
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/byuoitav/common/inputgraph"
@@ -25,7 +26,7 @@ type ChangeVideoInputTieredSwitchers struct {
 }
 
 //Evaluate fulfills the CommmandEvaluation evaluate requirement
-func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
+func (c *ChangeVideoInputTieredSwitchers) Evaluate(dbRoom structs.Room, room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 	//so first we need to go through and see if anyone even wants a piece of us, is there an 'input' field that isn't empty.
 
 	has := (len(room.CurrentVideoInput) > 0)
@@ -59,14 +60,8 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 	}
 
 	//get all the devices from the room
-	roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
-	devices, err := db.GetDB().GetDevicesByRoom(roomID)
-	if err != nil {
-		log.L.Infof(color.HiRedString("[command_evaluators] There was an issue getting the devices from the room: %v", err.Error()))
-		return []base.ActionStructure{}, 0, err
-	}
 
-	graph, err := inputgraph.BuildGraph(devices, "video")
+	graph, err := inputgraph.BuildGraph(dbRoom.Devices, "video")
 	if err != nil {
 		return []base.ActionStructure{}, 0, err
 	}
@@ -80,7 +75,7 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 
 	//if we have a room wide input we need to validate that we can reach all of the outputs with the indicated input.
 	if len(room.CurrentVideoInput) > 0 {
-		actions, _, err = c.ChangeAll(room, room.CurrentVideoInput, devices, graph, callbackEngine, requestor)
+		actions, _, err = c.ChangeAll(room, room.CurrentVideoInput, dbRoom.Devices, graph, callbackEngine, requestor)
 		if err != nil {
 			return []base.ActionStructure{}, 0, err
 		}
@@ -93,8 +88,23 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 	for _, d := range room.Displays {
 		if len(d.Input) > 0 {
 			// get id's of from names of devices
-			outputID := getDeviceIDFromShortname(d.Name, devices)
-			inputID := getDeviceIDFromShortname(d.Input, devices)
+			outputID := getDeviceIDFromShortname(d.Name, dbRoom.Devices)
+
+			//Check for a stream url
+			inputDeviceString := d.Input
+
+			var streamURL string
+			streamDelimiterIndex := strings.Index(inputDeviceString, "|")
+			streamParams := make(map[string]string)
+			if streamDelimiterIndex != -1 {
+				streamChars := []rune(inputDeviceString)
+				streamURL = string(streamChars[(streamDelimiterIndex + 1):len(inputDeviceString)])
+				inputDeviceString = string(streamChars[0:streamDelimiterIndex])
+				streamParams["streamURL"] = url.QueryEscape(streamURL)
+				log.L.Infof("Device %s to display stream %s", inputDeviceString, streamURL)
+			}
+
+			inputID := getDeviceIDFromShortname(inputDeviceString, dbRoom.Devices)
 
 			// validate those devices existed
 			if len(inputID) == 0 || len(outputID) == 0 {
@@ -109,12 +119,49 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 			log.L.Infof("%v ChangeInput actions generated to change input on %s to %s", len(tmpActions), outputID, inputID)
 			actions = append(actions, tmpActions...)
 
+			if streamDelimiterIndex != -1 {
+				streamPlayer := FindDevice(dbRoom.Devices, inputID)
+
+				// change the events to reflect the correct url
+				for i := range actions {
+					if actions[i].Action == "ChangeInput" {
+						for j := range actions[i].EventLog {
+							if actions[i].EventLog[j].Key == "input" {
+								actions[i].EventLog[j].Value = fmt.Sprintf("%s|%s", actions[i].EventLog[j].Value, streamURL)
+							}
+						}
+					}
+				}
+
+				eventInfo := events.Event{
+					Key:   "changed-stream",
+					Value: streamURL,
+					User:  requestor,
+				}
+
+				eventInfo.AddToTags(events.CoreState, events.UserGenerated)
+				eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(fmt.Sprintf("%s-%s", room.Building, room.Room))
+				eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(streamPlayer.ID)
+				streamDest := base.DestinationDevice{
+					Device: streamPlayer,
+				}
+
+				log.L.Infof("Generating ChangeStream command for device %s", inputDeviceString)
+				actions = append(actions, base.ActionStructure{
+					Action:              "ChangeStream",
+					GeneratingEvaluator: "ChangeVideoInputTieredSwitcher",
+					Device:              streamPlayer,
+					DestinationDevice:   streamDest,
+					Parameters:          streamParams,
+					DeviceSpecific:      true,
+					Overridden:          false,
+					EventLog:            []events.Event{},
+				})
+			}
+
 			////////////////////////
 			///// MIRROR STUFF /////
-			display, err := db.GetDB().GetDevice(outputID)
-			if err != nil {
-				return []base.ActionStructure{}, 0, err
-			}
+			display := FindDevice(dbRoom.Devices, outputID)
 
 			if structs.HasRole(display, "MirrorMaster") {
 				for _, port := range display.Ports {
@@ -142,8 +189,8 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 	// do the same for the audiodevices
 	for _, d := range room.AudioDevices {
 		if len(d.Input) > 0 {
-			outputID := getDeviceIDFromShortname(d.Name, devices)
-			inputID := getDeviceIDFromShortname(d.Input, devices)
+			outputID := getDeviceIDFromShortname(d.Name, dbRoom.Devices)
+			inputID := getDeviceIDFromShortname(d.Input, dbRoom.Devices)
 
 			if len(inputID) == 0 || len(outputID) == 0 {
 				return []base.ActionStructure{}, 0, fmt.Errorf("[command_evaluators] no device name matching '%s' or '%s' found in the room", d.Name, d.Input)
@@ -162,7 +209,7 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(room base.PublicRoom, request
 	callbackEngine.InChan = make(chan base.StatusPackage, len(actions))
 	callbackEngine.ExpectedCount = len(actions)
 	callbackEngine.ExpectedActionCount = len(actions)
-	callbackEngine.Devices = devices
+	callbackEngine.Devices = dbRoom.Devices
 
 	go callbackEngine.StartAggregator()
 
@@ -192,8 +239,16 @@ func (c *ChangeVideoInputTieredSwitchers) Validate(action base.ActionStructure) 
 		ok = true
 	}
 
-	// returns and error if the ChangeInput command doesn't exist or if the command isn't ChangeInput
-	if !ok || action.Action != "ChangeInput" {
+	streamCheck, _ := CheckCommands(action.Device.Type.Commands, "ChangeStream")
+	if streamCheck {
+		log.L.Info("Hall pass given to the stream player device")
+		ok = true
+	}
+
+	actionCheck := action.Action == "ChangeInput" || action.Action == "ChangeStream"
+
+	// returns an error if the ChangeInput command doesn't exist or if the command isn't ChangeInput or ChangeStream
+	if !ok || !actionCheck {
 		msg := fmt.Sprintf("[command_evaluators] ERROR. %s is an invalid command for %s", action.Action, action.Device.Name)
 		log.L.Error(msg)
 		return errors.New(msg)
@@ -340,7 +395,6 @@ func (c *ChangeVideoInputTieredSwitchers) GenerateActionsFromPath(room base.Publ
 
 		//we look for a path from last to cur, assuming that the change has to happen on cur. if cur is a videoswitcher we need to check for an in and out port to generate the action
 		if structs.HasRole(cur.Device, "VideoSwitcher") {
-
 			log.L.Infof("[command_evaluators] Generating action for VS %v", cur.ID)
 			//we assume we have an in and out port
 			tempAction, err := generateActionForSwitch(room, last, cur, path[i+1], path[len(path)-1].Device, path[0].Device.Name, callbackEngine, requestor)
@@ -351,7 +405,6 @@ func (c *ChangeVideoInputTieredSwitchers) GenerateActionsFromPath(room base.Publ
 			toReturn = append(toReturn, tempAction)
 
 		} else if structs.HasRole(cur.Device, "av-ip-receiver") {
-
 			log.L.Infof("[command_evaluators] Generating action for AV/IP Receiver %v", cur.ID)
 			// we look back in the path for the av-ip-reciever, that's our boy
 			for j := i; j > 0; j-- {

@@ -1,10 +1,15 @@
 package statusevaluators
 
 import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"net/http"
 	"strings"
 	"time"
 
 	"github.com/byuoitav/common/db"
+	"github.com/byuoitav/common/status"
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/av-api/statusevaluators/pathfinder"
@@ -20,13 +25,8 @@ const InputTieredSwitcherEvaluator = "STATUS_Tiered_Switching"
 type InputTieredSwitcher struct {
 }
 
-// GetDevices returns a list of devices in the given room.
-func (p *InputTieredSwitcher) GetDevices(room structs.Room) ([]structs.Device, error) {
-	return room.Devices, nil
-}
-
 // GenerateCommands generates a list of commands for the given devices.
-func (p *InputTieredSwitcher) GenerateCommands(devs []structs.Device) ([]StatusCommand, int, error) {
+func (p *InputTieredSwitcher) GenerateCommands(room structs.Room) ([]StatusCommand, int, error) {
 	//look at all the output devices and switchers in the room. we need to generate a status input for every port on every video switcher and every output device.
 	log.L.Debugf("Generating command from the STATUS_TIERED_SWITCHER")
 
@@ -37,11 +37,11 @@ func (p *InputTieredSwitcher) GenerateCommands(devs []structs.Device) ([]StatusC
 	var count int
 
 	log.L.Debugf("Devices to evaluate: ")
-	for _, d := range devs {
+	for _, d := range room.Devices {
 		log.L.Debugf("\t %v", d.ID)
 	}
 
-	for _, d := range devs {
+	for _, d := range room.Devices {
 		isVS := structs.HasRole(d, "VideoSwitcher")
 		cmd := d.GetCommandByID("STATUS_Input")
 		if len(cmd.ID) == 0 {
@@ -114,7 +114,7 @@ func (p *InputTieredSwitcher) GenerateCommands(devs []structs.Device) ([]StatusC
 	callbackEngine.InChan = make(chan base.StatusPackage, len(toReturn))
 	callbackEngine.ExpectedCount = count
 	callbackEngine.ExpectedActionCount = len(toReturn)
-	callbackEngine.Devices = devs
+	callbackEngine.Devices = room.Devices
 
 	for id, port := range mirrorEdges {
 		device, _ := db.GetDB().GetDevice(id)
@@ -131,7 +131,7 @@ func (p *InputTieredSwitcher) GenerateCommands(devs []structs.Device) ([]StatusC
 }
 
 // EvaluateResponse processes the response information that is given.
-func (p *InputTieredSwitcher) EvaluateResponse(str string, face interface{}, dev structs.Device, destDev base.DestinationDevice) (string, interface{}, error) {
+func (p *InputTieredSwitcher) EvaluateResponse(room structs.Room, str string, face interface{}, dev structs.Device, destDev base.DestinationDevice) (string, interface{}, error) {
 	return "", nil, nil
 
 }
@@ -191,17 +191,31 @@ func (p *TieredSwitcherCallback) GetInputPaths(pathfinder pathfinder.SignalPathf
 			log.L.Warnf("No device by name %v in the device list for the callback", k)
 		}
 
+		inputValue := v.Name
+
+		if v.HasRole("STB-Stream-Player") {
+			resp, err := http.Get(fmt.Sprintf("http://%s:8032/stream", v.Address))
+			if err == nil {
+				body, _ := ioutil.ReadAll(resp.Body)
+				var input status.Input
+				err = json.Unmarshal(body, &input)
+				if err != nil {
+				}
+				inputValue = inputValue + "|" + input.Input
+			}
+		}
+
 		destDev := base.DestinationDevice{
 			Device:      outDev,
 			AudioDevice: structs.HasRole(outDev, "AudioOut"),
 			Display:     structs.HasRole(outDev, "VideoOut"),
 		}
-		log.L.Infof(color.HiYellowString("[callback] Sending input %v -> %v", v.Name, k))
+		log.L.Infof(color.HiYellowString("[callback] Sending input %v -> %v", inputValue, k))
 
 		p.OutChan <- base.StatusPackage{
 			Dest:  destDev,
 			Key:   "input",
-			Value: v.Name,
+			Value: inputValue,
 		}
 	}
 	log.L.Info(color.HiYellowString("[callback] Done with evaluation. Closing."))

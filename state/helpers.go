@@ -274,7 +274,7 @@ func ExecuteCommand(action base.ActionStructure, url, requestor string) se.Statu
 
 	err = json.Unmarshal(body, &status)
 	if err != nil {
-		message := fmt.Sprintf("could not unmarshal response struct: %s", err.Error())
+		message := fmt.Sprintf("could not unmarshal response struct: %s\n\nbody: %s\n", err.Error(), body)
 		PublishError(message, action, requestor)
 	}
 	response := se.StatusResponse{
@@ -341,7 +341,6 @@ func ReplaceParameters(addr string, parameters map[string]string) (string, error
 
 //PublishError creates an Event based on the error message and ActionStructure information, and then sends it to the event messaging system.
 func PublishError(message string, action base.ActionStructure, requestor string) {
-
 	log.L.Errorf("[error] publishing error: %s...", message)
 
 	e := events.Event{

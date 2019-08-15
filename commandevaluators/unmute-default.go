@@ -18,7 +18,7 @@ type UnMuteDefault struct {
 }
 
 // Evaluate generates a list of actions based on the room information.
-func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
+func (p *UnMuteDefault) Evaluate(dbRoom structs.Room, room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 	log.L.Info("[command_evaluators] Evaluating UnMute command.")
 
 	var actions []base.ActionStructure
@@ -40,10 +40,7 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 
 		log.L.Info("[command_evaluators] Room-wide UnMute request recieved. Retrieving all devices")
 
-		devices, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "AudioOut")
-		if err != nil {
-			return []base.ActionStructure{}, 0, err
-		}
+		devices := FilterDevicesByRole(dbRoom.Devices, "AudioOut")
 
 		log.L.Info("[command_evaluators] UnMuting all devices in room.")
 
@@ -120,10 +117,7 @@ func (p *UnMuteDefault) Evaluate(room base.PublicRoom, requestor string) ([]base
 		if audioDevice.Muted != nil && !*audioDevice.Muted {
 
 			deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, audioDevice.Name)
-			device, err := db.GetDB().GetDevice(deviceID)
-			if err != nil {
-				return []base.ActionStructure{}, 0, err
-			}
+			device := FindDevice(dbRoom.Devices, deviceID)
 
 			eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
 

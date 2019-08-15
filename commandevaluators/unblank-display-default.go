@@ -18,7 +18,7 @@ type UnBlankDisplayDefault struct {
 }
 
 //Evaluate creates UnBlank actions for the entire room and for individual devices
-func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
+func (p *UnBlankDisplayDefault) Evaluate(dbRoom structs.Room, room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 
 	var actions []base.ActionStructure
 
@@ -36,11 +36,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 
 		log.L.Info("[command_evaluators] Room-wide UnBlank request received. Retrieving all devices.")
 
-		roomID := fmt.Sprintf("%v-%v", room.Building, room.Room)
-		devices, err := db.GetDB().GetDevicesByRoomAndRole(roomID, "VideoOut")
-		if err != nil {
-			return []base.ActionStructure{}, 0, err
-		}
+		devices := FilterDevicesByRole(dbRoom.Devices, "VideoOut")
 
 		log.L.Info("[command_evaluators] Un-Blanking all displays in room.")
 
@@ -79,7 +75,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 								return actions, len(actions), err
 							}
 
-							cmd := DX.GetCommandByID("UnblankDisplay")
+							cmd := DX.GetCommandByID("UnBlankDisplay")
 							if len(cmd.ID) < 1 {
 								continue
 							}
@@ -116,10 +112,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 		if display.Blanked != nil && !*display.Blanked {
 
 			deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, display.Name)
-			device, err := db.GetDB().GetDevice(deviceID)
-			if err != nil {
-				return []base.ActionStructure{}, 0, err
-			}
+			device := FindDevice(dbRoom.Devices, deviceID)
 
 			eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(fmt.Sprintf("%s-%s", room.Building, room.Room))
 
@@ -150,7 +143,7 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 							return actions, len(actions), err
 						}
 
-						cmd := DX.GetCommandByID("UnblankDisplay")
+						cmd := DX.GetCommandByID("UnBlankDisplay")
 						if len(cmd.ID) < 1 {
 							continue
 						}
@@ -162,11 +155,11 @@ func (p *UnBlankDisplayDefault) Evaluate(room base.PublicRoom, requestor string)
 						eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(DX.ID)
 
 						actions = append(actions, base.ActionStructure{
-							Action:              "UnBlankDisplay",
+							Action:              "UnblankDisplay",
+							GeneratingEvaluator: "UnBlankDisplayDefault",
 							Device:              DX,
 							DestinationDevice:   destination,
-							GeneratingEvaluator: "UnBlankDisplayDefault",
-							DeviceSpecific:      false,
+							DeviceSpecific:      true,
 							EventLog:            []events.Event{eventInfo},
 						})
 					}
