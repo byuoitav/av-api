@@ -3,6 +3,7 @@ package statusevaluators
 import (
 	"errors"
 	"strconv"
+	"strings"
 
 	"github.com/byuoitav/av-api/base"
 	"github.com/byuoitav/common/log"
@@ -113,7 +114,7 @@ func generateMicStatusCommands(room structs.Room, mics []structs.Device, evaluat
 				statusCommand := dsp[0].GetCommandByID(command)
 
 				parameters := make(map[string]string)
-				parameters["input"] = port.ID
+				parameters["input"] = strings.Replace(port.ID, "OUT", "", 1)
 				parameters["address"] = dsp[0].Address
 
 				//issue status command to DSP
@@ -163,7 +164,6 @@ func generateDSPStatusCommands(room structs.Room, dsp []structs.Device, evaluato
 
 	//one command for each port that's not a mic
 	for _, port := range dsp[0].Ports {
-
 		device := FindDevice(room.Devices, port.SourceDevice)
 
 		if !structs.HasRole(device, "Microphone") {
