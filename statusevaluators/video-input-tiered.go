@@ -54,10 +54,13 @@ func (p *InputTieredSwitcher) GenerateCommands(room structs.Room) ([]StatusComma
 			log.L.Debugf("Skipping %v for input commands, does not have STATUS_Input command", d.ID)
 			continue
 		}
-		if (!d.Type.Output && !isVS && !structs.HasRole(d, "av-ip-receiver")) || structs.HasRole(d, "Microphone") || structs.HasRole(d, "DSP") { //we don't care about it
-			log.L.Debugf("Skipping %v for input commands, incorrect roles.", d.ID)
-			continue
-		}
+
+		/*
+			if !d.Type.Output && !isVS && !structs.HasRole(d, "av-ip-receiver") { //we don't care about it
+				log.L.Debugf("Skipping %v for input commands, incorrect roles.", d.ID)
+				continue
+			}
+		*/
 
 		if isVS {
 			log.L.Info("[statusevals] Identified video switcher, generating commands...")
