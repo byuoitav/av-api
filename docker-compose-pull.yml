@@ -194,6 +194,7 @@ services:
       - BYPASS_AUTH=true
       - LOCAL_ENVIRONMENT=$LOCAL_ENVIRONMENT
       - SYSTEM_ID=$SYSTEM_ID
+      - ATLONA_AUTH=$ATLONA_AUTH
       - PI_HOSTNAME=$SYSTEM_ID
     network_mode: "host"
     tty: true
