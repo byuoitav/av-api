@@ -138,9 +138,21 @@ func EvaluateResponses(room structs.Room, responses []se.StatusResponse, count i
 					continue
 				}
 
-				if _, ok := responsesByDestinationDevice[resp.DestinationDevice.ID]; ok {
-					responsesByDestinationDevice[resp.DestinationDevice.ID].Status[k] = v
+				if tmp, ok := responsesByDestinationDevice[resp.DestinationDevice.ID]; ok {
+					tmp.Status[k] = v
 					doneCount++
+
+					//MB 2019-10-23 - make sure that the AudioDevice and Display fields are correct for devices that may be both
+					//this is particularly for devices that are both microphones (AudioDevice, but not a display on that role), but
+					//also a display
+					if resp.DestinationDevice.AudioDevice {
+						tmp.DestinationDevice.AudioDevice = true
+					}
+					if resp.DestinationDevice.Display {
+						tmp.DestinationDevice.Display = true
+					}
+
+					responsesByDestinationDevice[resp.DestinationDevice.ID] = tmp
 				} else {
 					newMap := make(map[string]interface{})
 					newMap[k] = v
@@ -175,9 +187,21 @@ func EvaluateResponses(room structs.Room, responses []se.StatusResponse, count i
 
 		//pull something out of the response channel
 		case val := <-returnChan:
-			if _, ok := responsesByDestinationDevice[val.Dest.ID]; ok {
-				responsesByDestinationDevice[val.Dest.ID].Status[val.Key] = val.Value
+			if tmp, ok := responsesByDestinationDevice[val.Dest.ID]; ok {
+				tmp.Status[val.Key] = val.Value
 				doneCount++
+
+				//MB 2019-10-23 - make sure that the AudioDevice and Display fields are correct for devices that may be both
+				//this is particularly for devices that are both microphones (AudioDevice, but not a display on that role), but
+				//also a display
+				if val.Dest.AudioDevice {
+					tmp.DestinationDevice.AudioDevice = true
+				}
+				if val.Dest.Display {
+					tmp.DestinationDevice.Display = true
+				}
+
+				responsesByDestinationDevice[val.Dest.ID] = tmp
 			} else {
 				newMap := make(map[string]interface{})
 				newMap[val.Key] = val.Value
