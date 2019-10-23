@@ -109,6 +109,7 @@ func generateMicStatusCommands(room structs.Room, mics []structs.Device, evaluat
 				destinationDevice := base.DestinationDevice{
 					Device:      mic,
 					AudioDevice: true,
+					Display:     mic.HasRole("VideoOut"),
 				}
 
 				statusCommand := dsp[0].GetCommandByID(command)
@@ -159,6 +160,7 @@ func generateDSPStatusCommands(room structs.Room, dsp []structs.Device, evaluato
 	destinationDevice := base.DestinationDevice{
 		Device:      dsp[0],
 		AudioDevice: true,
+		Display:     dsp[0].HasRole("VideoOut"),
 	}
 	var count int
 
