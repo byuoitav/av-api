@@ -56,7 +56,6 @@ func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse
 
 	log.L.Infof("%s", color.HiBlueString("[state] building device map..."))
 	for _, command := range commands {
-
 		//base.Log("[state] command: %s against device %s, destination device: %s, parameters: %v", command.Action.Name, command.Device.Name, command.DestinationDevice.Device.Name, command.Parameters)
 		_, present := commandMap[command.Device.ID]
 		if !present {
@@ -98,10 +97,11 @@ func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse
 				cause := events.Error
 				base.PublishError(msg, cause, output.SourceDevice.ID)
 			}
-			//base.Log("[state] appending status: %v of %s to output", output.Status, output.DestinationDevice.Name)
+
 			outputs = append(outputs, output)
 		}
 	}
+
 	return
 }
 
@@ -177,6 +177,7 @@ func EvaluateResponses(room structs.Room, responses []se.StatusResponse, count i
 		case val := <-returnChan:
 			if _, ok := responsesByDestinationDevice[val.Dest.ID]; ok {
 				responsesByDestinationDevice[val.Dest.ID].Status[val.Key] = val.Value
+
 				doneCount++
 			} else {
 				newMap := make(map[string]interface{})

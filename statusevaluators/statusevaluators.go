@@ -56,7 +56,6 @@ func generateStandardStatusCommand(devices []structs.Device, evaluatorName strin
 				//build destination device
 				var destinationDevice base.DestinationDevice
 				for _, role := range device.Roles {
-
 					if role.ID == "AudioOut" {
 						destinationDevice.AudioDevice = true
 					}
@@ -64,7 +63,6 @@ func generateStandardStatusCommand(devices []structs.Device, evaluatorName strin
 					if role.ID == "VideoOut" {
 						destinationDevice.Display = true
 					}
-
 				}
 
 				destinationDevice.Device = device
@@ -115,6 +113,7 @@ func generateStandardStatusCommand(devices []structs.Device, evaluatorName strin
 		}
 
 	}
+
 	return output, count, nil
 
 }
