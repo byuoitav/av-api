@@ -56,7 +56,6 @@ func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse
 
 	log.L.Infof("%s", color.HiBlueString("[state] building device map..."))
 	for _, command := range commands {
-
 		//base.Log("[state] command: %s against device %s, destination device: %s, parameters: %v", command.Action.Name, command.Device.Name, command.DestinationDevice.Device.Name, command.Parameters)
 		_, present := commandMap[command.Device.ID]
 		if !present {
@@ -98,10 +97,11 @@ func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse
 				cause := events.Error
 				base.PublishError(msg, cause, output.SourceDevice.ID)
 			}
-			//base.Log("[state] appending status: %v of %s to output", output.Status, output.DestinationDevice.Name)
+
 			outputs = append(outputs, output)
 		}
 	}
+
 	return
 }
 
@@ -138,21 +138,9 @@ func EvaluateResponses(room structs.Room, responses []se.StatusResponse, count i
 					continue
 				}
 
-				if tmp, ok := responsesByDestinationDevice[resp.DestinationDevice.ID]; ok {
-					tmp.Status[k] = v
+				if _, ok := responsesByDestinationDevice[resp.DestinationDevice.ID]; ok {
+					responsesByDestinationDevice[resp.DestinationDevice.ID].Status[k] = v
 					doneCount++
-
-					//MB 2019-10-23 - make sure that the AudioDevice and Display fields are correct for devices that may be both
-					//this is particularly for devices that are both microphones (AudioDevice, but not a display on that role), but
-					//also a display
-					if resp.DestinationDevice.AudioDevice {
-						tmp.DestinationDevice.AudioDevice = true
-					}
-					if resp.DestinationDevice.Display {
-						tmp.DestinationDevice.Display = true
-					}
-
-					responsesByDestinationDevice[resp.DestinationDevice.ID] = tmp
 				} else {
 					newMap := make(map[string]interface{})
 					newMap[k] = v
@@ -187,21 +175,10 @@ func EvaluateResponses(room structs.Room, responses []se.StatusResponse, count i
 
 		//pull something out of the response channel
 		case val := <-returnChan:
-			if tmp, ok := responsesByDestinationDevice[val.Dest.ID]; ok {
-				tmp.Status[val.Key] = val.Value
+			if _, ok := responsesByDestinationDevice[val.Dest.ID]; ok {
+				responsesByDestinationDevice[val.Dest.ID].Status[val.Key] = val.Value
+
 				doneCount++
-
-				//MB 2019-10-23 - make sure that the AudioDevice and Display fields are correct for devices that may be both
-				//this is particularly for devices that are both microphones (AudioDevice, but not a display on that role), but
-				//also a display
-				if val.Dest.AudioDevice {
-					tmp.DestinationDevice.AudioDevice = true
-				}
-				if val.Dest.Display {
-					tmp.DestinationDevice.Display = true
-				}
-
-				responsesByDestinationDevice[val.Dest.ID] = tmp
 			} else {
 				newMap := make(map[string]interface{})
 				newMap[val.Key] = val.Value
