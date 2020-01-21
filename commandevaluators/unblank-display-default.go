@@ -143,7 +143,7 @@ func (p *UnBlankDisplayDefault) Evaluate(dbRoom structs.Room, room base.PublicRo
 							return actions, len(actions), err
 						}
 
-						cmd := DX.GetCommandByID("UnBlankDisplay")
+						cmd := DX.GetCommandByID("UnblankDisplay")
 						if len(cmd.ID) < 1 {
 							continue
 						}
