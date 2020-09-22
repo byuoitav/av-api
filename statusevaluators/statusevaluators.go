@@ -92,14 +92,19 @@ func generateStandardStatusCommand(devices []structs.Device, evaluatorName strin
 								continue
 							}
 
-							destinationDevice.Device = DX
+							params := make(map[string]string)
+							params["address"] = DX.Address
 
-							log.L.Infof("[statusevals] Adding command: %s to action list with device %s", command.ID, DX.ID)
+							destDevice := base.DestinationDevice{
+								Device: DX,
+							}
+
+							log.L.Infof("[statusevals] Adding command: %s to action list with device %s", cmd.ID, DX.ID)
 							output = append(output, StatusCommand{
-								Action:            command,
+								Action:            cmd,
 								Device:            DX,
-								Parameters:        parameters,
-								DestinationDevice: destinationDevice,
+								Parameters:        params,
+								DestinationDevice: destDevice,
 								Generator:         evaluatorName,
 							})
 							count++
