@@ -196,13 +196,16 @@ func (p *PowerOnDefault) evaluateDevice(device base.Device,
 						log.L.Info("[command_evaluators] Adding device %+v", DX.Name)
 
 						eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(roomID)
-
 						eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(DX.ID)
+
+						dest := base.DestinationDevice{
+							Device: DX,
+						}
 
 						actions = append(actions, base.ActionStructure{
 							Action:              "PowerOn",
 							Device:              DX,
-							DestinationDevice:   destination,
+							DestinationDevice:   dest,
 							GeneratingEvaluator: "PowerOnDefault",
 							DeviceSpecific:      true,
 							EventLog:            []events.Event{eventInfo},
