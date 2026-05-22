@@ -3,8 +3,8 @@ package statusevaluators
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
-	"net/http"
 	"strings"
 	"time"
 
@@ -197,9 +197,10 @@ func (p *TieredSwitcherCallback) GetInputPaths(pathfinder pathfinder.SignalPathf
 		inputValue := v.Name
 
 		if v.HasRole("STB-Stream-Player") {
-			resp, err := http.Get(fmt.Sprintf("http://%s:8032/stream", v.Address))
+			resp, err := streamStatusClient.Get(fmt.Sprintf("http://%s:8032/stream", v.Address))
 			if err == nil {
-				body, _ := ioutil.ReadAll(resp.Body)
+				body, _ := ioutil.ReadAll(io.LimitReader(resp.Body, 1<<20))
+				resp.Body.Close()
 				var input status.Input
 				err = json.Unmarshal(body, &input)
 				if err != nil {

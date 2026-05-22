@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -76,15 +77,18 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 			continue
 		}
 
-		defer response.Body.Close()
-
-		body, gerr := ioutil.ReadAll(response.Body)
+		body, gerr := ioutil.ReadAll(io.LimitReader(response.Body, 1<<20))
+		closeErr := response.Body.Close()
 		if gerr != nil {
 			msg := fmt.Sprintf("unable to read response from %s for device %s: %s", url, command.Device.Name, gerr.Error())
 			log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
 			output.ErrorMessage = &msg
 			outputs = append(outputs, output)
 			continue
+		}
+		if closeErr != nil {
+			msg := fmt.Sprintf("unable to close response from %s for device %s: %s", url, command.Device.Name, closeErr.Error())
+			log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
 		}
 
 		//check to see if it returned a non 200 response, if so, we need to build the error.
@@ -247,7 +251,7 @@ func ExecuteCommand(action base.ActionStructure, url, requestor string) se.Statu
 
 		log.L.Errorf("%s", color.HiRedString("[error] non-200 response code: %v", resp.StatusCode))
 
-		b, err := ioutil.ReadAll(resp.Body)
+		b, err := ioutil.ReadAll(io.LimitReader(resp.Body, 1<<20))
 		if err != nil {
 			log.L.Errorf("%s", color.HiRedString("[error] problem reading the response: %s", err.Error()))
 		}
@@ -266,7 +270,7 @@ func ExecuteCommand(action base.ActionStructure, url, requestor string) se.Statu
 
 	log.L.Infof("%s", color.HiGreenString("[state] sent command %s to device %s.", action.Action, action.Device.Name))
 	status := make(map[string]interface{})
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
 		errorString := fmt.Sprintf("could not read response body: %s", err.Error())
 		PublishError(errorString, action, requestor)

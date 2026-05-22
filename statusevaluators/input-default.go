@@ -3,10 +3,12 @@ package statusevaluators
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/byuoitav/common/status"
 
@@ -25,6 +27,8 @@ const DefaultInputCommand = "STATUS_Input"
 // InputDefault implements the StatusEvaluator struct.
 type InputDefault struct {
 }
+
+var streamStatusClient = &http.Client{Timeout: time.Second}
 
 // GenerateCommands generates a list of commands for the given devices.
 func (p *InputDefault) GenerateCommands(room structs.Room) ([]StatusCommand, int, error) {
@@ -60,9 +64,10 @@ func (p *InputDefault) EvaluateResponse(room structs.Room, label string, value i
 	inputValue := device.Name
 
 	if device.HasRole("STB-Stream-Player") {
-		resp, err := http.Get(fmt.Sprintf("http://%s:8032/stream", device.Address))
+		resp, err := streamStatusClient.Get(fmt.Sprintf("http://%s:8032/stream", device.Address))
 		if err == nil {
-			body, _ := ioutil.ReadAll(resp.Body)
+			body, _ := ioutil.ReadAll(io.LimitReader(resp.Body, 1<<20))
+			resp.Body.Close()
 			var input status.Input
 			err = json.Unmarshal(body, &input)
 			if err != nil {
