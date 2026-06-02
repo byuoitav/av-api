@@ -209,9 +209,11 @@ func (c *ChangeVideoInputTieredSwitchers) Evaluate(dbRoom structs.Room, room bas
 	callbackEngine.InChan = make(chan base.StatusPackage, len(actions))
 	callbackEngine.ExpectedCount = len(actions)
 	callbackEngine.ExpectedActionCount = len(actions)
-	callbackEngine.Devices = dbRoom.Devices
+	callbackEngine.SetDevices(dbRoom.Devices)
 
-	go callbackEngine.StartAggregator()
+	if len(actions) > 0 {
+		go callbackEngine.StartAggregator()
+	}
 
 	return actions, len(actions), nil
 
