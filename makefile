@@ -1,110 +1,117 @@
-# vars
-ORG=$(shell echo $(CIRCLE_PROJECT_USERNAME))
-BRANCH=$(shell echo $(CIRCLE_BRANCH))
-NAME=$(shell echo $(CIRCLE_PROJECT_REPONAME))
+NAME := av-api
+OWNER := byuoitav
+PKG := github.com/${OWNER}/${NAME}
+DOCKER_URL := docker.pkg.github.com
+DOCKER_PKG := ${DOCKER_URL}/${OWNER}/${NAME}
 
-ifeq ($(NAME),)
-NAME := $(shell basename "$(PWD)")
+# version:
+# use the git tag, if this commit
+# doesn't have a tag, use the git hash
+COMMIT_HASH := $(shell git rev-parse --short HEAD)
+TAG := $(shell git rev-parse --short HEAD)
+ifneq ($(shell git describe --exact-match --tags HEAD 2> /dev/null),)
+	TAG = $(shell git describe --exact-match --tags HEAD)
 endif
 
-ifeq ($(ORG),)
-ORG=byuoitav
+PRD_TAG_REGEX := "v[0-9]+\.[0-9]+\.[0-9]+"
+DEV_TAG_REGEX := "v[0-9]+\.[0-9]+\.[0-9]+-.+"
+
+# go stuff
+PKG_LIST := $(shell go list ${PKG}/...)
+
+.PHONY: all deps build test test-cov lint clean docker deploy run
+
+all: clean build
+
+test:
+	@go test -v ${PKG_LIST}
+
+test-cov:
+	@go test -coverprofile=coverage.txt -covermode=atomic ${PKG_LIST}
+
+lint:
+	@golangci-lint run --tests=false
+
+deps:
+	@echo Downloading dependencies...
+	@go mod download
+
+build: deps
+	@mkdir -p dist
+
+	@echo
+	@echo Building ${NAME} for linux-amd64...
+	@env CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o dist/${NAME}-bin
+
+	@echo
+	@echo Building ${NAME} for linux-arm...
+	@env CGO_ENABLED=0 GOOS=linux GOARCH=arm go build -v -o dist/${NAME}-arm
+
+	@cp version.txt dist/version.txt
+
+	@echo
+	@echo Build output is located in ./dist/.
+
+run:
+	@go run .
+
+docker: clean build
+ifeq (${COMMIT_HASH}, ${TAG})
+	@echo Building dev containers with tag ${COMMIT_HASH}
+
+	@echo Building container ${DOCKER_PKG}/${NAME}-dev:${COMMIT_HASH}
+	@docker build -f dockerfile --build-arg NAME=${NAME} -t ${DOCKER_PKG}/${NAME}-dev:${COMMIT_HASH} dist
+
+	@echo Building container ${DOCKER_PKG}/rpi-${NAME}-dev:${COMMIT_HASH}
+	@docker build -f dockerfile-arm --build-arg NAME=${NAME} -t ${DOCKER_PKG}/rpi-${NAME}-dev:${COMMIT_HASH} dist
+else ifneq ($(shell echo ${TAG} | grep -x -E ${DEV_TAG_REGEX}),)
+	@echo Building dev containers with tag ${TAG}
+
+	@echo Building container ${DOCKER_PKG}/${NAME}-dev:${TAG}
+	@docker build -f dockerfile --build-arg NAME=${NAME} -t ${DOCKER_PKG}/${NAME}-dev:${TAG} dist
+
+	@echo Building container ${DOCKER_PKG}/rpi-${NAME}-dev:${TAG}
+	@docker build -f dockerfile-arm --build-arg NAME=${NAME} -t ${DOCKER_PKG}/rpi-${NAME}-dev:${TAG} dist
+else ifneq ($(shell echo ${TAG} | grep -x -E ${PRD_TAG_REGEX}),)
+	@echo Building prd containers with tag ${TAG}
+
+	@echo Building container ${DOCKER_PKG}/${NAME}:${TAG}
+	@docker build -f dockerfile --build-arg NAME=${NAME} -t ${DOCKER_PKG}/${NAME}:${TAG} dist
+
+	@echo Building container ${DOCKER_PKG}/rpi-${NAME}:${TAG}
+	@docker build -f dockerfile-arm --build-arg NAME=${NAME} -t ${DOCKER_PKG}/rpi-${NAME}:${TAG} dist
 endif
 
-ifeq ($(BRANCH),)
-BRANCH:= $(shell git rev-parse --abbrev-ref HEAD)
+deploy: docker
+	@echo Logging into Github Package Registry
+	@docker login ${DOCKER_URL} -u ${DOCKER_USERNAME} -p ${DOCKER_PASSWORD}
+
+ifeq (${COMMIT_HASH}, ${TAG})
+	@echo Pushing dev containers with tag ${COMMIT_HASH}
+
+	@echo Pushing container ${DOCKER_PKG}/${NAME}-dev:${COMMIT_HASH}
+	@docker push ${DOCKER_PKG}/${NAME}-dev:${COMMIT_HASH}
+
+	@echo Pushing container ${DOCKER_PKG}/rpi-${NAME}-dev:${COMMIT_HASH}
+	@docker push ${DOCKER_PKG}/rpi-${NAME}-dev:${COMMIT_HASH}
+else ifneq ($(shell echo ${TAG} | grep -x -E ${DEV_TAG_REGEX}),)
+	@echo Pushing dev containers with tag ${TAG}
+
+	@echo Pushing container ${DOCKER_PKG}/${NAME}-dev:${TAG}
+	@docker push ${DOCKER_PKG}/${NAME}-dev:${TAG}
+
+	@echo Pushing container ${DOCKER_PKG}/rpi-${NAME}-dev:${TAG}
+	@docker push ${DOCKER_PKG}/rpi-${NAME}-dev:${TAG}
+else ifneq ($(shell echo ${TAG} | grep -x -E ${PRD_TAG_REGEX}),)
+	@echo Pushing prd containers with tag ${TAG}
+
+	@echo Pushing container ${DOCKER_PKG}/${NAME}:${TAG}
+	@docker push ${DOCKER_PKG}/${NAME}:${TAG}
+
+	@echo Pushing container ${DOCKER_PKG}/rpi-${NAME}:${TAG}
+	@docker push ${DOCKER_PKG}/rpi-${NAME}:${TAG}
 endif
 
-# go
-GOCMD=go
-GOBUILD=$(GOCMD) build
-GOCLEAN=$(GOCMD) clean
-GOTEST=$(GOCMD) test
-GOGET=$(GOCMD) get
-VENDOR=gvt fetch -branch $(BRANCH)
-
-# docker
-DOCKER=docker
-DOCKER_BUILD=$(DOCKER) build
-DOCKER_LOGIN=$(DOCKER) login -u $(UNAME) -p $(PASS)
-DOCKER_PUSH=$(DOCKER) push
-DOCKER_FILE=dockerfile
-DOCKER_FILE_ARM=dockerfile-arm
-
-UNAME=$(shell echo $(DOCKER_USERNAME))
-EMAIL=$(shell echo $(DOCKER_EMAIL))
-PASS=$(shell echo $(DOCKER_PASSWORD))
-
-build: build-x86 build-arm
-
-build-x86:
-	env GOOS=linux CGO_ENABLED=0 $(GOBUILD) -o $(NAME)-bin -v
-
-build-arm: 
-	env GOOS=linux GOARCH=arm $(GOBUILD) -o $(NAME)-arm -v
-
-test: 
-	$(GOTEST) -v -race $(go list ./... | grep -v /vendor/) 
-
-clean: 
-	$(GOCLEAN)
-	rm -f $(NAME)-bin
-	rm -f $(NAME)-arm
-
-run: $(NAME)-bin
-	./$(NAME)-bin
-
-deps: 
-	$(GOGET) -d -v
-ifneq "$(BRANCH)" "master"
-	# put vendored packages in here
-	# e.g. $(VENDOR) github.com/byuoitav/event-router-microservice
-	gvt fetch -tag v3.3.10 github.com/labstack/echo
-	$(VENDOR) github.com/byuoitav/common
-	$(VENDOR) github.com/byuoitav/central-event-system
-endif
-
-docker: docker-x86 docker-arm
-
-docker-x86: $(NAME)-bin
-ifeq "$(BRANCH)" "master"
-	$(eval BRANCH=development)
-endif
-ifeq "$(BRANCH)" "production"
-	$(eval BRANCH=latest)
-endif
-	$(DOCKER_BUILD) --build-arg NAME=$(NAME) -f $(DOCKER_FILE) -t $(ORG)/$(NAME):$(BRANCH) .
-	@echo logging in to dockerhub...
-	@$(DOCKER_LOGIN)
-	$(DOCKER_PUSH) $(ORG)/$(NAME):$(BRANCH)
-ifeq "$(BRANCH)" "latest"
-	$(eval BRANCH=production)
-endif
-ifeq "$(BRANCH)" "development"
-	$(eval BRANCH=master)
-endif
-
-docker-arm: $(NAME)-arm
-ifeq "$(BRANCH)" "master"
-	$(eval BRANCH=development)
-endif
-ifeq "$(BRANCH)" "production"
-	$(eval BRANCH=latest)
-endif
-	$(DOCKER_BUILD) --build-arg NAME=$(NAME) -f $(DOCKER_FILE_ARM) -t $(ORG)/rpi-$(NAME):$(BRANCH) .
-	@echo logging in to dockerhub...
-	@$(DOCKER_LOGIN)
-	$(DOCKER_PUSH) $(ORG)/rpi-$(NAME):$(BRANCH)
-ifeq "$(BRANCH)" "latest"
-	$(eval BRANCH=production)
-endif
-ifeq "$(BRANCH)" "development"
-	$(eval BRANCH=master)
-endif
-
-### deps
-$(NAME)-bin:
-	$(MAKE) build-x86
-
-$(NAME)-arm:
-	$(MAKE) build-arm
+clean:
+	@go clean
+	@rm -rf dist/
