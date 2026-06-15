@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/byuoitav/authmiddleware/bearertoken"
+	"github.com/byuoitav/av-api/internal/bearertoken"
+	"github.com/byuoitav/av-api/internal/configdb/structs"
 	"github.com/byuoitav/common/log"
-	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/fatih/color"
 )
 
@@ -103,14 +103,14 @@ func SendData(url string, structToAdd interface{}, structToFill interface{}, met
 	return nil
 }
 
-//PostData hits POST endpoints
+// PostData hits POST endpoints
 func PostData(url string, structToAdd interface{}, structToFill interface{}) error {
 	log.L.Infof("[dbo Posting data to URL: %s...", url)
 	return SendData(url, structToAdd, structToFill, "POST")
 
 }
 
-//PutData hits PUT endpoints
+// PutData hits PUT endpoints
 func PutData(url string, structToAdd interface{}, structToFill interface{}) error {
 	log.L.Infof("[dbo] Putting data to URL: %v...", url)
 	return SendData(url, structToAdd, structToFill, "PUT")
@@ -133,7 +133,7 @@ func setToken(request *http.Request) error {
 	return nil
 }
 
-//GetAllRawCommands retrieves all the commands
+// GetAllRawCommands retrieves all the commands
 func GetAllRawCommands() (commands []structs.RawCommand, err error) {
 	log.L.Info("[dbo] getting all commands.")
 	url := os.Getenv("CONFIGURATION_DATABASE_MICROSERVICE_ADDRESS") + "/devices/commands"

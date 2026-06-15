@@ -1,6 +1,8 @@
-/**
+/*
+*
 Defines structs that get passed over the entire project
-**/
+*
+*/
 package structs
 
 type Building struct {
@@ -10,12 +12,14 @@ type Building struct {
 	Description string `json:"description,omitempty"`
 }
 
-/*Command represents all the information needed to issue a particular command to a device.
+/*
+Command represents all the information needed to issue a particular command to a device.
 Name: Command name
 Endpoint: the endpoint within the microservice
 Microservice: the location of the microservice to call to communicate with the device.
 Priority: The relative priority of the command relative to other commands. Commands
-					with a higher (closer to 1) priority will be issued to the devices first.
+
+	with a higher (closer to 1) priority will be issued to the devices first.
 */
 type Command struct {
 	Name         string   `json:"name"`
@@ -24,11 +28,13 @@ type Command struct {
 	Priority     int      `json:"priority"`
 }
 
-/*RawCommand represents all the information needed to issue a particular command to a device.
+/*
+RawCommand represents all the information needed to issue a particular command to a device.
 Name: Command name
 Description: command description
 Priority: The relative priority of the command relative to other commands. Commands
-					with a higher (closer to 1) priority will be issued to the devices first.
+
+	with a higher (closer to 1) priority will be issued to the devices first.
 */
 type RawCommand struct {
 	ID          int    `json:"id"`
@@ -37,28 +43,28 @@ type RawCommand struct {
 	Priority    int    `json:"priority"`
 }
 
-//CommandSorterByPriority sorts commands by priority and implements sort.Interface
+// CommandSorterByPriority sorts commands by priority and implements sort.Interface
 type CommandSorterByPriority struct {
 	Commands []RawCommand
 }
 
-//Len is part of sort.Interface
+// Len is part of sort.Interface
 func (c *CommandSorterByPriority) Len() int {
 	return len(c.Commands)
 }
 
-//Swap is part of sort.Interface
+// Swap is part of sort.Interface
 func (c *CommandSorterByPriority) Swap(i, j int) {
 	c.Commands[i], c.Commands[j] = c.Commands[j], c.Commands[i]
 }
 
-//Less is part of sort.Interface
+// Less is part of sort.Interface
 func (c *CommandSorterByPriority) Less(i, j int) bool {
 	return c.Commands[i].Priority < c.Commands[j].Priority
 }
 
-//RoomConfiguration reflects a defined room configuration with the commands and
-//command keys incldued therein.
+// RoomConfiguration reflects a defined room configuration with the commands and
+// command keys incldued therein.
 type RoomConfiguration struct {
 	ID          int                      `json:"id"`
 	Name        string                   `json:"name"`
@@ -68,14 +74,14 @@ type RoomConfiguration struct {
 	Evaluators  []ConfigurationEvaluator `json:"evaluators"`
 }
 
-//ConfigurationEvaluator commands is the command information correlated with the
-//specifics for the configuration (key and priority)
+// ConfigurationEvaluator commands is the command information correlated with the
+// specifics for the configuration (key and priority)
 type ConfigurationEvaluator struct {
 	Priority     int    `json:"priority"`
 	EvaluatorKey string `json:"evaluatorKey"`
 }
 
-//Device represents a device object as found in the DB.
+// Device represents a device object as found in the DB.
 type Device struct {
 	ID          int       `json:"id"`
 	Name        string    `json:"name"`
@@ -98,7 +104,7 @@ type Device struct {
 	Commands    []Command `json:"commands,omitempty"`
 }
 
-//GetFullName reutrns the string of building + room + name
+// GetFullName reutrns the string of building + room + name
 func (d *Device) GetFullName() string {
 	return (d.Building.Shortname + "-" + d.Room.Name + "-" + d.Name)
 }
@@ -153,7 +159,7 @@ type DeviceCommand struct {
 	Enabled        bool `json:"enabled"`
 }
 
-//DeviceType corresponds to the DeviceType table in the database
+// DeviceType corresponds to the DeviceType table in the database
 type DeviceType struct {
 	ID          int    `json:"id,omitempty"`
 	Name        string `json:"name"`
@@ -166,8 +172,8 @@ type DevicePowerState struct {
 	PowerStateID int `json:"powerstate"`
 }
 
-//this is a stopgap to set the attribute
-//TODO: rework this
+// this is a stopgap to set the attribute
+// TODO: rework this
 type DeviceAttributeInfo struct {
 	DeviceID       int    `json:"deviceID"`
 	AttributeName  string `json:"attributeName"`
@@ -187,7 +193,7 @@ type DeviceRoleDef struct {
 	Description string `json:"description"`
 }
 
-//DeviceType corresponds to the DeviceType table in the database
+// DeviceType corresponds to the DeviceType table in the database
 type DeviceClass struct {
 	ID          int    `json:"id,omitempty"`
 	Name        string `json:"name"`
@@ -195,8 +201,8 @@ type DeviceClass struct {
 	Description string `json:"description"`
 }
 
-//Port represents a physical port on a device (HDMI, DP, Audio, etc.)
-//TODO: this corresponds to the PortConfiguration table in the database!!!
+// Port represents a physical port on a device (HDMI, DP, Audio, etc.)
+// TODO: this corresponds to the PortConfiguration table in the database!!!
 type Port struct {
 	Source      string `json:"source"`
 	Name        string `json:"name"`
@@ -212,7 +218,7 @@ type PortConfiguration struct {
 	HostDeviceID        int `json:"host-device"`
 }
 
-//Endpoint represents a path on a microservice.
+// Endpoint represents a path on a microservice.
 type Endpoint struct {
 	ID          int    `json:"id"`
 	Name        string `json:"name"`
@@ -227,8 +233,8 @@ type Microservice struct {
 	Description string `json:"description"`
 }
 
-//PortType corresponds to the Ports table in the Database and really should be called Port
-//TODO:Change struct name to "Port"
+// PortType corresponds to the Ports table in the Database and really should be called Port
+// TODO:Change struct name to "Port"
 type PortType struct {
 	ID          int    `json:"id,omitempty"`
 	Name        string `json:"name"`
@@ -251,7 +257,7 @@ type PowerState struct {
 	Description string `json:"description"`
 }
 
-//Room represents a room object as represented in the DB.
+// Room represents a room object as represented in the DB.
 type Room struct {
 	ID              int               `json:"id,omitempty"`
 	Name            string            `json:"name,omitempty"`

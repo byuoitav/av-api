@@ -161,8 +161,8 @@ func EvaluateResponses(room structs.Room, responses []se.StatusResponse, count i
 		}
 	}
 
-	//start a timer to give us our timeout
-	timer := time.NewTimer(time.Second)
+	//start a timer to give slower callback evaluators enough time to report back.
+	timer := time.NewTimer(TIMEOUT * time.Second)
 	done := false
 
 	//now we wait for the timeout, or all of the responses

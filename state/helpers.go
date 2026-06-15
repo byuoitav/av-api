@@ -12,21 +12,21 @@ import (
 	"sync"
 	"time"
 
-	"github.com/byuoitav/authmiddleware/bearertoken"
 	"github.com/byuoitav/av-api/base"
+	"github.com/byuoitav/av-api/internal/bearertoken"
 	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/common/log"
 	"github.com/byuoitav/common/v2/events"
 	"github.com/fatih/color"
 )
 
-//TIMEOUT is the duration constant to wait before timing out.
-const TIMEOUT = 5
+// TIMEOUT is the duration, in seconds, to wait for a device microservice response.
+const TIMEOUT = 60
 
 // const LOCAL_CHECK_INDEX = 21
 // const GATEWAY_CHECK_INDEX = 5
 
-//builds a Status object corresponding to a device and writes it to the channel
+// builds a Status object corresponding to a device and writes it to the channel
 func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse, control *sync.WaitGroup) {
 	//final output
 	outputs := []se.StatusResponse{}
@@ -207,10 +207,10 @@ func processDisplay(device se.Status) (base.Display, error) {
 	return display, nil
 }
 
-//ExecuteCommand makes a GET request given a microservice and endpoint and publishes the results
-//returns the state the microservice reports or nothing if the microservice doesn't respond
-//publishes a state event or an error
-//@pre the parameters have been filled, e.g. the endpoint does not contain ":"
+// ExecuteCommand makes a GET request given a microservice and endpoint and publishes the results
+// returns the state the microservice reports or nothing if the microservice doesn't respond
+// publishes a state event or an error
+// @pre the parameters have been filled, e.g. the endpoint does not contain ":"
 func ExecuteCommand(action base.ActionStructure, url, requestor string) se.StatusResponse {
 	client := &http.Client{
 		Timeout: TIMEOUT * time.Second,
@@ -300,9 +300,9 @@ func ReplaceIPAddressEndpoint(path string, address string) string {
 
 }
 
-//ReplaceParameters replaces parameters in the command endpoint
-//@pre the endpoint's IP parameter has already been replaced
-//@post the endpoint does not contain ':'
+// ReplaceParameters replaces parameters in the command endpoint
+// @pre the endpoint's IP parameter has already been replaced
+// @post the endpoint does not contain ':'
 func ReplaceParameters(addr string, parameters map[string]string) (string, error) {
 	if parameters == nil { //should I keep this check?
 		return addr, nil
@@ -339,7 +339,7 @@ func ReplaceParameters(addr string, parameters map[string]string) (string, error
 	return u.String(), nil
 }
 
-//PublishError creates an Event based on the error message and ActionStructure information, and then sends it to the event messaging system.
+// PublishError creates an Event based on the error message and ActionStructure information, and then sends it to the event messaging system.
 func PublishError(message string, action base.ActionStructure, requestor string) {
 	log.L.Errorf("[error] publishing error: %s...", message)
 
