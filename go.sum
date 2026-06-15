@@ -1,13 +1,9 @@
 github.com/aws/aws-sdk-go v1.55.8 h1:JRmEUbU52aJQZ2AjX4q4Wu7t4uZjOu71uyNmaWlUkJQ=
 github.com/aws/aws-sdk-go v1.55.8/go.mod h1:ZkViS9AqA6otK+JBBNH2++sx1sgxrPKcSzPPvQkUtXk=
-github.com/byuoitav/authmiddleware v1.1.2 h1:aFvY/HUGmSMkLxWuwHvE94iUG/rS3PW0Z/Zh1lDTG2E=
-github.com/byuoitav/authmiddleware v1.1.2/go.mod h1:jKF86ft9J9+8ZcaxX64UAjoCiag8XdS8sk8xrIOXL1U=
 github.com/byuoitav/central-event-system v0.0.1 h1:jY+Wp1UDSBVxnhCc+DBJI3OAKhAYmO2HiBbRqkYj+gY=
 github.com/byuoitav/central-event-system v0.0.1/go.mod h1:+KCvx75wISCCkCrgIWRdlJxRXlA2yxQvR4HHgU/TdpU=
 github.com/byuoitav/common v0.0.0-20230217215806-8472d0ddbfb3 h1:7XPtuvGexBnr3SBnVxGtYBB/YsedWztzJem4XHBGzA4=
 github.com/byuoitav/common v0.0.0-20230217215806-8472d0ddbfb3/go.mod h1:YTDTFEmez7HU3oyCIWjU3RfQ/P6v24LEzH5YUebph7I=
-github.com/byuoitav/configuration-database-microservice v1.0.1-0.20180423213305-8ccd61e7baf9 h1:cfGnBtl+NpuvSad+1GuJRFS8OuR09qBPV8XTTWjyHd0=
-github.com/byuoitav/configuration-database-microservice v1.0.1-0.20180423213305-8ccd61e7baf9/go.mod h1:w+84j6BWsO3+qm4tu9eFTXUNiYAOdKzfD9Bda2i5OJQ=
 github.com/byuoitav/endpoint-authorization-controller v0.0.0-20190306172901-dd51e868d6df h1:VJQgi+ZkQEHcS5Vn1ulM/CPQ15RWgDXKBeM6JOLA2fs=
 github.com/byuoitav/endpoint-authorization-controller v0.0.0-20190306172901-dd51e868d6df/go.mod h1:CQ4byB9NvP3rx434/7W2Rqm55p3o9J0Mv081B9dBTns=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

@@ -23,7 +23,7 @@ const InputTieredSwitcherEvaluator = "STATUS_Tiered_Switching"
 
 const (
 	defaultTieredSwitcherSettleWindow   = 500 * time.Millisecond
-	defaultTieredSwitcherOverallTimeout = 2 * time.Second
+	defaultTieredSwitcherOverallTimeout = 5 * time.Minute
 )
 
 var (

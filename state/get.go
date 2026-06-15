@@ -1,6 +1,7 @@
 package state
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -14,6 +15,8 @@ import (
 	"github.com/byuoitav/common/v2/events"
 	"github.com/fatih/color"
 )
+
+const statusCallbackTimeout = 30 * time.Second
 
 // GenerateStatusCommands determines the status commands for the type of room that the device is in.
 func GenerateStatusCommands(room structs.Room, commandMap map[string]se.StatusEvaluator) ([]se.StatusCommand, int, error) {
@@ -43,6 +46,11 @@ func GenerateStatusCommands(room structs.Room, commandMap map[string]se.StatusEv
 
 // RunStatusCommands maps the device names to their commands, and then puts them in a channel to be run.
 func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse, err error) {
+	return RunStatusCommandsWithContext(context.Background(), commands)
+}
+
+// RunStatusCommandsWithContext maps device names to their commands and runs them.
+func RunStatusCommandsWithContext(ctx context.Context, commands []se.StatusCommand) (outputs []se.StatusResponse, err error) {
 
 	log.L.Infof("%s", color.HiBlueString("[state] running status commands..."))
 
@@ -73,7 +81,7 @@ func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse
 
 	for _, deviceCommands := range commandMap {
 		group.Add(1)
-		go issueCommands(deviceCommands, channel, &group)
+		go issueCommands(ctx, deviceCommands, channel, &group)
 
 		log.L.Infof("%s", color.HiBlueString("[state] commands to issue:"))
 
@@ -107,6 +115,11 @@ func RunStatusCommands(commands []se.StatusCommand) (outputs []se.StatusResponse
 
 // EvaluateResponses organizes the responses that are received when the commands are issued.
 func EvaluateResponses(room structs.Room, responses []se.StatusResponse, count int) (base.PublicRoom, error) {
+	return EvaluateResponsesWithContext(context.Background(), room, responses, count)
+}
+
+// EvaluateResponsesWithContext organizes the responses that are received when the commands are issued.
+func EvaluateResponsesWithContext(ctx context.Context, room structs.Room, responses []se.StatusResponse, count int) (base.PublicRoom, error) {
 
 	log.L.Infof("%s", color.HiBlueString("[state] Evaluating responses..."))
 
@@ -119,13 +132,20 @@ func EvaluateResponses(room structs.Room, responses []se.StatusResponse, count i
 	var AudioDevices []base.AudioDevice
 	var Displays []base.Display
 	doneCount := 0
+	errorCount := 0
 
 	//we need to create our return channel
 	returnChan := make(chan base.StatusPackage, len(responses))
+	callbackCount := 0
 
 	//make our array of Statuses by device
 	responsesByDestinationDevice := make(map[string]se.Status)
 	for _, resp := range responses {
+		if resp.ErrorMessage != nil {
+			errorCount++
+			continue
+		}
+
 		//we do thing the old fashioned way
 		if resp.Callback == nil {
 			for key, value := range resp.Status {
@@ -156,22 +176,33 @@ func EvaluateResponses(room structs.Room, responses []se.StatusResponse, count i
 		} else {
 			//we call the callback and then wait for it to come back to us
 			for key, value := range resp.Status {
+				callbackCount++
 				resp.Callback(base.StatusPackage{Key: key, Value: value, Device: resp.SourceDevice, Dest: resp.DestinationDevice}, returnChan)
 			}
 		}
 	}
 
-	//start a timer to give us our timeout
-	timer := time.NewTimer(time.Second)
+	if len(responsesByDestinationDevice) == 0 && callbackCount == 0 && errorCount > 0 {
+		msg := fmt.Sprintf("all %d status responses failed", errorCount)
+		log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
+		return base.PublicRoom{}, errors.New(msg)
+	}
+
+	//start a timer to give slower callback evaluators enough time to report back.
+	timer := time.NewTimer(statusCallbackTimeout)
+	defer timer.Stop()
 	done := false
 
 	//now we wait for the timeout, or all of the responses
-	for doneCount < count && !done {
+	for callbackCount > 0 && doneCount < count && !done {
 		select {
 		case <-timer.C:
 			//get out
 			done = true
 			break
+
+		case <-ctx.Done():
+			return base.PublicRoom{}, ctx.Err()
 
 		//pull something out of the response channel
 		case val := <-returnChan:
@@ -191,6 +222,16 @@ func EvaluateResponses(room structs.Room, responses []se.StatusResponse, count i
 				doneCount++
 			}
 		}
+	}
+
+	if len(responsesByDestinationDevice) == 0 && count > 0 {
+		msg := "no usable status responses found"
+		if errorCount > 0 {
+			msg = fmt.Sprintf("no usable status responses found; %d status responses failed", errorCount)
+		}
+
+		log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
+		return base.PublicRoom{}, errors.New(msg)
 	}
 
 	//now we carry on

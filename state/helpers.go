@@ -1,6 +1,7 @@
 package state
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,28 +14,57 @@ import (
 	"sync"
 	"time"
 
-	"github.com/byuoitav/authmiddleware/bearertoken"
 	"github.com/byuoitav/av-api/base"
+	"github.com/byuoitav/av-api/internal/bearertoken"
 	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/common/log"
 	"github.com/byuoitav/common/v2/events"
 	"github.com/fatih/color"
 )
 
-//TIMEOUT is the duration constant to wait before timing out.
+// TIMEOUT is the duration, in seconds, to wait for a device microservice response.
 const TIMEOUT = 5
 
 // const LOCAL_CHECK_INDEX = 21
 // const GATEWAY_CHECK_INDEX = 5
 
-//builds a Status object corresponding to a device and writes it to the channel
-func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse, control *sync.WaitGroup) {
+// builds a Status object corresponding to a device and writes it to the channel
+func issueCommands(ctx context.Context, commands []se.StatusCommand, channel chan []se.StatusResponse, control *sync.WaitGroup) {
+	start := time.Now()
+	deviceID := "unknown"
+	if len(commands) > 0 {
+		deviceID = commands[0].Device.ID
+	}
+
 	//final output
 	outputs := []se.StatusResponse{}
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			msg := fmt.Sprintf("panic querying status commands: %v", recovered)
+			log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
+			outputs = append(outputs, se.StatusResponse{ErrorMessage: &msg})
+		}
+
+		channel <- outputs
+		log.L.Infof("[state] status command group for %s took %s and produced %d responses", deviceID, time.Since(start), len(outputs))
+		control.Done()
+	}()
 
 	//iterate over list of StatusCommands
 	//TODO:make sure devices can handle rapid-fire API requests
-	for _, command := range commands {
+	for i, command := range commands {
+		if ctx.Err() != nil {
+			msg := fmt.Sprintf("status command canceled for device %s: %s", command.Device.Name, ctx.Err())
+			log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
+			outputs = append(outputs, se.StatusResponse{
+				Callback:          command.Callback,
+				Generator:         command.Generator,
+				SourceDevice:      command.Device,
+				DestinationDevice: command.DestinationDevice,
+				ErrorMessage:      &msg,
+			})
+			continue
+		}
 
 		log.L.Infof("[state] issuing command: %s against device %s, destination device: %s, parameters: %v", command.Action.ID, command.Device.ID, command.DestinationDevice.Device.ID, command.Parameters)
 
@@ -68,13 +98,23 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 		log.L.Infof("%s", color.HiBlueString("[state] sending request to %s", url))
 		timeout := time.Duration(TIMEOUT * time.Second)
 		client := http.Client{Timeout: timeout}
-		response, gerr := client.Get(url)
+		request, gerr := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if gerr != nil {
+			msg := fmt.Sprintf("unable to create request to %s for device %s: %s", url, command.Device.Name, gerr.Error())
+			log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
+			output.ErrorMessage = &msg
+			outputs = append(outputs, output)
+			continue
+		}
+
+		response, gerr := client.Do(request)
 		if gerr != nil {
 			msg := fmt.Sprintf("unable to complete request to %s for device %s: %s", url, command.Device.Name, gerr.Error())
 			log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
 			output.ErrorMessage = &msg //do we want to do this? why not just publish the error here?
 			outputs = append(outputs, output)
-			continue
+			appendCanceledCommands(ctx, commands[i+1:], &outputs, command.Device.ID)
+			return
 		}
 
 		body, gerr := ioutil.ReadAll(io.LimitReader(response.Body, 1<<20))
@@ -96,6 +136,13 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 			msg := fmt.Sprintf("non-200 response code: %d, message: %s", response.StatusCode, string(body))
 			log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
 			base.PublishError(msg, events.Error, command.Device.ID)
+			output.ErrorMessage = &msg
+			outputs = append(outputs, output)
+			if isConnectionFailureMessage(msg) {
+				appendCanceledCommands(ctx, commands[i+1:], &outputs, command.Device.ID)
+				return
+			}
+
 			continue
 		}
 
@@ -130,10 +177,39 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 			log.L.Infof("%s maps to %v", key, value)
 		}
 	}
+	if len(commands) > 0 {
+		log.L.Infof("%s", color.HiBlueString("[state] done acquiring statuses from  %s", commands[0].Device.ID))
+	}
+}
 
-	channel <- outputs
-	log.L.Infof("%s", color.HiBlueString("[state] done acquiring statuses from  %s", commands[0].Device.ID))
-	control.Done()
+func appendCanceledCommands(ctx context.Context, commands []se.StatusCommand, outputs *[]se.StatusResponse, failedDeviceID string) {
+	reason := "previous connection failure"
+	if ctx.Err() != nil {
+		reason = ctx.Err().Error()
+	}
+
+	for _, command := range commands {
+		if command.Device.ID != failedDeviceID {
+			continue
+		}
+
+		msg := fmt.Sprintf("skipping remaining status commands for device %s after %s", command.Device.Name, reason)
+		*outputs = append(*outputs, se.StatusResponse{
+			Callback:          command.Callback,
+			Generator:         command.Generator,
+			SourceDevice:      command.Device,
+			DestinationDevice: command.DestinationDevice,
+			ErrorMessage:      &msg,
+		})
+	}
+}
+
+func isConnectionFailureMessage(msg string) bool {
+	return strings.Contains(msg, "no route to host") ||
+		strings.Contains(msg, "connection refused") ||
+		strings.Contains(msg, "context deadline exceeded") ||
+		strings.Contains(msg, "i/o timeout") ||
+		strings.Contains(msg, "network is unreachable")
 }
 
 func processAudioDevice(device se.Status) (base.AudioDevice, error) {
@@ -211,10 +287,10 @@ func processDisplay(device se.Status) (base.Display, error) {
 	return display, nil
 }
 
-//ExecuteCommand makes a GET request given a microservice and endpoint and publishes the results
-//returns the state the microservice reports or nothing if the microservice doesn't respond
-//publishes a state event or an error
-//@pre the parameters have been filled, e.g. the endpoint does not contain ":"
+// ExecuteCommand makes a GET request given a microservice and endpoint and publishes the results
+// returns the state the microservice reports or nothing if the microservice doesn't respond
+// publishes a state event or an error
+// @pre the parameters have been filled, e.g. the endpoint does not contain ":"
 func ExecuteCommand(action base.ActionStructure, url, requestor string) se.StatusResponse {
 	client := &http.Client{
 		Timeout: TIMEOUT * time.Second,
@@ -304,9 +380,9 @@ func ReplaceIPAddressEndpoint(path string, address string) string {
 
 }
 
-//ReplaceParameters replaces parameters in the command endpoint
-//@pre the endpoint's IP parameter has already been replaced
-//@post the endpoint does not contain ':'
+// ReplaceParameters replaces parameters in the command endpoint
+// @pre the endpoint's IP parameter has already been replaced
+// @post the endpoint does not contain ':'
 func ReplaceParameters(addr string, parameters map[string]string) (string, error) {
 	if parameters == nil { //should I keep this check?
 		return addr, nil
@@ -343,7 +419,7 @@ func ReplaceParameters(addr string, parameters map[string]string) (string, error
 	return u.String(), nil
 }
 
-//PublishError creates an Event based on the error message and ActionStructure information, and then sends it to the event messaging system.
+// PublishError creates an Event based on the error message and ActionStructure information, and then sends it to the event messaging system.
 func PublishError(message string, action base.ActionStructure, requestor string) {
 	log.L.Errorf("[error] publishing error: %s...", message)
 

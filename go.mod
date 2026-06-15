@@ -3,16 +3,14 @@ module github.com/byuoitav/av-api
 go 1.24.2
 
 require (
-	github.com/byuoitav/authmiddleware v1.1.2
+	github.com/aws/aws-sdk-go v1.55.8
 	github.com/byuoitav/central-event-system v0.0.1
 	github.com/byuoitav/common v0.0.0-20230217215806-8472d0ddbfb3
-	github.com/byuoitav/configuration-database-microservice v1.0.1-0.20180423213305-8ccd61e7baf9
 	github.com/fatih/color v1.18.0
 	github.com/labstack/echo v3.3.10+incompatible
 )
 
 require (
-	github.com/aws/aws-sdk-go v1.55.8 // indirect
 	github.com/byuoitav/endpoint-authorization-controller v0.0.0-20190306172901-dd51e868d6df // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/go-cas/cas v2.1.0+incompatible // indirect
