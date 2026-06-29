@@ -52,7 +52,7 @@ func issueCommands(ctx context.Context, commands []se.StatusCommand, channel cha
 
 	//iterate over list of StatusCommands
 	//TODO:make sure devices can handle rapid-fire API requests
-	for i, command := range commands {
+	for _, command := range commands {
 		if ctx.Err() != nil {
 			msg := fmt.Sprintf("status command canceled for device %s: %s", command.Device.Name, ctx.Err())
 			log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
@@ -113,8 +113,7 @@ func issueCommands(ctx context.Context, commands []se.StatusCommand, channel cha
 			log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
 			output.ErrorMessage = &msg //do we want to do this? why not just publish the error here?
 			outputs = append(outputs, output)
-			appendCanceledCommands(ctx, commands[i+1:], &outputs, command.Device.ID)
-			return
+			continue
 		}
 
 		body, gerr := ioutil.ReadAll(io.LimitReader(response.Body, 1<<20))
@@ -138,11 +137,6 @@ func issueCommands(ctx context.Context, commands []se.StatusCommand, channel cha
 			base.PublishError(msg, events.Error, command.Device.ID)
 			output.ErrorMessage = &msg
 			outputs = append(outputs, output)
-			if isConnectionFailureMessage(msg) {
-				appendCanceledCommands(ctx, commands[i+1:], &outputs, command.Device.ID)
-				return
-			}
-
 			continue
 		}
 
@@ -180,36 +174,6 @@ func issueCommands(ctx context.Context, commands []se.StatusCommand, channel cha
 	if len(commands) > 0 {
 		log.L.Infof("%s", color.HiBlueString("[state] done acquiring statuses from  %s", commands[0].Device.ID))
 	}
-}
-
-func appendCanceledCommands(ctx context.Context, commands []se.StatusCommand, outputs *[]se.StatusResponse, failedDeviceID string) {
-	reason := "previous connection failure"
-	if ctx.Err() != nil {
-		reason = ctx.Err().Error()
-	}
-
-	for _, command := range commands {
-		if command.Device.ID != failedDeviceID {
-			continue
-		}
-
-		msg := fmt.Sprintf("skipping remaining status commands for device %s after %s", command.Device.Name, reason)
-		*outputs = append(*outputs, se.StatusResponse{
-			Callback:          command.Callback,
-			Generator:         command.Generator,
-			SourceDevice:      command.Device,
-			DestinationDevice: command.DestinationDevice,
-			ErrorMessage:      &msg,
-		})
-	}
-}
-
-func isConnectionFailureMessage(msg string) bool {
-	return strings.Contains(msg, "no route to host") ||
-		strings.Contains(msg, "connection refused") ||
-		strings.Contains(msg, "context deadline exceeded") ||
-		strings.Contains(msg, "i/o timeout") ||
-		strings.Contains(msg, "network is unreachable")
 }
 
 func processAudioDevice(device se.Status) (base.AudioDevice, error) {
