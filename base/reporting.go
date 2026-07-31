@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/byuoitav/central-event-system/messenger"
@@ -12,6 +13,13 @@ import (
 
 // Messenger is the variable used through the AV-API package to send events.
 var Messenger *messenger.Messenger
+
+const eventQueueSize = 1000
+
+var (
+	eventQueue     = make(chan events.Event, eventQueueSize)
+	eventQueueOnce sync.Once
+)
 
 // PublishHealth is a wrapper function to publish an Event that is not an error.
 func PublishHealth(e events.Event) {
@@ -55,9 +63,32 @@ func SendEvent(e events.Event) error {
 		e.AddToTags(events.RoomSystem)
 	}
 
-	Messenger.SendEvent(e)
+	queueEvent(e)
 
 	return err
+}
+
+func queueEvent(e events.Event) {
+	eventQueueOnce.Do(func() {
+		go eventWorker()
+	})
+
+	select {
+	case eventQueue <- e:
+	default:
+		// Event delivery is best-effort. Room control should not block when the
+		// central event system is down or the messenger buffer is saturated.
+	}
+}
+
+func eventWorker() {
+	for e := range eventQueue {
+		if Messenger == nil {
+			continue
+		}
+
+		Messenger.SendEvent(e)
+	}
 }
 
 // PublishError takes an error message and cause for the error, and then builds an Event to send to the event router.

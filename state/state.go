@@ -67,8 +67,17 @@ func GetRoomStateWithContext(ctx context.Context, building string, roomName stri
 
 // SetRoomState changes the state of the room and returns a PublicRoom object.
 func SetRoomState(target base.PublicRoom, requestor string) (base.PublicRoom, error) {
+	return SetRoomStateWithContext(context.Background(), target, requestor)
+}
+
+// SetRoomStateWithContext changes the state of the room and returns a PublicRoom object.
+func SetRoomStateWithContext(ctx context.Context, target base.PublicRoom, requestor string) (base.PublicRoom, error) {
 
 	log.L.Infof("%s", color.HiBlueString("[state] setting room state..."))
+
+	if err := ctx.Err(); err != nil {
+		return base.PublicRoom{}, err
+	}
 
 	roomID := fmt.Sprintf("%v-%v", target.Building, target.Room)
 	room, err := db.GetDB().GetRoom(roomID)
@@ -82,13 +91,13 @@ func SetRoomState(target base.PublicRoom, requestor string) (base.PublicRoom, er
 		return base.PublicRoom{}, err
 	}
 
-	responses, err := ExecuteActions(actions, requestor)
+	responses, err := ExecuteActionsWithContext(ctx, actions, requestor)
 	if err != nil {
 		return base.PublicRoom{}, err
 	}
 
 	//here's where we then pass that information through so that we can make a decent decision.
-	report, err := EvaluateResponses(room, responses, count)
+	report, err := EvaluateResponsesWithContext(ctx, room, responses, count)
 	if err != nil {
 		return base.PublicRoom{}, err
 	}

@@ -16,7 +16,10 @@ import (
 	"github.com/fatih/color"
 )
 
-const statusCallbackTimeout = 30 * time.Second
+const (
+	statusCallbackIdleTimeout    = 750 * time.Millisecond
+	statusCallbackOverallTimeout = 5 * time.Second
+)
 
 // GenerateStatusCommands determines the status commands for the type of room that the device is in.
 func GenerateStatusCommands(room structs.Room, commandMap map[string]se.StatusEvaluator) ([]se.StatusCommand, int, error) {
@@ -188,18 +191,24 @@ func EvaluateResponsesWithContext(ctx context.Context, room structs.Room, respon
 		return base.PublicRoom{}, errors.New(msg)
 	}
 
-	//start a timer to give slower callback evaluators enough time to report back.
-	timer := time.NewTimer(statusCallbackTimeout)
-	defer timer.Stop()
-	done := false
+	// Callback evaluators can collapse multiple raw responses into fewer useful
+	// device states, so count is only an upper bound. Wait for callback output to
+	// go idle instead of forcing every raw command to map to a callback result.
+	idle := time.NewTimer(statusCallbackIdleTimeout)
+	stopTimer(idle)
+	defer stopTimer(idle)
+	overall := time.NewTimer(statusCallbackOverallTimeout)
+	defer stopTimer(overall)
+	waitingForCallbacks := callbackCount > 0
 
-	//now we wait for the timeout, or all of the responses
-	for callbackCount > 0 && doneCount < count && !done {
+	for waitingForCallbacks {
 		select {
-		case <-timer.C:
-			//get out
-			done = true
-			break
+		case <-idle.C:
+			waitingForCallbacks = false
+
+		case <-overall.C:
+			log.L.Warnf("[state] callback evaluation timed out after %s", statusCallbackOverallTimeout)
+			waitingForCallbacks = false
 
 		case <-ctx.Done():
 			return base.PublicRoom{}, ctx.Err()
@@ -221,6 +230,8 @@ func EvaluateResponsesWithContext(ctx context.Context, room structs.Room, respon
 				log.L.Infof("[state] adding device %v to the map", val.Dest.ID)
 				doneCount++
 			}
+
+			resetTimer(idle, statusCallbackIdleTimeout)
 		}
 	}
 
@@ -251,4 +262,18 @@ func EvaluateResponsesWithContext(ctx context.Context, room structs.Room, respon
 	}
 
 	return base.PublicRoom{Displays: Displays, AudioDevices: AudioDevices}, nil
+}
+
+func stopTimer(timer *time.Timer) {
+	if !timer.Stop() {
+		select {
+		case <-timer.C:
+		default:
+		}
+	}
+}
+
+func resetTimer(timer *time.Timer, duration time.Duration) {
+	stopTimer(timer)
+	timer.Reset(duration)
 }

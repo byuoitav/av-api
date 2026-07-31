@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/byuoitav/common/db"
@@ -160,10 +161,13 @@ func (p *InputTieredSwitcher) EvaluateResponse(room structs.Room, str string, fa
 type TieredSwitcherCallback struct {
 	InChan              chan base.StatusPackage
 	OutChan             chan<- base.StatusPackage
+	DoneChan            chan struct{}
 	Devices             []structs.Device
 	ExpectedCount       int
 	ExpectedActionCount int
 	pathfinder          pathfinder.SignalPathfinder
+	doneOnce            sync.Once
+	outMu               sync.RWMutex
 }
 
 // Callback begins the callback process...
@@ -177,11 +181,48 @@ func (p *TieredSwitcherCallback) Callback(sp base.StatusPackage, c chan<- base.S
 	log.L.Infof(color.HiYellowString("[callback] ExpectedCount: %v", p.ExpectedCount))
 	log.L.Infof(color.HiYellowString("[callback] ExpectedActionCount: %v", p.ExpectedActionCount))
 
+	if p.InChan == nil {
+		return fmt.Errorf("tiered switcher callback input channel is not initialized")
+	}
+
 	//we pass down the the aggregator that was started before
+	p.outMu.Lock()
 	p.OutChan = c
-	p.InChan <- sp
+	p.outMu.Unlock()
+
+	select {
+	case p.InChan <- sp:
+	case <-p.done():
+		log.L.Warn("[callback] Aggregator already closed; dropping callback input.")
+	default:
+		log.L.Warn("[callback] Aggregator input channel is full; dropping callback input.")
+	}
 
 	return nil
+}
+
+func (p *TieredSwitcherCallback) done() <-chan struct{} {
+	p.outMu.Lock()
+	defer p.outMu.Unlock()
+
+	if p.DoneChan == nil {
+		p.DoneChan = make(chan struct{})
+	}
+
+	return p.DoneChan
+}
+
+func (p *TieredSwitcherCallback) closeDone() {
+	p.outMu.Lock()
+	if p.DoneChan == nil {
+		p.DoneChan = make(chan struct{})
+	}
+	done := p.DoneChan
+	p.outMu.Unlock()
+
+	p.doneOnce.Do(func() {
+		close(done)
+	})
 }
 
 func (p *TieredSwitcherCallback) getDeviceByID(dev string) structs.Device {
@@ -239,13 +280,11 @@ func (p *TieredSwitcherCallback) GetInputPaths(pathfinder pathfinder.SignalPathf
 		}
 		log.L.Infof(color.HiYellowString("[callback] Sending input %v -> %v", inputValue, k))
 
-		if p.OutChan != nil {
-			p.OutChan <- base.StatusPackage{
-				Dest:  destDev,
-				Key:   "input",
-				Value: inputValue,
-			}
-		}
+		p.publishOutput(base.StatusPackage{
+			Dest:  destDev,
+			Key:   "input",
+			Value: inputValue,
+		})
 	}
 	log.L.Info(color.HiYellowString("[callback] Done with evaluation. Closing."))
 	return
@@ -254,6 +293,7 @@ func (p *TieredSwitcherCallback) GetInputPaths(pathfinder pathfinder.SignalPathf
 // StartAggregator starts the aggregator...I guess haha...
 func (p *TieredSwitcherCallback) StartAggregator() {
 	log.L.Info(color.HiYellowString("[callback] Starting aggregator."))
+	defer p.closeDone()
 	if p.pathfinder.Devices == nil {
 		p.pathfinder = pathfinder.InitializeSignalPathfinder(p.Devices, p.ExpectedActionCount)
 	}
@@ -330,12 +370,32 @@ func (p *TieredSwitcherCallback) SetDevices(devices []structs.Device) {
 }
 
 func (p *TieredSwitcherCallback) finishAggregation() {
-	if p.OutChan == nil {
+	p.outMu.RLock()
+	hasOutChan := p.OutChan != nil
+	p.outMu.RUnlock()
+
+	if !hasOutChan {
 		log.L.Warn("[callback] No output channel available; closing aggregator without sending input paths.")
 		return
 	}
 
 	p.GetInputPaths(p.pathfinder)
+}
+
+func (p *TieredSwitcherCallback) publishOutput(sp base.StatusPackage) {
+	p.outMu.RLock()
+	out := p.OutChan
+	p.outMu.RUnlock()
+
+	if out == nil {
+		return
+	}
+
+	select {
+	case out <- sp:
+	default:
+		log.L.Warn("[callback] Output channel is full; dropping input path.")
+	}
 }
 
 func stopTimer(timer *time.Timer) {

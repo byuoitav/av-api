@@ -115,6 +115,44 @@ func TestStartAggregatorIgnoresUnexpectedCallbackValueType(t *testing.T) {
 	}
 }
 
+func TestCallbackDoesNotBlockAfterAggregatorExits(t *testing.T) {
+	restoreTimeouts := useTieredSwitcherTimeouts(20*time.Millisecond, 50*time.Millisecond)
+	defer restoreTimeouts()
+
+	callback := &TieredSwitcherCallback{
+		InChan:              make(chan base.StatusPackage),
+		ExpectedActionCount: 1,
+	}
+	callback.SetDevices([]structs.Device{testOutputDevice()})
+
+	done := make(chan struct{})
+	go func() {
+		callback.StartAggregator()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("StartAggregator did not exit after the overall timeout")
+	}
+
+	callbackDone := make(chan struct{})
+	go func() {
+		_ = callback.Callback(base.StatusPackage{
+			Device: testOutputDevice(),
+			Value:  "HDMI1",
+		}, make(chan base.StatusPackage))
+		close(callbackDone)
+	}()
+
+	select {
+	case <-callbackDone:
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("Callback blocked after aggregator exit")
+	}
+}
+
 func useTieredSwitcherTimeouts(settle, overall time.Duration) func() {
 	oldSettle := tieredSwitcherSettleWindow
 	oldOverall := tieredSwitcherOverallTimeout

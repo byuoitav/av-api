@@ -256,13 +256,18 @@ func processDisplay(device se.Status) (base.Display, error) {
 // publishes a state event or an error
 // @pre the parameters have been filled, e.g. the endpoint does not contain ":"
 func ExecuteCommand(action base.ActionStructure, url, requestor string) se.StatusResponse {
+	return ExecuteCommandWithContext(context.Background(), action, url, requestor)
+}
+
+// ExecuteCommandWithContext makes a GET request for a state-changing command and publishes the results.
+func ExecuteCommandWithContext(ctx context.Context, action base.ActionStructure, url, requestor string) se.StatusResponse {
 	client := &http.Client{
 		Timeout: TIMEOUT * time.Second,
 	}
 
 	log.L.Infof("%s", color.HiBlueString("[state] sending request to %s...", url))
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		msg := err.Error()
 		return se.StatusResponse{ErrorMessage: &msg}

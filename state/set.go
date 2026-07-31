@@ -1,6 +1,7 @@
 package state
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -15,7 +16,7 @@ import (
 	"github.com/fatih/color"
 )
 
-//GenerateActions evaluates and validates each command in the configuration.
+// GenerateActions evaluates and validates each command in the configuration.
 func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 
 	log.L.Infof("%s", color.HiBlueString("[state] generating actions..."))
@@ -65,7 +66,7 @@ func GenerateActions(dbRoom structs.Room, bodyRoom base.PublicRoom, requestor st
 	return batches, count, err
 }
 
-//ReconcileActions produces a DAG
+// ReconcileActions produces a DAG
 func ReconcileActions(room structs.Room, actions []base.ActionStructure, inCount int) (batches []base.ActionStructure, count int, err error) {
 
 	log.L.Infof("%s", color.HiBlueString("[state] reconciling actions..."))
@@ -89,11 +90,19 @@ func ReconcileActions(room structs.Room, actions []base.ActionStructure, inCount
 	return
 }
 
-//ExecuteActions carries out the actions defined in the struct
-//@pre TODO DestinationDevice field is populated for every action!!
+// ExecuteActions carries out the actions defined in the struct
+// @pre TODO DestinationDevice field is populated for every action!!
 func ExecuteActions(DAG []base.ActionStructure, requestor string) ([]se.StatusResponse, error) {
+	return ExecuteActionsWithContext(context.Background(), DAG, requestor)
+}
+
+func ExecuteActionsWithContext(ctx context.Context, DAG []base.ActionStructure, requestor string) ([]se.StatusResponse, error) {
 	// get total number of actions in dag
 	log.L.Infof("%s", color.HiBlueString("[state] executing actions..."))
+
+	if err := ctx.Err(); err != nil {
+		return []se.StatusResponse{}, err
+	}
 
 	if len(DAG) == 0 {
 		return []se.StatusResponse{}, errors.New("no actions generated")
@@ -104,13 +113,30 @@ func ExecuteActions(DAG []base.ActionStructure, requestor string) ([]se.StatusRe
 	responses := make(chan se.StatusResponse, len(DAG))
 	var done sync.WaitGroup
 
-	for _, child := range DAG[0].Children {
+	var schedule func(base.ActionStructure)
+	schedule = func(action base.ActionStructure) {
+		if ctx.Err() != nil {
+			return
+		}
+
 		done.Add(1)
-		go ExecuteAction(*child, responses, &done, requestor)
+		go func() {
+			defer done.Done()
+			executeAction(ctx, action, responses, requestor, schedule)
+		}()
+	}
+
+	for _, child := range DAG[0].Children {
+		schedule(*child)
 	}
 
 	log.L.Info("[state] waiting for responses...")
 	done.Wait()
+
+	if err := ctx.Err(); err != nil {
+		close(responses)
+		return []se.StatusResponse{}, err
+	}
 
 	log.L.Info("[state] done executing actions, closing channel...")
 	close(responses)
@@ -130,12 +156,24 @@ func ExecuteActions(DAG []base.ActionStructure, requestor string) ([]se.StatusRe
 
 // ExecuteAction builds a status response
 func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusResponse, control *sync.WaitGroup, requestor string) {
+	defer control.Done()
+	executeAction(context.Background(), action, responses, requestor, func(child base.ActionStructure) {
+		control.Add(1)
+		go ExecuteAction(child, responses, control, requestor)
+	})
+}
+
+func executeAction(ctx context.Context, action base.ActionStructure, responses chan<- se.StatusResponse, requestor string, schedule func(base.ActionStructure)) {
 	log.L.Infof("[state] Executing action %s against device %s...", action.Action, action.Device.Name)
+
+	if err := ctx.Err(); err != nil {
+		log.L.Warnf("[state] Skipping action %s on device %s: %s", action.Action, action.Device.Name, err)
+		return
+	}
 
 	if action.Overridden {
 		log.L.Infof("[state] Action %s on device %s have been overridden. Continuing.",
 			action.Action, action.Device.Name)
-		control.Done()
 		return
 	}
 
@@ -165,7 +203,6 @@ func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusRespon
 		msg := fmt.Sprintf("unable to execute action '%s' on %s: %s", action.Action, action.Device.ID, err.Error())
 		log.L.Errorf("%s", color.HiRedString("[state] %s", msg))
 		PublishError(msg, action, requestor)
-		control.Done()
 		return
 	}
 
@@ -177,28 +214,33 @@ func ExecuteAction(action base.ActionStructure, responses chan<- se.StatusRespon
 		msg := fmt.Sprintf("unable to execute action '%s' on %s: %s", action.Action, action.Device.ID, gerr.Error())
 		log.L.Errorf("%s", color.HiRedString("[state] %s", msg))
 		PublishError(msg, action, requestor)
-		control.Done()
 		return
 	}
 
 	//Execute the command.
-	status := ExecuteCommand(action, url, requestor)
+	status := ExecuteCommandWithContext(ctx, action, url, requestor)
+
+	if err := ctx.Err(); err != nil {
+		log.L.Warnf("[state] Command %s on device %s canceled: %s", action.Action, action.Device.Name, err)
+		return
+	}
 
 	log.L.Info("[state] Writing response to channel...")
-	responses <- status
+	select {
+	case responses <- status:
+	case <-ctx.Done():
+		return
+	}
 	log.L.Infof("[state] microservice reported status: %v", status.Status)
 
 	for _, child := range action.Children {
 		log.L.Infof("[state] found child: %s. Executing...", child.Action)
-		control.Add(1)
-		go ExecuteAction(*child, responses, control, requestor)
+		schedule(*child)
 	}
-
-	control.Done()
 }
 
-//SET_STATE_STATUS_EVALUATORS is the map containing the definitions of our evaluator strings.
-//this is where we decide which status evaluator is used to evalutate the resultant status of a command that sets state
+// SET_STATE_STATUS_EVALUATORS is the map containing the definitions of our evaluator strings.
+// this is where we decide which status evaluator is used to evalutate the resultant status of a command that sets state
 var SET_STATE_STATUS_EVALUATORS = map[string]string{
 	"PowerOnDefault":                 "STATUS_PowerDefault",
 	"StandbyDefault":                 "STATUS_PowerDefault",

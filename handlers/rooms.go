@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -23,6 +24,7 @@ const (
 	timeout           = 50 * time.Millisecond
 	roomStateTimeout  = 5 * time.Minute
 	roomConfigTimeout = 60 * time.Second
+	roomStateCacheTTL = 750 * time.Millisecond
 )
 
 type roomStateResult struct {
@@ -51,7 +53,7 @@ func GetRoomState(context echo.Context) error {
 	go func() {
 		defer recoverRoomState(resultChan)
 
-		status, err := state.GetRoomStateWithContext(requestContext, building, room)
+		status, err := state.GetRoomStateShared(requestContext, building, room, roomStateCacheTTL, roomStateTimeout)
 		resultChan <- roomStateResult{status: status, err: err}
 	}()
 
@@ -146,6 +148,8 @@ func SetRoomState(ctx echo.Context) error {
 	roomInQuestion.Room = room
 	roomInQuestion.Building = building
 	var report base.PublicRoom
+	requestContext, cancelRequest := context2WithTimeout(ctx.Request().Context(), roomStateTimeout)
+	defer cancelRequest()
 
 	gctx, cancel := context.WithTimeout(context.TODO(), timeout)
 	defer cancel()
@@ -157,19 +161,23 @@ func SetRoomState(ctx echo.Context) error {
 	if err != nil || len(hn) == 0 {
 		log.L.Debugf("REQUESTOR: %s", ctx.RealIP())
 		color.Unset()
-		report, err = state.SetRoomState(roomInQuestion, ctx.RealIP())
+		report, err = state.SetRoomStateLatest(requestContext, roomInQuestion, ctx.RealIP())
 	} else if strings.Contains(hn[0], "localhost") {
 		log.L.Debugf("REQUESTOR: %s", os.Getenv("SYSTEM_ID"))
 		color.Unset()
-		report, err = state.SetRoomState(roomInQuestion, os.Getenv("SYSTEM_ID"))
+		report, err = state.SetRoomStateLatest(requestContext, roomInQuestion, os.Getenv("SYSTEM_ID"))
 	} else {
 		log.L.Debugf("REQUESTOR: %s", hn[0])
 		color.Unset()
-		report, err = state.SetRoomState(roomInQuestion, hn[0])
+		report, err = state.SetRoomStateLatest(requestContext, roomInQuestion, hn[0])
 	}
 
 	if err != nil {
 		log.L.Errorf("Error: %s", err.Error())
+		if errors.Is(err, state.ErrSuperseded) {
+			return ctx.JSON(http.StatusConflict, helpers.ReturnError(err))
+		}
+
 		return ctx.JSON(http.StatusInternalServerError, helpers.ReturnError(err))
 	}
 
