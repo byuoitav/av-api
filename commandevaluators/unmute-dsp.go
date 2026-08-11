@@ -103,8 +103,8 @@ func (p *UnMuteDSP) Evaluate(dbRoom structs.Room, room base.PublicRoom, requesto
 									return actions, len(actions), err
 								}
 
-								cmd := DX.GetCommandByID("UnMuteDSP")
-								if len(cmd.ID) < 1 {
+								hasCommand, _ := CheckCommands(DX.Type.Commands, "UnMuteDSP")
+								if !hasCommand {
 									continue
 								}
 

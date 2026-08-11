@@ -78,8 +78,8 @@ func (p *MuteDefault) Evaluate(dbRoom structs.Room, room base.PublicRoom, reques
 								return actions, len(actions), err
 							}
 
-							cmd := DX.GetCommandByID("MuteDefault")
-							if len(cmd.ID) < 1 {
+							hasCommand, _ := CheckCommands(DX.Type.Commands, "MuteDefault")
+							if !hasCommand {
 								continue
 							}
 
@@ -144,8 +144,8 @@ func (p *MuteDefault) Evaluate(dbRoom structs.Room, room base.PublicRoom, reques
 							return []base.ActionStructure{}, 0, err
 						}
 
-						cmd := DX.GetCommandByID("MuteDefault")
-						if len(cmd.ID) < 1 {
+						hasCommand, _ := CheckCommands(DX.Type.Commands, "MuteDefault")
+						if !hasCommand {
 							continue
 						}
 

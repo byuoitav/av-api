@@ -50,8 +50,8 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(dbRoom structs.Room, room base.
 							return []base.ActionStructure{}, 0, err
 						}
 
-						cmd := DX.GetCommandByID("ChangeVideoInputVideoSwitcher")
-						if len(cmd.ID) < 1 {
+						hasCommand, _ := CheckCommands(DX.Type.Commands, "ChangeVideoInputVideoSwitcher")
+						if !hasCommand {
 							continue
 						}
 
@@ -97,8 +97,8 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(dbRoom structs.Room, room base.
 								return actionList, len(actionList), err
 							}
 
-							cmd := DX.GetCommandByID("ChangeVideoInputVideoSwitcher")
-							if len(cmd.ID) < 1 {
+							hasCommand, _ := CheckCommands(DX.Type.Commands, "ChangeVideoInputVideoSwitcher")
+							if !hasCommand {
 								continue
 							}
 
@@ -142,8 +142,8 @@ func (c *ChangeVideoInputVideoSwitcher) Evaluate(dbRoom structs.Room, room base.
 								return []base.ActionStructure{}, 0, err
 							}
 
-							cmd := DX.GetCommandByID("ChangeVideoInputVideoSwitcher")
-							if len(cmd.ID) < 1 {
+							hasCommand, _ := CheckCommands(DX.Type.Commands, "ChangeVideoInputVideoSwitcher")
+							if !hasCommand {
 								continue
 							}
 

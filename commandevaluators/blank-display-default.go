@@ -80,9 +80,8 @@ func (p *BlankDisplayDefault) Evaluate(dbRoom structs.Room, room base.PublicRoom
 								return []base.ActionStructure{}, 0, err
 							}
 
-							cmd := DX.GetCommandByID("BlankDisplay")
-
-							if len(cmd.ID) == 0 || cmd.ID != "BlankDisplay" {
+							hasCommand, _ := CheckCommands(DX.Type.Commands, "BlankDisplay")
+							if !hasCommand {
 								continue
 							}
 
@@ -90,11 +89,19 @@ func (p *BlankDisplayDefault) Evaluate(dbRoom structs.Room, room base.PublicRoom
 
 							event.TargetDevice = events.GenerateBasicDeviceInfo(DX.ID)
 
+							mirrorDestination := base.DestinationDevice{
+								Device:  DX,
+								Display: true,
+							}
+							if structs.HasRole(DX, "AudioOut") {
+								mirrorDestination.AudioDevice = true
+							}
+
 							actions = append(actions, base.ActionStructure{
 								Action:              "BlankDisplay",
 								GeneratingEvaluator: "BlankDisplayDefault",
 								Device:              DX,
-								DestinationDevice:   destination,
+								DestinationDevice:   mirrorDestination,
 								DeviceSpecific:      false,
 								EventLog:            []events.Event{event},
 							})
@@ -151,9 +158,8 @@ func (p *BlankDisplayDefault) Evaluate(dbRoom structs.Room, room base.PublicRoom
 							return []base.ActionStructure{}, 0, err
 						}
 
-						cmd := DX.GetCommandByID("BlankDisplay")
-
-						if cmd.ID != "BlankDisplay" {
+						hasCommand, _ := CheckCommands(DX.Type.Commands, "BlankDisplay")
+						if !hasCommand {
 							continue
 						}
 
@@ -161,11 +167,19 @@ func (p *BlankDisplayDefault) Evaluate(dbRoom structs.Room, room base.PublicRoom
 
 						event.TargetDevice = events.GenerateBasicDeviceInfo(DX.ID)
 
+						mirrorDestination := base.DestinationDevice{
+							Device:  DX,
+							Display: true,
+						}
+						if structs.HasRole(DX, "AudioOut") {
+							mirrorDestination.AudioDevice = true
+						}
+
 						actions = append(actions, base.ActionStructure{
 							Action:              "BlankDisplay",
 							GeneratingEvaluator: "BlankDisplayDefault",
 							Device:              DX,
-							DestinationDevice:   destination,
+							DestinationDevice:   mirrorDestination,
 							DeviceSpecific:      true,
 							EventLog:            []events.Event{event},
 						})

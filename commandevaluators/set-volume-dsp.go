@@ -107,8 +107,8 @@ func (p *SetVolumeDSP) Evaluate(dbRoom structs.Room, room base.PublicRoom, reque
 									return actions, len(actions), err
 								}
 
-								cmd := DX.GetCommandByID("SetVolumeDSP")
-								if len(cmd.ID) < 1 {
+								hasCommand, _ := CheckCommands(DX.Type.Commands, "SetVolumeDSP")
+								if !hasCommand {
 									continue
 								}
 

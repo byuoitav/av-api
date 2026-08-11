@@ -443,8 +443,8 @@ func (c *ChangeVideoInputTieredSwitchers) GenerateActionsFromPath(room base.Publ
 //we assume that the change is on the receiver
 func generateActionForAVIPReceiver(room base.PublicRoom, tx, rx inputgraph.Node, destination structs.Device, selected string, callbackEngine *statusevaluators.TieredSwitcherCallback, requestor string) (base.ActionStructure, error) {
 
-	cmd := rx.Device.GetCommandByID("ChangeInput")
-	if len(cmd.ID) == 0 {
+	hasCommand, _ := CheckCommands(rx.Device.Type.Commands, "ChangeInput")
+	if !hasCommand {
 		color.HiRedString("Command not found Change input")
 		return base.ActionStructure{}, errors.New("Command not found Change input")
 	}
@@ -508,8 +508,8 @@ func generateActionForNonSwitch(room base.PublicRoom, prev, cur inputgraph.Node,
 		return base.ActionStructure{}, errors.New(msg)
 	}
 
-	cmd := destination.GetCommandByID("ChangeInput")
-	if len(cmd.ID) < 1 {
+	hasCommand, _ := CheckCommands(destination.Type.Commands, "ChangeInput")
+	if !hasCommand {
 		return base.ActionStructure{}, nil
 	}
 

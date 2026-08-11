@@ -17,7 +17,7 @@ import (
 type UnBlankDisplayDefault struct {
 }
 
-//Evaluate creates UnBlank actions for the entire room and for individual devices
+// Evaluate creates UnBlank actions for the entire room and for individual devices
 func (p *UnBlankDisplayDefault) Evaluate(dbRoom structs.Room, room base.PublicRoom, requestor string) ([]base.ActionStructure, int, error) {
 
 	var actions []base.ActionStructure
@@ -75,8 +75,8 @@ func (p *UnBlankDisplayDefault) Evaluate(dbRoom structs.Room, room base.PublicRo
 								return actions, len(actions), err
 							}
 
-							cmd := DX.GetCommandByID("UnBlankDisplay")
-							if len(cmd.ID) < 1 {
+							hasCommand, _ := CheckCommands(DX.Type.Commands, "UnblankDisplay")
+							if !hasCommand {
 								continue
 							}
 
@@ -84,13 +84,21 @@ func (p *UnBlankDisplayDefault) Evaluate(dbRoom structs.Room, room base.PublicRo
 
 							eventInfo.AffectedRoom = events.GenerateBasicRoomInfo(fmt.Sprintf("%s-%s", room.Building, room.Room))
 
-							eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(destination.ID)
+							eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(DX.ID)
+
+							mirrorDestination := base.DestinationDevice{
+								Device:  DX,
+								Display: true,
+							}
+							if structs.HasRole(DX, "AudioOut") {
+								mirrorDestination.AudioDevice = true
+							}
 
 							actions = append(actions, base.ActionStructure{
 								Action:              "UnblankDisplay",
 								GeneratingEvaluator: "UnBlankDisplayDefault",
 								Device:              DX,
-								DestinationDevice:   destination,
+								DestinationDevice:   mirrorDestination,
 								DeviceSpecific:      false,
 								EventLog:            []events.Event{eventInfo},
 							})
@@ -143,8 +151,8 @@ func (p *UnBlankDisplayDefault) Evaluate(dbRoom structs.Room, room base.PublicRo
 							return actions, len(actions), err
 						}
 
-						cmd := DX.GetCommandByID("UnBlankDisplay")
-						if len(cmd.ID) < 1 {
+						hasCommand, _ := CheckCommands(DX.Type.Commands, "UnblankDisplay")
+						if !hasCommand {
 							continue
 						}
 
@@ -154,11 +162,19 @@ func (p *UnBlankDisplayDefault) Evaluate(dbRoom structs.Room, room base.PublicRo
 
 						eventInfo.TargetDevice = events.GenerateBasicDeviceInfo(DX.ID)
 
+						mirrorDestination := base.DestinationDevice{
+							Device:  DX,
+							Display: true,
+						}
+						if structs.HasRole(DX, "AudioOut") {
+							mirrorDestination.AudioDevice = true
+						}
+
 						actions = append(actions, base.ActionStructure{
 							Action:              "UnblankDisplay",
 							GeneratingEvaluator: "UnBlankDisplayDefault",
 							Device:              DX,
-							DestinationDevice:   destination,
+							DestinationDevice:   mirrorDestination,
 							DeviceSpecific:      true,
 							EventLog:            []events.Event{eventInfo},
 						})
@@ -175,7 +191,7 @@ func (p *UnBlankDisplayDefault) Evaluate(dbRoom structs.Room, room base.PublicRo
 	return actions, len(actions), nil
 }
 
-//Validate returns an error if a command is invalid for a device
+// Validate returns an error if a command is invalid for a device
 func (p *UnBlankDisplayDefault) Validate(action base.ActionStructure) error {
 	log.L.Info("[command_evaluators] Validating action for command \"UnBlank\"")
 
@@ -191,7 +207,7 @@ func (p *UnBlankDisplayDefault) Validate(action base.ActionStructure) error {
 	return nil
 }
 
-//GetIncompatibleCommands returns a string array containing commands incompatible with UnBlank Display
+// GetIncompatibleCommands returns a string array containing commands incompatible with UnBlank Display
 func (p *UnBlankDisplayDefault) GetIncompatibleCommands() (incompatibleActions []string) {
 	incompatibleActions = []string{
 		"BlankScreen",

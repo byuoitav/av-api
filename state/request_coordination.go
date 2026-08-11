@@ -12,6 +12,8 @@ import (
 
 var ErrSuperseded = errors.New("room state request superseded by a newer request")
 
+const setRoomStateExecutionTimeout = 2 * time.Minute
+
 type roomStateCacheEntry struct {
 	status    base.PublicRoom
 	err       error
@@ -126,7 +128,7 @@ func SetRoomStateLatest(ctx context.Context, target base.PublicRoom, requestor s
 	key := roomKey(target.Building, target.Room)
 	runner := getSetRoomStateRunner(key)
 
-	jobCtx, cancel := context.WithCancel(ctx)
+	jobCtx, cancel := context.WithTimeout(context.Background(), setRoomStateExecutionTimeout)
 	job := &setRoomStateJob{
 		ctx:       jobCtx,
 		cancel:    cancel,
@@ -142,7 +144,6 @@ func SetRoomStateLatest(ctx context.Context, target base.PublicRoom, requestor s
 		cancel()
 		return result.status, result.err
 	case <-ctx.Done():
-		cancel()
 		return base.PublicRoom{}, ctx.Err()
 	}
 }
@@ -165,11 +166,6 @@ func (r *setRoomStateRunner) submit(job *setRoomStateJob) {
 	defer r.mu.Unlock()
 
 	invalidateRoomStateCache(roomKey(job.target.Building, job.target.Room))
-
-	if r.active != nil {
-		r.active.cancel()
-		r.active.finish(base.PublicRoom{}, ErrSuperseded)
-	}
 
 	if r.queued != nil {
 		r.queued.cancel()

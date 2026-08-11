@@ -79,8 +79,8 @@ func (p *UnMuteDefault) Evaluate(dbRoom structs.Room, room base.PublicRoom, requ
 								return actions, len(actions), err
 							}
 
-							cmd := DX.GetCommandByID("UnMute")
-							if len(cmd.ID) < 1 {
+							hasCommand, _ := CheckCommands(DX.Type.Commands, "UnMute")
+							if !hasCommand {
 								continue
 							}
 
