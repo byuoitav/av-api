@@ -14,6 +14,8 @@ var ErrSuperseded = errors.New("room state request superseded by a newer request
 
 const setRoomStateExecutionTimeout = 2 * time.Minute
 
+var setRoomStateWithContext = SetRoomStateWithContext
+
 type roomStateCacheEntry struct {
 	status    base.PublicRoom
 	err       error
@@ -113,7 +115,7 @@ func (j *setRoomStateJob) finish(status base.PublicRoom, err error) {
 type setRoomStateRunner struct {
 	mu      sync.Mutex
 	active  *setRoomStateJob
-	queued  *setRoomStateJob
+	queued  []*setRoomStateJob
 	running bool
 }
 
@@ -167,12 +169,7 @@ func (r *setRoomStateRunner) submit(job *setRoomStateJob) {
 
 	invalidateRoomStateCache(roomKey(job.target.Building, job.target.Room))
 
-	if r.queued != nil {
-		r.queued.cancel()
-		r.queued.finish(base.PublicRoom{}, ErrSuperseded)
-	}
-
-	r.queued = job
+	r.queued = append(r.queued, job)
 	if !r.running {
 		r.running = true
 		go r.run()
@@ -182,8 +179,12 @@ func (r *setRoomStateRunner) submit(job *setRoomStateJob) {
 func (r *setRoomStateRunner) run() {
 	for {
 		r.mu.Lock()
-		job := r.queued
-		r.queued = nil
+		var job *setRoomStateJob
+		if len(r.queued) > 0 {
+			job = r.queued[0]
+			r.queued[0] = nil
+			r.queued = r.queued[1:]
+		}
 		r.active = job
 		if job == nil {
 			r.active = nil
@@ -193,7 +194,7 @@ func (r *setRoomStateRunner) run() {
 		}
 		r.mu.Unlock()
 
-		status, err := SetRoomStateWithContext(job.ctx, job.target, job.requestor)
+		status, err := setRoomStateWithContext(job.ctx, job.target, job.requestor)
 		if errors.Is(err, context.Canceled) {
 			err = ErrSuperseded
 		}

@@ -114,7 +114,11 @@ func (p *UnMuteDefault) Evaluate(dbRoom structs.Room, room base.PublicRoom, requ
 
 		log.L.Infof("[command_evaluators] Adding device %+v", audioDevice.Name)
 
-		if audioDevice.Muted != nil && !*audioDevice.Muted {
+		if audioDevice.Muted != nil && *audioDevice.Muted {
+			continue
+		}
+
+		if audioDevice.Muted != nil || audioDevice.Volume != nil {
 
 			deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, audioDevice.Name)
 			device := FindDevice(dbRoom.Devices, deviceID)
