@@ -79,8 +79,8 @@ func (*SetVolumeDefault) Evaluate(dbRoom structs.Room, room base.PublicRoom, req
 								return []base.ActionStructure{}, 0, err
 							}
 
-							cmd := DX.GetCommandByID("SetVolume")
-							if len(cmd.ID) < 1 {
+							hasCommand, _ := CheckCommands(DX.Type.Commands, "SetVolume")
+							if !hasCommand {
 								continue
 							}
 
@@ -160,8 +160,8 @@ func (*SetVolumeDefault) Evaluate(dbRoom structs.Room, room base.PublicRoom, req
 								return actions, len(actions), err
 							}
 
-							cmd := DX.GetCommandByID("SetVolume")
-							if len(cmd.ID) < 1 {
+							hasCommand, _ := CheckCommands(DX.Type.Commands, "SetVolume")
+							if !hasCommand {
 								continue
 							}
 

@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/byuoitav/authmiddleware/bearertoken"
+	"github.com/byuoitav/av-api/internal/bearertoken"
+	"github.com/byuoitav/av-api/internal/configdb/structs"
 	"github.com/byuoitav/common/log"
-	"github.com/byuoitav/configuration-database-microservice/structs"
 	"github.com/fatih/color"
 )
 

@@ -3,9 +3,10 @@ package statusevaluators
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
-	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/byuoitav/common/db"
@@ -20,6 +21,16 @@ import (
 
 // InputTieredSwitcherEvaluator is a constant variable for the name of the evaluator.
 const InputTieredSwitcherEvaluator = "STATUS_Tiered_Switching"
+
+const (
+	defaultTieredSwitcherSettleWindow   = 500 * time.Millisecond
+	defaultTieredSwitcherOverallTimeout = 5 * time.Minute
+)
+
+var (
+	tieredSwitcherSettleWindow   = defaultTieredSwitcherSettleWindow
+	tieredSwitcherOverallTimeout = defaultTieredSwitcherOverallTimeout
+)
 
 // InputTieredSwitcher implements the StatusEvaluator struct.
 type InputTieredSwitcher struct {
@@ -117,14 +128,21 @@ func (p *InputTieredSwitcher) GenerateCommands(room structs.Room) ([]StatusComma
 	callbackEngine.InChan = make(chan base.StatusPackage, len(toReturn))
 	callbackEngine.ExpectedCount = count
 	callbackEngine.ExpectedActionCount = len(toReturn)
-	callbackEngine.Devices = room.Devices
+	callbackEngine.SetDevices(room.Devices)
 
 	for id, port := range mirrorEdges {
 		device, _ := db.GetDB().GetDevice(id)
 		callbackEngine.AddEdge(device, port)
 	}
 
-	go callbackEngine.StartAggregator()
+	if callbackEngine.ExpectedActionCount > 0 {
+		go callbackEngine.StartAggregator()
+	} else {
+		for i := range toReturn {
+			toReturn[i].Callback = nil
+		}
+		callbackEngine.Devices = nil
+	}
 
 	for _, a := range toReturn {
 		log.L.Infof(color.HiYellowString("%v, %v, %v", a.Action, a.Device.Name, a.Parameters))
@@ -143,10 +161,13 @@ func (p *InputTieredSwitcher) EvaluateResponse(room structs.Room, str string, fa
 type TieredSwitcherCallback struct {
 	InChan              chan base.StatusPackage
 	OutChan             chan<- base.StatusPackage
+	DoneChan            chan struct{}
 	Devices             []structs.Device
 	ExpectedCount       int
 	ExpectedActionCount int
 	pathfinder          pathfinder.SignalPathfinder
+	doneOnce            sync.Once
+	outMu               sync.RWMutex
 }
 
 // Callback begins the callback process...
@@ -160,14 +181,57 @@ func (p *TieredSwitcherCallback) Callback(sp base.StatusPackage, c chan<- base.S
 	log.L.Infof(color.HiYellowString("[callback] ExpectedCount: %v", p.ExpectedCount))
 	log.L.Infof(color.HiYellowString("[callback] ExpectedActionCount: %v", p.ExpectedActionCount))
 
+	if p.InChan == nil {
+		return fmt.Errorf("tiered switcher callback input channel is not initialized")
+	}
+
 	//we pass down the the aggregator that was started before
+	p.outMu.Lock()
 	p.OutChan = c
-	p.InChan <- sp
+	p.outMu.Unlock()
+
+	select {
+	case p.InChan <- sp:
+	case <-p.done():
+		log.L.Warn("[callback] Aggregator already closed; dropping callback input.")
+	default:
+		log.L.Warn("[callback] Aggregator input channel is full; dropping callback input.")
+	}
 
 	return nil
 }
 
+func (p *TieredSwitcherCallback) done() <-chan struct{} {
+	p.outMu.Lock()
+	defer p.outMu.Unlock()
+
+	if p.DoneChan == nil {
+		p.DoneChan = make(chan struct{})
+	}
+
+	return p.DoneChan
+}
+
+func (p *TieredSwitcherCallback) closeDone() {
+	p.outMu.Lock()
+	if p.DoneChan == nil {
+		p.DoneChan = make(chan struct{})
+	}
+	done := p.DoneChan
+	p.outMu.Unlock()
+
+	p.doneOnce.Do(func() {
+		close(done)
+	})
+}
+
 func (p *TieredSwitcherCallback) getDeviceByID(dev string) structs.Device {
+	if p.pathfinder.Devices != nil {
+		if device, ok := p.pathfinder.Devices[dev]; ok {
+			return device
+		}
+	}
+
 	for d := range p.Devices {
 		if p.Devices[d].ID == dev {
 			return p.Devices[d]
@@ -197,9 +261,10 @@ func (p *TieredSwitcherCallback) GetInputPaths(pathfinder pathfinder.SignalPathf
 		inputValue := v.Name
 
 		if v.HasRole("STB-Stream-Player") {
-			resp, err := http.Get(fmt.Sprintf("http://%s:8032/stream", v.Address))
+			resp, err := streamStatusClient.Get(fmt.Sprintf("http://%s:8032/stream", v.Address))
 			if err == nil {
-				body, _ := ioutil.ReadAll(resp.Body)
+				body, _ := ioutil.ReadAll(io.LimitReader(resp.Body, 1<<20))
+				resp.Body.Close()
 				var input status.Input
 				err = json.Unmarshal(body, &input)
 				if err != nil {
@@ -215,11 +280,11 @@ func (p *TieredSwitcherCallback) GetInputPaths(pathfinder pathfinder.SignalPathf
 		}
 		log.L.Infof(color.HiYellowString("[callback] Sending input %v -> %v", inputValue, k))
 
-		p.OutChan <- base.StatusPackage{
+		p.publishOutput(base.StatusPackage{
 			Dest:  destDev,
 			Key:   "input",
 			Value: inputValue,
-		}
+		})
 	}
 	log.L.Info(color.HiYellowString("[callback] Done with evaluation. Closing."))
 	return
@@ -228,37 +293,62 @@ func (p *TieredSwitcherCallback) GetInputPaths(pathfinder pathfinder.SignalPathf
 // StartAggregator starts the aggregator...I guess haha...
 func (p *TieredSwitcherCallback) StartAggregator() {
 	log.L.Info(color.HiYellowString("[callback] Starting aggregator."))
-	started := false
-
-	t := time.NewTimer(0)
-	<-t.C
+	defer p.closeDone()
 	if p.pathfinder.Devices == nil {
 		p.pathfinder = pathfinder.InitializeSignalPathfinder(p.Devices, p.ExpectedActionCount)
 	}
+	p.Devices = nil
+
+	overall := time.NewTimer(tieredSwitcherOverallTimeout)
+	defer stopTimer(overall)
+
+	settle := time.NewTimer(tieredSwitcherSettleWindow)
+	stopTimer(settle)
+	defer stopTimer(settle)
+	settleStarted := false
 
 	for {
 		select {
-		case <-t.C:
+		case <-overall.C:
 			//we're timed out
-			log.L.Warn(color.HiYellowString("[callback] Timeout."))
-			p.GetInputPaths(p.pathfinder)
+			log.L.Warn(color.HiYellowString("[callback] Overall timeout."))
+			p.finishAggregation()
 			return
 
-		case val := <-p.InChan:
+		case <-settle.C:
+			log.L.Warn(color.HiYellowString("[callback] Timeout."))
+			p.finishAggregation()
+			return
+
+		case val, ok := <-p.InChan:
+			if !ok {
+				log.L.Warn(color.HiYellowString("[callback] Input channel closed."))
+				p.finishAggregation()
+				return
+			}
+
 			log.L.Info(color.HiYellowString("[callback] Received Information, adding an edge: %v %v", val.Device.Name, val.Value))
 			//start our timeout
-			if !started {
+			if !settleStarted {
 				log.L.Info("[callback] Started aggregator timeout")
-				started = true
-				t.Reset(500 * time.Millisecond)
+				settleStarted = true
+				settle.Reset(tieredSwitcherSettleWindow)
+			} else {
+				resetTimer(settle, tieredSwitcherSettleWindow)
+			}
+
+			port, ok := val.Value.(string)
+			if !ok {
+				log.L.Warnf("[callback] Unexpected value type for %s: %T", val.Device.ID, val.Value)
+				continue
 			}
 
 			//we need to start our graph, then check if we have any completed paths
-			ready := p.pathfinder.AddEdge(val.Device, val.Value.(string))
+			ready := p.pathfinder.AddEdge(val.Device, port)
 			if ready {
 				log.L.Info(color.HiYellowString("[callback] All Information received."))
 				log.L.Debugf(color.HiYellowString("[callback] Paths: %+v", p.pathfinder.Pending))
-				p.GetInputPaths(p.pathfinder)
+				p.finishAggregation()
 				return
 			}
 		}
@@ -270,5 +360,73 @@ func (p *TieredSwitcherCallback) AddEdge(device structs.Device, port string) {
 	if p.pathfinder.Devices == nil {
 		p.pathfinder = pathfinder.InitializeSignalPathfinder(p.Devices, p.ExpectedActionCount)
 	}
+	p.Devices = nil
 	p.pathfinder.AddEdge(device, port)
+}
+
+// SetDevices stores the minimal room/device shape the pathfinder needs.
+func (p *TieredSwitcherCallback) SetDevices(devices []structs.Device) {
+	p.Devices = devicesForPathfinder(devices)
+}
+
+func (p *TieredSwitcherCallback) finishAggregation() {
+	p.outMu.RLock()
+	hasOutChan := p.OutChan != nil
+	p.outMu.RUnlock()
+
+	if !hasOutChan {
+		log.L.Warn("[callback] No output channel available; closing aggregator without sending input paths.")
+		return
+	}
+
+	p.GetInputPaths(p.pathfinder)
+}
+
+func (p *TieredSwitcherCallback) publishOutput(sp base.StatusPackage) {
+	p.outMu.RLock()
+	out := p.OutChan
+	p.outMu.RUnlock()
+
+	if out == nil {
+		return
+	}
+
+	select {
+	case out <- sp:
+	default:
+		log.L.Warn("[callback] Output channel is full; dropping input path.")
+	}
+}
+
+func stopTimer(timer *time.Timer) {
+	if !timer.Stop() {
+		select {
+		case <-timer.C:
+		default:
+		}
+	}
+}
+
+func resetTimer(timer *time.Timer, duration time.Duration) {
+	stopTimer(timer)
+	timer.Reset(duration)
+}
+
+func devicesForPathfinder(devices []structs.Device) []structs.Device {
+	toReturn := make([]structs.Device, len(devices))
+	for i := range devices {
+		toReturn[i] = structs.Device{
+			ID:      devices[i].ID,
+			Name:    devices[i].Name,
+			Address: devices[i].Address,
+			Type: structs.DeviceType{
+				Input:  devices[i].Type.Input,
+				Output: devices[i].Type.Output,
+			},
+			Roles: append([]structs.Role(nil), devices[i].Roles...),
+			Ports: append([]structs.Port(nil), devices[i].Ports...),
+		}
+	}
+
+	return toReturn
 }

@@ -1,12 +1,11 @@
-FROM byuoitav/arm32v6-alpine
-MAINTAINER Daniel Randall <danny_randall@byu.edu>
+FROM arm32v7/alpine:3.18
+LABEL maintainer="Daniel Randall <danny_randall@byu.edu>"
 
 ARG NAME
-ENV name=${NAME}
 
-COPY ${name}-arm ${name}-arm
+COPY ${NAME} /av-api
 COPY version.txt version.txt
 
 # add any required files/folders here
 
-ENTRYPOINT ./${name}-arm
+ENTRYPOINT ["/av-api"]

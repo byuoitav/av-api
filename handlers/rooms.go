@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -20,41 +21,116 @@ import (
 )
 
 const (
-	timeout = 50 * time.Millisecond
+	timeout           = 50 * time.Millisecond
+	roomStateTimeout  = 5 * time.Minute
+	roomConfigTimeout = 60 * time.Second
+	roomStateCacheTTL = 750 * time.Millisecond
 )
+
+type roomStateResult struct {
+	status base.PublicRoom
+	err    error
+}
+
+type roomConfigResult struct {
+	config interface{}
+	err    error
+}
 
 // GetRoomResource returns the resourceID for a request
 func GetRoomResource(context echo.Context) string {
 	return context.Param("building") + "-" + context.Param("room")
 }
 
-//GetRoomState to get the current state of a room
+// GetRoomState to get the current state of a room
 func GetRoomState(context echo.Context) error {
 	building, room := context.Param("building"), context.Param("room")
 
-	status, err := state.GetRoomState(building, room)
-	if err != nil {
-		return context.JSON(http.StatusBadRequest, err.Error())
-	}
+	requestContext, cancel := context2WithTimeout(context.Request().Context(), roomStateTimeout)
+	defer cancel()
 
-	return context.JSON(http.StatusOK, status)
+	resultChan := make(chan roomStateResult, 1)
+	go func() {
+		defer recoverRoomState(resultChan)
+
+		status, err := state.GetRoomStateShared(requestContext, building, room, roomStateCacheTTL, roomStateTimeout)
+		resultChan <- roomStateResult{status: status, err: err}
+	}()
+
+	select {
+	case result := <-resultChan:
+		if !helpers.IsNilError(result.err) {
+			return context.JSON(http.StatusBadRequest, result.err.Error())
+		}
+
+		return context.JSON(http.StatusOK, result.status)
+	case <-requestContext.Done():
+		err := fmt.Errorf("timed out retrieving room state for %s-%s", building, room)
+		log.L.Errorf("[handlers] %s", err.Error())
+		return context.JSON(http.StatusServiceUnavailable, helpers.ReturnError(err))
+	}
 }
 
-//GetRoomByNameAndBuilding is almost identical to GetRoomByName
+// GetRoomByNameAndBuilding is almost identical to GetRoomByName
 func GetRoomByNameAndBuilding(context echo.Context) error {
 	building, roomName := context.Param("building"), context.Param("room")
 
-	log.L.Info("Getting room...")
-	room, err := db.GetDB().GetRoom(fmt.Sprintf("%s-%s", building, roomName))
-	if err != nil {
-		return context.JSON(http.StatusBadRequest, helpers.ReturnError(err))
+	requestContext, cancel := context2WithTimeout(context.Request().Context(), roomConfigTimeout)
+	defer cancel()
+
+	resultChan := make(chan roomConfigResult, 1)
+	go func() {
+		defer recoverRoomConfig(resultChan)
+
+		log.L.Info("Getting room...")
+		room, err := db.GetDB().GetRoom(fmt.Sprintf("%s-%s", building, roomName))
+		if err != nil {
+			resultChan <- roomConfigResult{err: err}
+			return
+		}
+
+		//we need to add the input reachability stuff
+		reachable, err := inputgraph.GetVideoDeviceReachability(room)
+		resultChan <- roomConfigResult{config: reachable, err: err}
+	}()
+
+	select {
+	case result := <-resultChan:
+		if !helpers.IsNilError(result.err) {
+			return context.JSON(http.StatusBadRequest, helpers.ReturnError(result.err))
+		}
+
+		log.L.Info("Done.\n")
+		return context.JSON(http.StatusOK, result.config)
+	case <-requestContext.Done():
+		err := fmt.Errorf("timed out retrieving room configuration for %s-%s", building, roomName)
+		log.L.Errorf("[handlers] %s", err.Error())
+		return context.JSON(http.StatusServiceUnavailable, helpers.ReturnError(err))
+	}
+}
+
+func context2WithTimeout(parent context.Context, timeout time.Duration) (context.Context, context.CancelFunc) {
+	if parent == nil {
+		parent = context.Background()
 	}
 
-	//we need to add the input reachability stuff
-	reachable, err := inputgraph.GetVideoDeviceReachability(room)
+	return context.WithTimeout(parent, timeout)
+}
 
-	log.L.Info("Done.\n")
-	return context.JSON(http.StatusOK, reachable)
+func recoverRoomState(resultChan chan<- roomStateResult) {
+	if recovered := recover(); recovered != nil {
+		err := fmt.Errorf("panic retrieving room state: %v", recovered)
+		log.L.Errorf("[handlers] %s", err.Error())
+		resultChan <- roomStateResult{err: err}
+	}
+}
+
+func recoverRoomConfig(resultChan chan<- roomConfigResult) {
+	if recovered := recover(); recovered != nil {
+		err := fmt.Errorf("panic retrieving room configuration: %v", recovered)
+		log.L.Errorf("[handlers] %s", err.Error())
+		resultChan <- roomConfigResult{err: err}
+	}
 }
 
 // SetRoomState to update the state of the room
@@ -72,6 +148,8 @@ func SetRoomState(ctx echo.Context) error {
 	roomInQuestion.Room = room
 	roomInQuestion.Building = building
 	var report base.PublicRoom
+	requestContext, cancelRequest := context2WithTimeout(ctx.Request().Context(), roomStateTimeout)
+	defer cancelRequest()
 
 	gctx, cancel := context.WithTimeout(context.TODO(), timeout)
 	defer cancel()
@@ -83,19 +161,23 @@ func SetRoomState(ctx echo.Context) error {
 	if err != nil || len(hn) == 0 {
 		log.L.Debugf("REQUESTOR: %s", ctx.RealIP())
 		color.Unset()
-		report, err = state.SetRoomState(roomInQuestion, ctx.RealIP())
+		report, err = state.SetRoomStateLatest(requestContext, roomInQuestion, ctx.RealIP())
 	} else if strings.Contains(hn[0], "localhost") {
 		log.L.Debugf("REQUESTOR: %s", os.Getenv("SYSTEM_ID"))
 		color.Unset()
-		report, err = state.SetRoomState(roomInQuestion, os.Getenv("SYSTEM_ID"))
+		report, err = state.SetRoomStateLatest(requestContext, roomInQuestion, os.Getenv("SYSTEM_ID"))
 	} else {
 		log.L.Debugf("REQUESTOR: %s", hn[0])
 		color.Unset()
-		report, err = state.SetRoomState(roomInQuestion, hn[0])
+		report, err = state.SetRoomStateLatest(requestContext, roomInQuestion, hn[0])
 	}
 
 	if err != nil {
 		log.L.Errorf("Error: %s", err.Error())
+		if errors.Is(err, state.ErrSuperseded) {
+			return ctx.JSON(http.StatusConflict, helpers.ReturnError(err))
+		}
+
 		return ctx.JSON(http.StatusInternalServerError, helpers.ReturnError(err))
 	}
 

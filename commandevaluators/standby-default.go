@@ -44,8 +44,8 @@ func (s *StandbyDefault) Evaluate(dbRoom structs.Room, room base.PublicRoom, req
 			if device.Type.Output {
 				//check to see if it has the standby command
 
-				cmd := device.GetCommandByID("Standby")
-				if len(cmd.ID) < 1 {
+				hasCommand, _ := CheckCommands(device.Type.Commands, "Standby")
+				if !hasCommand {
 					log.L.Debugf("Device %v doesn't have standby command. Skipping.")
 					continue
 				}
@@ -173,8 +173,8 @@ func (s *StandbyDefault) evaluateDevice(device base.Device, destination base.Des
 							return actions, err
 						}
 
-						cmd := DX.GetCommandByID("Standby")
-						if len(cmd.ID) < 1 {
+						hasCommand, _ := CheckCommands(DX.Type.Commands, "Standby")
+						if !hasCommand {
 							continue
 						}
 

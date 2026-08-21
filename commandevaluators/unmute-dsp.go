@@ -61,7 +61,11 @@ func (p *UnMuteDSP) Evaluate(dbRoom structs.Room, room base.PublicRoom, requesto
 
 		for _, audioDevice := range room.AudioDevices {
 
-			if audioDevice.Muted != nil && !(*audioDevice.Muted) {
+			if audioDevice.Muted != nil && *audioDevice.Muted {
+				continue
+			}
+
+			if audioDevice.Muted != nil || audioDevice.Volume != nil {
 
 				deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, audioDevice.Name)
 				device := FindDevice(dbRoom.Devices, deviceID)
@@ -103,8 +107,8 @@ func (p *UnMuteDSP) Evaluate(dbRoom structs.Room, room base.PublicRoom, requesto
 									return actions, len(actions), err
 								}
 
-								cmd := DX.GetCommandByID("UnMuteDSP")
-								if len(cmd.ID) < 1 {
+								hasCommand, _ := CheckCommands(DX.Type.Commands, "UnMuteDSP")
+								if !hasCommand {
 									continue
 								}
 
@@ -149,8 +153,8 @@ func (p *UnMuteDSP) GetIncompatibleCommands() []string {
 }
 
 // GetGeneralUnMuteRequestActionsDSP generates a list of actions based on the given room and event information.
-//assumes only one DSP, but allows for the possiblity of multiple devices not routed through the DSP
-//room-wide mute requests DO NOT include mics
+// assumes only one DSP, but allows for the possiblity of multiple devices not routed through the DSP
+// room-wide mute requests DO NOT include mics
 func GetGeneralUnMuteRequestActionsDSP(dbRoom structs.Room, room base.PublicRoom, eventInfo events.Event) ([]base.ActionStructure, error) {
 
 	log.L.Info("[command_evaluators] Generating actions for room-wide \"UnMute\" request")
@@ -195,7 +199,7 @@ func GetGeneralUnMuteRequestActionsDSP(dbRoom structs.Room, room base.PublicRoom
 }
 
 // GetMicUnMuteAction generates an action based on the room, microphone and event information.
-//assumes the mic is only connected to a single DSP
+// assumes the mic is only connected to a single DSP
 func GetMicUnMuteAction(dbRoom structs.Room, mic structs.Device, room base.PublicRoom, eventInfo events.Event) (base.ActionStructure, error) {
 
 	log.L.Infof("[command_evaluators] Generating action for command \"UnMute\" on microphone %s", mic.Name)

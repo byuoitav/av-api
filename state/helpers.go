@@ -1,9 +1,11 @@
 package state
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -12,28 +14,57 @@ import (
 	"sync"
 	"time"
 
-	"github.com/byuoitav/authmiddleware/bearertoken"
 	"github.com/byuoitav/av-api/base"
+	"github.com/byuoitav/av-api/internal/bearertoken"
 	se "github.com/byuoitav/av-api/statusevaluators"
 	"github.com/byuoitav/common/log"
 	"github.com/byuoitav/common/v2/events"
 	"github.com/fatih/color"
 )
 
-//TIMEOUT is the duration constant to wait before timing out.
+// TIMEOUT is the duration, in seconds, to wait for a device microservice response.
 const TIMEOUT = 5
 
 // const LOCAL_CHECK_INDEX = 21
 // const GATEWAY_CHECK_INDEX = 5
 
-//builds a Status object corresponding to a device and writes it to the channel
-func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse, control *sync.WaitGroup) {
+// builds a Status object corresponding to a device and writes it to the channel
+func issueCommands(ctx context.Context, commands []se.StatusCommand, channel chan []se.StatusResponse, control *sync.WaitGroup) {
+	start := time.Now()
+	deviceID := "unknown"
+	if len(commands) > 0 {
+		deviceID = commands[0].Device.ID
+	}
+
 	//final output
 	outputs := []se.StatusResponse{}
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			msg := fmt.Sprintf("panic querying status commands: %v", recovered)
+			log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
+			outputs = append(outputs, se.StatusResponse{ErrorMessage: &msg})
+		}
+
+		channel <- outputs
+		log.L.Infof("[state] status command group for %s took %s and produced %d responses", deviceID, time.Since(start), len(outputs))
+		control.Done()
+	}()
 
 	//iterate over list of StatusCommands
 	//TODO:make sure devices can handle rapid-fire API requests
 	for _, command := range commands {
+		if ctx.Err() != nil {
+			msg := fmt.Sprintf("status command canceled for device %s: %s", command.Device.Name, ctx.Err())
+			log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
+			outputs = append(outputs, se.StatusResponse{
+				Callback:          command.Callback,
+				Generator:         command.Generator,
+				SourceDevice:      command.Device,
+				DestinationDevice: command.DestinationDevice,
+				ErrorMessage:      &msg,
+			})
+			continue
+		}
 
 		log.L.Infof("[state] issuing command: %s against device %s, destination device: %s, parameters: %v", command.Action.ID, command.Device.ID, command.DestinationDevice.Device.ID, command.Parameters)
 
@@ -67,7 +98,16 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 		log.L.Infof("%s", color.HiBlueString("[state] sending request to %s", url))
 		timeout := time.Duration(TIMEOUT * time.Second)
 		client := http.Client{Timeout: timeout}
-		response, gerr := client.Get(url)
+		request, gerr := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+		if gerr != nil {
+			msg := fmt.Sprintf("unable to create request to %s for device %s: %s", url, command.Device.Name, gerr.Error())
+			log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
+			output.ErrorMessage = &msg
+			outputs = append(outputs, output)
+			continue
+		}
+
+		response, gerr := client.Do(request)
 		if gerr != nil {
 			msg := fmt.Sprintf("unable to complete request to %s for device %s: %s", url, command.Device.Name, gerr.Error())
 			log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
@@ -76,9 +116,8 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 			continue
 		}
 
-		defer response.Body.Close()
-
-		body, gerr := ioutil.ReadAll(response.Body)
+		body, gerr := ioutil.ReadAll(io.LimitReader(response.Body, 1<<20))
+		closeErr := response.Body.Close()
 		if gerr != nil {
 			msg := fmt.Sprintf("unable to read response from %s for device %s: %s", url, command.Device.Name, gerr.Error())
 			log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
@@ -86,12 +125,18 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 			outputs = append(outputs, output)
 			continue
 		}
+		if closeErr != nil {
+			msg := fmt.Sprintf("unable to close response from %s for device %s: %s", url, command.Device.Name, closeErr.Error())
+			log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
+		}
 
 		//check to see if it returned a non 200 response, if so, we need to build the error.
 		if response.StatusCode != 200 {
 			msg := fmt.Sprintf("non-200 response code: %d, message: %s", response.StatusCode, string(body))
 			log.L.Errorf("%s", color.HiRedString("[error] %s", msg))
 			base.PublishError(msg, events.Error, command.Device.ID)
+			output.ErrorMessage = &msg
+			outputs = append(outputs, output)
 			continue
 		}
 
@@ -126,10 +171,9 @@ func issueCommands(commands []se.StatusCommand, channel chan []se.StatusResponse
 			log.L.Infof("%s maps to %v", key, value)
 		}
 	}
-
-	channel <- outputs
-	log.L.Infof("%s", color.HiBlueString("[state] done acquiring statuses from  %s", commands[0].Device.ID))
-	control.Done()
+	if len(commands) > 0 {
+		log.L.Infof("%s", color.HiBlueString("[state] done acquiring statuses from  %s", commands[0].Device.ID))
+	}
 }
 
 func processAudioDevice(device se.Status) (base.AudioDevice, error) {
@@ -207,18 +251,23 @@ func processDisplay(device se.Status) (base.Display, error) {
 	return display, nil
 }
 
-//ExecuteCommand makes a GET request given a microservice and endpoint and publishes the results
-//returns the state the microservice reports or nothing if the microservice doesn't respond
-//publishes a state event or an error
-//@pre the parameters have been filled, e.g. the endpoint does not contain ":"
+// ExecuteCommand makes a GET request given a microservice and endpoint and publishes the results
+// returns the state the microservice reports or nothing if the microservice doesn't respond
+// publishes a state event or an error
+// @pre the parameters have been filled, e.g. the endpoint does not contain ":"
 func ExecuteCommand(action base.ActionStructure, url, requestor string) se.StatusResponse {
+	return ExecuteCommandWithContext(context.Background(), action, url, requestor)
+}
+
+// ExecuteCommandWithContext makes a GET request for a state-changing command and publishes the results.
+func ExecuteCommandWithContext(ctx context.Context, action base.ActionStructure, url, requestor string) se.StatusResponse {
 	client := &http.Client{
 		Timeout: TIMEOUT * time.Second,
 	}
 
 	log.L.Infof("%s", color.HiBlueString("[state] sending request to %s...", url))
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		msg := err.Error()
 		return se.StatusResponse{ErrorMessage: &msg}
@@ -247,7 +296,7 @@ func ExecuteCommand(action base.ActionStructure, url, requestor string) se.Statu
 
 		log.L.Errorf("%s", color.HiRedString("[error] non-200 response code: %v", resp.StatusCode))
 
-		b, err := ioutil.ReadAll(resp.Body)
+		b, err := ioutil.ReadAll(io.LimitReader(resp.Body, 1<<20))
 		if err != nil {
 			log.L.Errorf("%s", color.HiRedString("[error] problem reading the response: %s", err.Error()))
 		}
@@ -266,7 +315,7 @@ func ExecuteCommand(action base.ActionStructure, url, requestor string) se.Statu
 
 	log.L.Infof("%s", color.HiGreenString("[state] sent command %s to device %s.", action.Action, action.Device.Name))
 	status := make(map[string]interface{})
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
 		errorString := fmt.Sprintf("could not read response body: %s", err.Error())
 		PublishError(errorString, action, requestor)
@@ -300,9 +349,9 @@ func ReplaceIPAddressEndpoint(path string, address string) string {
 
 }
 
-//ReplaceParameters replaces parameters in the command endpoint
-//@pre the endpoint's IP parameter has already been replaced
-//@post the endpoint does not contain ':'
+// ReplaceParameters replaces parameters in the command endpoint
+// @pre the endpoint's IP parameter has already been replaced
+// @post the endpoint does not contain ':'
 func ReplaceParameters(addr string, parameters map[string]string) (string, error) {
 	if parameters == nil { //should I keep this check?
 		return addr, nil
@@ -339,7 +388,7 @@ func ReplaceParameters(addr string, parameters map[string]string) (string, error
 	return u.String(), nil
 }
 
-//PublishError creates an Event based on the error message and ActionStructure information, and then sends it to the event messaging system.
+// PublishError creates an Event based on the error message and ActionStructure information, and then sends it to the event messaging system.
 func PublishError(message string, action base.ActionStructure, requestor string) {
 	log.L.Errorf("[error] publishing error: %s...", message)
 
