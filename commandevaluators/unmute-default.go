@@ -118,7 +118,8 @@ func (p *UnMuteDefault) Evaluate(dbRoom structs.Room, room base.PublicRoom, requ
 			continue
 		}
 
-		if audioDevice.Muted != nil || audioDevice.Volume != nil {
+		// Volume changes preserve mute state; unmuting requires an explicit request.
+		if audioDevice.Muted != nil {
 
 			deviceID := fmt.Sprintf("%v-%v-%v", room.Building, room.Room, audioDevice.Name)
 			device := FindDevice(dbRoom.Devices, deviceID)

@@ -7,7 +7,7 @@ import (
 	"github.com/byuoitav/common/structs"
 )
 
-func TestUnMuteDefaultGeneratesUnmuteForVolumeOnlyAudioRequest(t *testing.T) {
+func TestUnMuteDefaultSkipsVolumeOnlyAudioRequest(t *testing.T) {
 	volume := 50
 	dbRoom := defaultRoomWithDisplayAudio()
 	request := base.PublicRoom{
@@ -26,17 +26,8 @@ func TestUnMuteDefaultGeneratesUnmuteForVolumeOnlyAudioRequest(t *testing.T) {
 		t.Fatalf("Evaluate returned error: %s", err)
 	}
 
-	if count != 1 || len(actions) != 1 {
-		t.Fatalf("expected one unmute action, got count %d and actions %d", count, len(actions))
-	}
-
-	action := actions[0]
-	if action.Action != "UnMute" {
-		t.Fatalf("expected UnMute action, got %q", action.Action)
-	}
-
-	if action.Device.ID != "ITB-JAKE-D1" {
-		t.Fatalf("expected action to target D1, got %q", action.Device.ID)
+	if count != 0 || len(actions) != 0 {
+		t.Fatalf("expected no unmute actions, got count %d and actions %d", count, len(actions))
 	}
 }
 
