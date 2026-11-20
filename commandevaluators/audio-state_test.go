@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/byuoitav/av-api/base"
+	hubbase "github.com/byuoitav/central-event-system/hub/base"
 	"github.com/byuoitav/common/structs"
 )
 
@@ -92,6 +93,15 @@ func TestAudioVolumeAndMuteAreIndependent(t *testing.T) {
 							}
 							if len(action.EventLog) != 1 || action.EventLog[0].Key != command.key || action.EventLog[0].Value != value || action.EventLog[0].User != "test" {
 								t.Errorf("unexpected %s events: %+v", command.action, action.EventLog)
+							}
+							for _, event := range action.EventLog {
+								if event.AffectedRoom.BuildingID != config.building || hubbase.WrapEvent(event).Room != config.room.ID {
+									t.Errorf("%s event cannot reach room subscribers: affected room %+v, expected %s", command.action, event.AffectedRoom, config.room.ID)
+								}
+								expectedDevice := config.room.ID + "-" + config.deviceName
+								if event.TargetDevice.DeviceID != expectedDevice {
+									t.Errorf("%s event targets %q, expected logical audio device %q", command.action, event.TargetDevice.DeviceID, expectedDevice)
+								}
 							}
 							if command.action == "SetVolume" && action.Parameters["level"] != value {
 								t.Errorf("expected volume %s, got %q", value, action.Parameters["level"])

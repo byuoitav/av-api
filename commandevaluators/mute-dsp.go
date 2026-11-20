@@ -48,6 +48,9 @@ func (p *MuteDSP) Evaluate(dbRoom structs.Room, room base.PublicRoom, requestor 
 		User:  requestor,
 	}
 
+	// The event hub routes updates by AffectedRoom, including microphone mutes.
+	eventInfo.AffectedRoom = ei.GenerateBasicRoomInfo(fmt.Sprintf("%s-%s", room.Building, room.Room))
+
 	eventInfo.AddToTags(ei.CoreState, ei.UserGenerated)
 
 	destination := base.DestinationDevice{
